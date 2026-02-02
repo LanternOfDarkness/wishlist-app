@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- NextAuth Models ---
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  username      String?   @unique
+  
+  accounts      Account[]
+  sessions      Session[]
+  wishlists     Wishlist[]
+  pledges       Pledge[]
+  
+  createdAt     DateTime  @default(now())
+}
+
+// --- App Models ---
+
+model Wishlist {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  slug        String   @unique
+  isPublic    Boolean  @default(true)
+  appearance  Json?    
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       Item[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  name        String
+  url         String?
+  imageUrl    String?
+  price       Float?
+  currency    String   @default("UAH")
+  priority    Int      @default(0)
+  
+  wishlistId  String
+  wishlist    Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  pledges     Pledge[]
+
+  createdAt   DateTime @default(now())
+}
+
+model Pledge {
+  id          String   @id @default(cuid())
+  amount      Float?
+  message     String?
+  isAnonymous Boolean  @default(false)
+  guestName   String?
+  
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  itemId      String
+  item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+}
