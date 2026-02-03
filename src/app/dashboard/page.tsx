@@ -2,6 +2,7 @@ import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default async function DashboardPage() {
     const session = await auth();
@@ -27,7 +28,10 @@ export default async function DashboardPage() {
                 </h1>
                 <p className="text-muted-foreground">{session.user?.email}</p>
 
-                {/* Кнопка виходу */}
+                <Link href="/dashboard/settings">
+                    <Button variant="outline">Налаштування</Button>
+                </Link>
+
                 <form
                     action={async () => {
                         "use server";
