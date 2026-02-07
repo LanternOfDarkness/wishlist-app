@@ -16,6 +16,30 @@
         "stats_placeholder": "Тут буде статистика твоїх бажань",
         "copy_link": "Скопіювати посилання"
     },
+    "AddItem": {
+        "title": "Додати бажання",
+        "url_label": "Посилання на товар",
+        "url_placeholder": "Вставте посилання на товар",
+        "fetch_button": "Автозаповнити",
+        "fetching": "Завантаження даних...",
+        "error_fetch": "Не вдалося отримати дані",
+        "name_label": "Назва",
+        "name_placeholder": "Введіть назву",
+        "price_label": "Ціна",
+        "price_placeholder": "0.00",
+        "currency_label": "Валюта",
+        "image_label": "Зображення",
+        "priority_label": "Пріоритет",
+        "submit": "Додати",
+        "cancel": "Скасувати"
+    },
+    "Wishlist": {
+        "wishlist_title": "Вішліст користувача {name}",
+        "add_item": "Додати бажання",
+        "no_items": "Поки що немає бажань",
+        "reserved": "Зарезервовано",
+        "view_link": "Переглянути"
+    },
     "Common": {
         "loading": "Завантаження...",
         "error": "Щось пішло не так"

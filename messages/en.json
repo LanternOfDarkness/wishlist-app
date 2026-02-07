@@ -16,6 +16,30 @@
         "stats_placeholder": "Wishlist statistics will appear here",
         "copy_link": "Copy link"
     },
+    "AddItem": {
+        "title": "Add Item",
+        "url_label": "Product URL",
+        "url_placeholder": "Paste product link",
+        "fetch_button": "Auto-fill",
+        "fetching": "Loading data...",
+        "error_fetch": "Could not fetch data",
+        "name_label": "Name",
+        "name_placeholder": "Enter name",
+        "price_label": "Price",
+        "price_placeholder": "0.00",
+        "currency_label": "Currency",
+        "image_label": "Image",
+        "priority_label": "Priority",
+        "submit": "Add",
+        "cancel": "Cancel"
+    },
+    "Wishlist": {
+        "wishlist_title": "{name}'s Wishlist",
+        "add_item": "Add Item",
+        "no_items": "No items yet",
+        "reserved": "Reserved",
+        "view_link": "View"
+    },
     "Common": {
         "loading": "Loading...",
         "error": "Something went wrong"
