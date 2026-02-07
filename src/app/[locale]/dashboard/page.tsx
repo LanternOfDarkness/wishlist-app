@@ -1,9 +1,9 @@
-import { auth, signOut } from "@/auth";
-import { Link, redirect } from "@/i18n/routing";
+import { auth } from "@/auth";
+import { redirect } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { Link } from "@/i18n/routing";
 
 export default async function DashboardPage({
     params
@@ -40,17 +40,8 @@ export default async function DashboardPage({
 
     return (
         <div className="container mx-auto py-10">
-            <div className="flex justify-between items-center mb-12">
+            <div className="mb-12">
                 <h1 className="text-3xl font-bold">{t('title')}</h1>
-                <div className="flex gap-2">
-                    <LanguageSwitcher />
-                    <Link href="/dashboard/settings">
-                        <Button variant="outline">{t('settings')}</Button>
-                    </Link>
-                    <form action={async () => { "use server"; await signOut({ redirectTo: "/" }); }}>
-                        <Button variant="ghost">{t('logout')}</Button>
-                    </form>
-                </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

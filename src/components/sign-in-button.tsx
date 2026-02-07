@@ -1,15 +1,19 @@
-import { signIn } from "@/auth"
-import { Button } from "@/components/ui/button"
+"use client";
+
+import { signIn } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 export function SignInButton() {
+    const t = useTranslations("Navigation");
+
     return (
-        <form
-            action={async () => {
-                "use server"
-                await signIn("google", { redirectTo: "/dashboard" })
-            }}
+        <Button
+            variant="default"
+            size="sm"
+            onClick={() => signIn("google", { redirectTo: "/dashboard" })}
         >
-            <Button type="submit">Увійти через Google</Button>
-        </form>
-    )
+            {t("login")}
+        </Button>
+    );
 }
