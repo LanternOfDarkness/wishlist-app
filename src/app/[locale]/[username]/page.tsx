@@ -43,7 +43,7 @@ export default async function WishlistPage({ params }: WishlistPageProps) {
 
     return (
         <div className="container mx-auto py-10 px-4">
-            {/* User Profile Section */}
+
             <div className="flex flex-col items-center text-center mb-8 space-y-4">
                 <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center text-4xl mb-2 overflow-hidden border-4 border-white shadow-sm">
                     {user.image ? (
@@ -64,13 +64,11 @@ export default async function WishlistPage({ params }: WishlistPageProps) {
                     <CopyLinkButton url={`/${user.username}`} />
                 </div>
 
-                {/* Add Item Button for Owner */}
                 {isOwner && user.wishlist.items.length > 0 && (
                     <AddItemModal wishlistId={user.wishlist.id} />
                 )}
             </div>
 
-            {/* Items Grid */}
             {user.wishlist.items.length === 0 ? (
                 <div className="text-center py-20 border-2 border-dashed rounded-xl text-muted-foreground bg-slate-50/50">
                     <div>

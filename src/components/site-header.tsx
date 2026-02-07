@@ -8,7 +8,6 @@ import { prisma } from "@/lib/prisma";
 export async function SiteHeader() {
     const session = await auth();
 
-    // Get user's username if logged in
     let logoHref = "/";
     if (session?.user?.email) {
         const user = await prisma.user.findUnique({
@@ -21,22 +20,15 @@ export async function SiteHeader() {
     }
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container flex h-16 items-center justify-between">
-                {/* Logo / Site Name */}
-                <Link href={logoHref} className="flex items-center space-x-2">
-                    <span className="font-bold text-xl">Wishlist App</span>
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
+            <div className="container mx-auto flex h-14 items-center justify-between">
+                <Link href={logoHref} className="font-bold hover:text-foreground/80">
+                    <span className="hidden sm:inline-block">Wishlist App</span>
                 </Link>
 
-                {/* Right Side Navigation */}
                 <div className="flex items-center gap-4">
                     <LanguageSwitcher />
-
-                    {session?.user ? (
-                        <UserNav user={session.user} />
-                    ) : (
-                        <SignInButton />
-                    )}
+                    {session?.user ? <UserNav user={session.user} /> : <SignInButton />}
                 </div>
             </div>
         </header>
