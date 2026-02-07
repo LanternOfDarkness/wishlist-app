@@ -1,0 +1,13 @@
+{
+    "HomePage": {
+        "title": "Wishlist App MVP",
+        "subtitle": "Keep your dreams in one place",
+        "login": "Sign in with Google"
+    },
+    "Dashboard": {
+        "title": "My Wishlist",
+        "settings": "Settings",
+        "logout": "Sign out",
+        "go_to_list": "Go to my list"
+    }
+}
