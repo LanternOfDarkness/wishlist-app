@@ -1,27 +1,34 @@
 import { auth, signOut } from "@/auth";
-import { redirect } from "next/navigation";
+import { Link, redirect } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+    params
+}: {
+    params: Promise<{ locale: string }>;
+}) {
+    const { locale } = await params;
     const session = await auth();
-    if (!session?.user?.id) redirect("/");
+
+    if (!session?.user?.email) {
+        redirect({ href: "/", locale });
+    }
 
     const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
+        where: { email: session!.user.email! },
         include: { wishlist: true },
     });
 
-    if (!user) redirect("/");
+    if (!user) redirect({ href: "/", locale });
 
-    let wishlist = user.wishlist;
+    let wishlist = user!.wishlist;
 
     if (!wishlist) {
-        const slug = `user-${session.user.id.slice(0, 8)}`;
+        const slug = user!.username || `user-${user!.id.slice(0, 8)}`;
         wishlist = await prisma.wishlist.create({
             data: {
-                userId: session.user.id,
+                userId: user!.id,
                 title: "Мої бажання",
                 slug,
             },
@@ -50,7 +57,7 @@ export default async function DashboardPage() {
                             Додавай бажання, ділися посиланням з друзями.
                         </p>
                     </div>
-                    <Link href={user.username ? `/${user.username}` : "#"}>
+                    <Link href={user!.username ? `/${user!.username}` : "#"}>
                         <Button size="lg" className="w-full">Перейти до списку</Button>
                     </Link>
                 </div>
