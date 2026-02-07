@@ -7,22 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --- NextAuth Models ---
 model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -42,13 +40,11 @@ model User {
   emailVerified DateTime?
   image         String?
   username      String?   @unique
-  
+  createdAt     DateTime  @default(now())
   accounts      Account[]
+  pledges       Pledge[]
   sessions      Session[]
   wishlist      Wishlist?
-  pledges       Pledge[]
-  
-  createdAt     DateTime  @default(now())
 }
 
 model Wishlist {
@@ -57,30 +53,26 @@ model Wishlist {
   description String?
   slug        String   @unique
   isPublic    Boolean  @default(true)
-  appearance  Json?    
-  
+  appearance  Json?
   userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items       Item[]
-
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  items       Item[]
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Item {
-  id          String   @id @default(cuid())
-  name        String
-  url         String?
-  imageUrl    String?
-  price       Float?
-  currency    String   @default("UAH")
-  priority    Int      @default(0)
-  
-  wishlistId  String
-  wishlist    Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
-  pledges     Pledge[]
-
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  name       String
+  url        String?
+  imageUrl   String?
+  price      Float?
+  currency   String   @default("UAH")
+  priority   Int      @default(0)
+  wishlistId String
+  createdAt  DateTime @default(now())
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  pledges    Pledge[]
 }
 
 model Pledge {
@@ -89,12 +81,9 @@ model Pledge {
   message     String?
   isAnonymous Boolean  @default(false)
   guestName   String?
-  
   userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
-  
   itemId      String
-  item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
   createdAt   DateTime @default(now())
+  item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id])
 }

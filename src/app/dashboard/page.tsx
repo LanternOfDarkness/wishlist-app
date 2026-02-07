@@ -8,9 +8,14 @@ export default async function DashboardPage() {
     const session = await auth();
     if (!session?.user?.id) redirect("/");
 
-    let wishlist = await prisma.wishlist.findFirst({
-        where: { userId: session.user.id },
+    const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: { wishlist: true },
     });
+
+    if (!user) redirect("/");
+
+    let wishlist = user.wishlist;
 
     if (!wishlist) {
         const slug = `user-${session.user.id.slice(0, 8)}`;
@@ -45,7 +50,7 @@ export default async function DashboardPage() {
                             Додавай бажання, ділися посиланням з друзями.
                         </p>
                     </div>
-                    <Link href={`/dashboard/wishlist/${wishlist.slug}`}>
+                    <Link href={user.username ? `/${user.username}` : "#"}>
                         <Button size="lg" className="w-full">Перейти до списку</Button>
                     </Link>
                 </div>
