@@ -43,5 +43,12 @@
     "Common": {
         "loading": "Loading...",
         "error": "Something went wrong"
+    },
+    "Navigation": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "logout": "Log out",
+        "login": "Sign in",
+        "my_wishlist": "My Wishlist"
     }
 }
