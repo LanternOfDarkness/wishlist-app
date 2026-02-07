@@ -69,6 +69,7 @@ model Item {
   price      Float?
   currency   String   @default("UAH")
   priority   Int      @default(0)
+  isReserved Boolean  @default(false)
   wishlistId String
   createdAt  DateTime @default(now())
   wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)

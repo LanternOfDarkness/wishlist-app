@@ -1,26 +1,37 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Settings, User as UserIcon } from "lucide-react";
+import { Link } from "@/i18n/routing";
+import { Settings, User as UserIcon, ExternalLink } from "lucide-react";
 import { CopyLinkButton } from "@/components/copy-link-button";
+import { AddItemModal } from "@/components/add-item-modal";
+import { getTranslations } from "next-intl/server";
 
 interface WishlistPageProps {
     params: Promise<{
+        locale: string;
         username: string;
     }>;
 }
 
 export default async function WishlistPage({ params }: WishlistPageProps) {
     const session = await auth();
-    const { username } = await params;
+    const { locale, username } = await params;
+    const t = await getTranslations('Wishlist');
 
     const user = await prisma.user.findUnique({
         where: { username: username },
         include: {
             wishlist: {
-                include: { items: true },
+                include: {
+                    items: {
+                        orderBy: [
+                            { priority: 'desc' },
+                            { createdAt: 'desc' },
+                        ],
+                    },
+                },
             },
         },
     });
@@ -41,12 +52,12 @@ export default async function WishlistPage({ params }: WishlistPageProps) {
                 {isOwner ? (
                     <Link href="/dashboard">
                         <Button variant="outline" size="sm" className="gap-2">
-                            <Settings className="w-4 h-4" /> Налаштування / Дашборд
+                            <Settings className="w-4 h-4" /> Dashboard
                         </Button>
                     </Link>
                 ) : (
                     <Link href="/">
-                        <Button variant="ghost" size="sm">Створити свій вішліст</Button>
+                        <Button variant="ghost" size="sm">Create your wishlist</Button>
                     </Link>
                 )}
             </div>
@@ -61,27 +72,97 @@ export default async function WishlistPage({ params }: WishlistPageProps) {
                 </div>
 
                 <h1 className="text-3xl font-bold">
-                    Вішліст користувача {user.name}
+                    {t('wishlist_title', { name: user.name || user.username || 'User' })}
                 </h1>
 
                 <div className="flex items-center gap-2 justify-center">
                     <code className="bg-muted px-3 py-1 rounded text-sm text-muted-foreground">
-                        wish.velab.space/{user.username}
+                        /{user.username}
                     </code>
                     <CopyLinkButton url={`/${user.username}`} />
                 </div>
             </div>
 
-            <div className="text-center py-20 border-2 border-dashed rounded-xl text-muted-foreground bg-slate-50/50">
-                {user.wishlist.items.length === 0 ? (
+            {/* Items Grid */}
+            {user.wishlist.items.length === 0 ? (
+                <div className="text-center py-20 border-2 border-dashed rounded-xl text-muted-foreground bg-slate-50/50">
                     <div>
-                        <p className="mb-4">Цей список поки порожній.</p>
-                        {isOwner && <Button>+ Додати перше бажання</Button>}
+                        <p className="mb-4">{t('no_items')}</p>
+                        {isOwner && <AddItemModal wishlistId={user.wishlist.id} />}
                     </div>
-                ) : (
-                    <p>Тут будуть картки товарів</p>
-                )}
-            </div>
+                </div>
+            ) : (
+                <>
+                    {isOwner && (
+                        <div className="mb-6 flex justify-end">
+                            <AddItemModal wishlistId={user.wishlist.id} />
+                        </div>
+                    )}
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {user.wishlist.items.map((item) => (
+                            <div
+                                key={item.id}
+                                className="group relative overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-lg"
+                            >
+                                {/* Image */}
+                                <div className="aspect-square overflow-hidden bg-muted">
+                                    {item.imageUrl ? (
+                                        <img
+                                            src={item.imageUrl}
+                                            alt={item.name}
+                                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center text-muted-foreground">
+                                            <span className="text-4xl">🎁</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Content */}
+                                <div className="p-4">
+                                    <h3 className="line-clamp-2 font-semibold">{item.name}</h3>
+
+                                    {/* Price */}
+                                    {item.price && (
+                                        <p className="mt-2 text-lg font-bold text-primary">
+                                            {item.price.toFixed(2)} {item.currency}
+                                        </p>
+                                    )}
+
+                                    {/* Reserved Badge */}
+                                    {item.isReserved && (
+                                        <div className="mt-2 inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                            {t('reserved')}
+                                        </div>
+                                    )}
+
+                                    {/* Link */}
+                                    {item.url && (
+                                        <div className="mt-4">
+                                            <Button
+                                                asChild
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full"
+                                            >
+                                                <a
+                                                    href={item.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                                    {t('view_link')}
+                                                </a>
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 }
