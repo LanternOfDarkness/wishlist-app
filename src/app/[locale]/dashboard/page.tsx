@@ -2,6 +2,8 @@ import { auth, signOut } from "@/auth";
 import { Link, redirect } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
+import { getTranslations } from "next-intl/server";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default async function DashboardPage({
     params
@@ -9,6 +11,7 @@ export default async function DashboardPage({
     params: Promise<{ locale: string }>;
 }) {
     const { locale } = await params;
+    const t = await getTranslations('Dashboard');
     const session = await auth();
 
     if (!session?.user?.email) {
@@ -29,7 +32,7 @@ export default async function DashboardPage({
         wishlist = await prisma.wishlist.create({
             data: {
                 userId: user!.id,
-                title: "Мої бажання",
+                title: t('my_wishlist'),
                 slug,
             },
         });
@@ -38,13 +41,14 @@ export default async function DashboardPage({
     return (
         <div className="container mx-auto py-10">
             <div className="flex justify-between items-center mb-12">
-                <h1 className="text-3xl font-bold">Особистий кабінет</h1>
+                <h1 className="text-3xl font-bold">{t('title')}</h1>
                 <div className="flex gap-2">
+                    <LanguageSwitcher />
                     <Link href="/dashboard/settings">
-                        <Button variant="outline">Налаштування профілю</Button>
+                        <Button variant="outline">{t('settings')}</Button>
                     </Link>
                     <form action={async () => { "use server"; await signOut({ redirectTo: "/" }); }}>
-                        <Button variant="ghost">Вийти</Button>
+                        <Button variant="ghost">{t('logout')}</Button>
                     </form>
                 </div>
             </div>
@@ -52,18 +56,18 @@ export default async function DashboardPage({
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <div className="border p-8 rounded-xl shadow-sm bg-card flex flex-col items-start gap-4">
                     <div>
-                        <h2 className="text-2xl font-bold mb-2">Мій Вішліст</h2>
+                        <h2 className="text-2xl font-bold mb-2">{t('my_wishlist')}</h2>
                         <p className="text-muted-foreground">
-                            Додавай бажання, ділися посиланням з друзями.
+                            {t('wishlist_desc')}
                         </p>
                     </div>
                     <Link href={user!.username ? `/${user!.username}` : "#"}>
-                        <Button size="lg" className="w-full">Перейти до списку</Button>
+                        <Button size="lg" className="w-full">{t('go_to_list')}</Button>
                     </Link>
                 </div>
 
                 <div className="border p-8 rounded-xl shadow-sm bg-muted/20 flex flex-col justify-center items-center text-center text-muted-foreground">
-                    <p>Тут буде статистика твоїх бажань</p>
+                    <p>{t('stats_placeholder')}</p>
                 </div>
             </div>
         </div>

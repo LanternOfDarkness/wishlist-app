@@ -2,12 +2,22 @@
     "HomePage": {
         "title": "Wishlist App MVP",
         "subtitle": "Keep your dreams in one place",
-        "login": "Sign in with Google"
+        "login": "Sign in with Google",
+        "welcome": "Welcome, {name}!",
+        "go_to_dashboard": "Go to Dashboard"
     },
     "Dashboard": {
-        "title": "My Wishlist",
-        "settings": "Settings",
+        "title": "Dashboard",
+        "settings": "Profile Settings",
         "logout": "Sign out",
-        "go_to_list": "Go to my list"
+        "my_wishlist": "My Wishlist",
+        "wishlist_desc": "Add items, share the link with friends.",
+        "go_to_list": "Go to list",
+        "stats_placeholder": "Wishlist statistics will appear here",
+        "copy_link": "Copy link"
+    },
+    "Common": {
+        "loading": "Loading...",
+        "error": "Something went wrong"
     }
 }

@@ -6,7 +6,6 @@ export const authConfig = {
     },
     callbacks: {
         authorized({ auth, request: { nextUrl } }) {
-            // Дозволяємо всі запити, оскільки логіку авторизації обробляємо в middleware
             return true;
         },
     },
