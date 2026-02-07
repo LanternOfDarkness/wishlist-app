@@ -119,25 +119,21 @@ export default async function WishlistPage({ params }: WishlistPageProps) {
                                     )}
                                 </div>
 
-                                {/* Content */}
                                 <div className="p-4">
                                     <h3 className="line-clamp-2 font-semibold">{item.name}</h3>
 
-                                    {/* Price */}
                                     {item.price && (
                                         <p className="mt-2 text-lg font-bold text-primary">
                                             {item.price.toFixed(2)} {item.currency}
                                         </p>
                                     )}
 
-                                    {/* Reserved Badge */}
-                                    {item.isReserved && (
+                                    {(item as any).isReserved && (
                                         <div className="mt-2 inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                                             {t('reserved')}
                                         </div>
                                     )}
 
-                                    {/* Link */}
                                     {item.url && (
                                         <div className="mt-4">
                                             <Button
