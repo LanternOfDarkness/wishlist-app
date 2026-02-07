@@ -45,13 +45,11 @@ model User {
   
   accounts      Account[]
   sessions      Session[]
-  wishlists     Wishlist[]
+  wishlist      Wishlist?
   pledges       Pledge[]
   
   createdAt     DateTime  @default(now())
 }
-
-// --- App Models ---
 
 model Wishlist {
   id          String   @id @default(cuid())
@@ -61,7 +59,7 @@ model Wishlist {
   isPublic    Boolean  @default(true)
   appearance  Json?    
   
-  userId      String
+  userId      String   @unique
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   items       Item[]
 
