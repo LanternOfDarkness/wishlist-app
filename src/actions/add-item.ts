@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export interface AddItemData {
+    isPrivate?: boolean;
     name: string;
     url?: string;
     imageUrl?: string;
@@ -11,10 +12,26 @@ export interface AddItemData {
     currency?: string;
     priority?: number;
     wishlistId: string;
+    categoryId?: string;
+    newCategoryName?: string;
+    userId: string;
 }
 
 export async function addItem(data: AddItemData) {
     try {
+        let finalCategoryId = data.categoryId;
+
+        // If user provided a new category name, create it
+        if (data.newCategoryName) {
+            const category = await prisma.category.create({
+                data: {
+                    name: data.newCategoryName,
+                    userId: data.userId,
+                }
+            });
+            finalCategoryId = category.id;
+        }
+
         const item = await prisma.item.create({
             data: {
                 name: data.name,
@@ -23,7 +40,9 @@ export async function addItem(data: AddItemData) {
                 price: data.price,
                 currency: data.currency || 'UAH',
                 priority: data.priority || 0,
+                isPrivate: data.isPrivate || false,
                 wishlistId: data.wishlistId,
+                categoryId: finalCategoryId,
             },
         });
 

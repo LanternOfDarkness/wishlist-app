@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { SettingsForm } from "./settings-form";
+import { EmbedWidget } from "./embed-widget";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -15,6 +16,9 @@ export default async function SettingsPage() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.user.id },
+        include: {
+            wishlist: true
+        }
     });
 
     if (!user) {
@@ -34,6 +38,8 @@ export default async function SettingsPage() {
 
             <h1 className="text-3xl font-bold mb-8">Налаштування профілю</h1>
             <SettingsForm user={user} />
+
+            {user.username && <EmbedWidget username={user.username} />}
         </div>
     );
 }

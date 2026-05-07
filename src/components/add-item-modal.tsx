@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,12 +18,15 @@ import { fetchMetadata } from "@/actions/fetch-metadata";
 import { addItem } from "@/actions/add-item";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { Category } from "@prisma/client";
 
 interface AddItemModalProps {
     wishlistId: string;
+    userId: string;
+    categories?: Category[];
 }
 
-export function AddItemModal({ wishlistId }: AddItemModalProps) {
+export function AddItemModal({ wishlistId, userId, categories = [] }: AddItemModalProps) {
     const t = useTranslations('AddItem');
     const [open, setOpen] = useState(false);
     const [url, setUrl] = useState("");
@@ -31,12 +34,16 @@ export function AddItemModal({ wishlistId }: AddItemModalProps) {
     const [imageUrl, setImageUrl] = useState("");
     const [price, setPrice] = useState("");
     const [currency, setCurrency] = useState("UAH");
+    const [priority, setPriority] = useState("3");
+    const [isPrivate, setIsPrivate] = useState(false);
+    const [categoryId, setCategoryId] = useState("");
+    const [newCategoryName, setNewCategoryName] = useState("");
     const [isFetching, setIsFetching] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleFetchMetadata = async () => {
         if (!url.trim()) {
-            toast.error(t('error_fetch'));
+            toast.error(t('error_fetch') || "Please enter URL");
             return;
         }
 
@@ -55,11 +62,11 @@ export function AddItemModal({ wishlistId }: AddItemModalProps) {
                 }
                 toast.success("Дані успішно завантажено!");
             } else {
-                toast.error(t('error_fetch'));
+                toast.error(t('error_fetch') || "Error fetching");
             }
         } catch (error) {
             console.error(error);
-            toast.error(t('error_fetch'));
+            toast.error(t('error_fetch') || "Error fetching");
         } finally {
             setIsFetching(false);
         }
@@ -81,7 +88,12 @@ export function AddItemModal({ wishlistId }: AddItemModalProps) {
                 imageUrl: imageUrl.trim() || undefined,
                 price: price ? parseFloat(price) : undefined,
                 currency,
+                priority: parseInt(priority, 10),
                 wishlistId,
+                userId,
+                categoryId: categoryId === "new" ? undefined : categoryId,
+                newCategoryName: categoryId === "new" ? newCategoryName : undefined,
+                isPrivate
             });
 
             if (result.success) {
@@ -93,6 +105,10 @@ export function AddItemModal({ wishlistId }: AddItemModalProps) {
                 setImageUrl("");
                 setPrice("");
                 setCurrency("UAH");
+                setPriority("3");
+                setIsPrivate(false);
+                setCategoryId("");
+                setNewCategoryName("");
             } else {
                 toast.error(result.error || "Помилка додавання");
             }
@@ -109,26 +125,36 @@ export function AddItemModal({ wishlistId }: AddItemModalProps) {
             <DialogTrigger asChild>
                 <Button size="lg">
                     <Sparkles className="mr-2 h-4 w-4" />
-                    {t('title')}
+                    {t('title') || "Add Item"}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[525px]">
+            <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>{t('title')}</DialogTitle>
+                    <DialogTitle>{t('title') || "Add Item"}</DialogTitle>
                     <DialogDescription>
-                        {t('url_placeholder')}
+                        {t('url_placeholder') || "Paste link to auto-fill details"}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
                     <div className="grid gap-4 py-4">
                         {/* URL Field */}
+                        <div className="flex items-center space-x-2 my-2">
+                            <input
+                                type="checkbox"
+                                id="isPrivate"
+                                checked={isPrivate}
+                                onChange={(e) => setIsPrivate(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="isPrivate">Make this item private (only visible to mutual followers)</Label>
+                        </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="url">{t('url_label')}</Label>
+                            <Label htmlFor="url">{t('url_label') || "URL"}</Label>
                             <div className="flex gap-2">
                                 <Input
                                     id="url"
                                     type="url"
-                                    placeholder={t('url_placeholder')}
+                                    placeholder={t('url_placeholder') || "https://"}
                                     value={url}
                                     onChange={(e) => setUrl(e.target.value)}
                                     className="flex-1"
@@ -142,21 +168,31 @@ export function AddItemModal({ wishlistId }: AddItemModalProps) {
                                     {isFetching ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            {t('fetching')}
+                                            {t('fetching') || "Fetching..."}
                                         </>
                                     ) : (
-                                        t('fetch_button')
+                                        t('fetch_button') || "Fetch"
                                     )}
                                 </Button>
                             </div>
                         </div>
 
                         {/* Name Field */}
+                        <div className="flex items-center space-x-2 my-2">
+                            <input
+                                type="checkbox"
+                                id="isPrivate"
+                                checked={isPrivate}
+                                onChange={(e) => setIsPrivate(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="isPrivate">Make this item private (only visible to mutual followers)</Label>
+                        </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="name">{t('name_label')} *</Label>
+                            <Label htmlFor="name">{t('name_label') || "Name"} *</Label>
                             <Input
                                 id="name"
-                                placeholder={t('name_placeholder')}
+                                placeholder={t('name_placeholder') || "Item Name"}
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 required
@@ -164,8 +200,18 @@ export function AddItemModal({ wishlistId }: AddItemModalProps) {
                         </div>
 
                         {/* Image URL Field */}
+                        <div className="flex items-center space-x-2 my-2">
+                            <input
+                                type="checkbox"
+                                id="isPrivate"
+                                checked={isPrivate}
+                                onChange={(e) => setIsPrivate(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="isPrivate">Make this item private (only visible to mutual followers)</Label>
+                        </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="imageUrl">{t('image_label')}</Label>
+                            <Label htmlFor="imageUrl">{t('image_label') || "Image URL"}</Label>
                             <Input
                                 id="imageUrl"
                                 type="url"
@@ -174,7 +220,7 @@ export function AddItemModal({ wishlistId }: AddItemModalProps) {
                                 onChange={(e) => setImageUrl(e.target.value)}
                             />
                             {imageUrl && (
-                                <div className="mt-2 rounded border p-2">
+                                <div className="mt-2 rounded border p-2 bg-muted/50">
                                     <img
                                         src={imageUrl}
                                         alt="Preview"
@@ -186,19 +232,39 @@ export function AddItemModal({ wishlistId }: AddItemModalProps) {
 
                         {/* Price and Currency */}
                         <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-2 my-2">
+                            <input
+                                type="checkbox"
+                                id="isPrivate"
+                                checked={isPrivate}
+                                onChange={(e) => setIsPrivate(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="isPrivate">Make this item private (only visible to mutual followers)</Label>
+                        </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="price">{t('price_label')}</Label>
+                                <Label htmlFor="price">{t('price_label') || "Price"}</Label>
                                 <Input
                                     id="price"
                                     type="number"
                                     step="0.01"
-                                    placeholder={t('price_placeholder')}
+                                    placeholder={t('price_placeholder') || "100.00"}
                                     value={price}
                                     onChange={(e) => setPrice(e.target.value)}
                                 />
                             </div>
+                        <div className="flex items-center space-x-2 my-2">
+                            <input
+                                type="checkbox"
+                                id="isPrivate"
+                                checked={isPrivate}
+                                onChange={(e) => setIsPrivate(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="isPrivate">Make this item private (only visible to mutual followers)</Label>
+                        </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="currency">{t('currency_label')}</Label>
+                                <Label htmlFor="currency">{t('currency_label') || "Currency"}</Label>
                                 <Input
                                     id="currency"
                                     placeholder="UAH"
@@ -207,6 +273,84 @@ export function AddItemModal({ wishlistId }: AddItemModalProps) {
                                 />
                             </div>
                         </div>
+
+                        {/* Priority and Category */}
+                        <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-2 my-2">
+                            <input
+                                type="checkbox"
+                                id="isPrivate"
+                                checked={isPrivate}
+                                onChange={(e) => setIsPrivate(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="isPrivate">Make this item private (only visible to mutual followers)</Label>
+                        </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="priority">Priority (1-5)</Label>
+                                <select
+                                    id="priority"
+                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={priority}
+                                    onChange={(e) => setPriority(e.target.value)}
+                                >
+                                    <option value="1">1 - Lowest</option>
+                                    <option value="2">2 - Low</option>
+                                    <option value="3">3 - Medium</option>
+                                    <option value="4">4 - High</option>
+                                    <option value="5">5 - Highest</option>
+                                </select>
+                            </div>
+
+                        <div className="flex items-center space-x-2 my-2">
+                            <input
+                                type="checkbox"
+                                id="isPrivate"
+                                checked={isPrivate}
+                                onChange={(e) => setIsPrivate(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="isPrivate">Make this item private (only visible to mutual followers)</Label>
+                        </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="categoryId">Category</Label>
+                                <select
+                                    id="categoryId"
+                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={categoryId}
+                                    onChange={(e) => setCategoryId(e.target.value)}
+                                >
+                                    <option value="">No Category</option>
+                                    {categories.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                    <option value="new">+ Create New Category</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {categoryId === "new" && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="newCategory">New Category Name</Label>
+                                <Input
+                                    id="newCategory"
+                                    placeholder="Electronics, Books, etc."
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    required={categoryId === "new"}
+                                />
+                            </div>
+                        )}
+                        <div className="flex items-center space-x-2 mt-4">
+                            <input
+                                type="checkbox"
+                                id="isPrivate"
+                                checked={isPrivate}
+                                onChange={(e) => setIsPrivate(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="isPrivate">Make this item private (only visible to mutual followers)</Label>
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button
@@ -214,16 +358,16 @@ export function AddItemModal({ wishlistId }: AddItemModalProps) {
                             variant="outline"
                             onClick={() => setOpen(false)}
                         >
-                            {t('cancel')}
+                            {t('cancel') || "Cancel"}
                         </Button>
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {t('submit')}
+                                    {t('submit') || "Add"}
                                 </>
                             ) : (
-                                t('submit')
+                                t('submit') || "Add"
                             )}
                         </Button>
                     </DialogFooter>
@@ -232,3 +376,4 @@ export function AddItemModal({ wishlistId }: AddItemModalProps) {
         </Dialog>
     );
 }
+// To insert the privacy toggle into the form, I will rewrite the form content
