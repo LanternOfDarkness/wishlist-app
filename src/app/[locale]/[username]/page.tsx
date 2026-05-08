@@ -8,6 +8,7 @@ import { AddItemModal } from "@/components/add-item-modal";
 import { WishlistFilters } from "@/components/wishlist-filters";
 import { FollowButton } from "@/components/follow-button";
 import { getTranslations } from "next-intl/server";
+import { isSafeUrl } from "@/lib/utils";
 
 interface WishlistPageProps {
     params: Promise<{
@@ -96,8 +97,8 @@ export default async function WishlistPage({ params, searchParams }: WishlistPag
 
     const appearance = (wishlist.appearance as Record<string, string>) || {};
 
-    const bannerStyle = appearance.bannerImage ? { backgroundImage: `url(${appearance.bannerImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { backgroundColor: appearance.primaryColor || '#f1f5f9' };
-    const bgStyle = appearance.bgImage ? { backgroundImage: `url(${appearance.bgImage})`, backgroundSize: 'cover', backgroundAttachment: 'fixed', minHeight: '100vh' } : { minHeight: '100vh' };
+    const bannerStyle = (appearance.bannerImage && isSafeUrl(appearance.bannerImage)) ? { backgroundImage: `url(${appearance.bannerImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { backgroundColor: appearance.primaryColor || '#f1f5f9' };
+    const bgStyle = (appearance.bgImage && isSafeUrl(appearance.bgImage)) ? { backgroundImage: `url(${appearance.bgImage})`, backgroundSize: 'cover', backgroundAttachment: 'fixed', minHeight: '100vh' } : { minHeight: '100vh' };
 
     // Apply primary color as CSS variable for children to use
     const themeStyle = {
@@ -115,7 +116,7 @@ export default async function WishlistPage({ params, searchParams }: WishlistPag
 
                 <div className="flex flex-col items-center text-center mb-8 space-y-4">
                     <div className="w-32 h-32 bg-background rounded-full flex items-center justify-center text-5xl mb-2 overflow-hidden border-4 border-background shadow-md">
-                        {user.image ? (
+                        {(user.image && isSafeUrl(user.image)) ? (
                             <img src={user.image} alt={user.name || "User"} className="w-full h-full object-cover" />
                         ) : (
                             <UserIcon className="w-12 h-12 text-slate-400" />
@@ -176,7 +177,7 @@ export default async function WishlistPage({ params, searchParams }: WishlistPag
                             >
                                 {/* Image */}
                                 <div className="aspect-square overflow-hidden bg-muted">
-                                    {item.imageUrl ? (
+                                    {(item.imageUrl && isSafeUrl(item.imageUrl)) ? (
                                         <img
                                             src={item.imageUrl}
                                             alt={item.name}
@@ -222,7 +223,7 @@ export default async function WishlistPage({ params, searchParams }: WishlistPag
                                     )}
 
                                     <div className="mt-auto pt-4">
-                                        {item.url && (
+                                        {(item.url && isSafeUrl(item.url)) && (
                                             <Button
                                                 asChild
                                                 variant="outline"
