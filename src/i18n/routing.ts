@@ -14,3 +14,4 @@ export function isLocale(locale: unknown): locale is Locale {
 
 export const { Link, redirect, usePathname, useRouter } =
     createNavigation(routing);
+export type Locale = (typeof routing.locales)[number];
