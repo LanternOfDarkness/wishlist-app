@@ -120,3 +120,11 @@ model Pledge {
   item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
   user        User?    @relation(fields: [userId], references: [id])
 }
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}

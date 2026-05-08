@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { User as UserIcon, ExternalLink } from "lucide-react";
+import { User as UserIcon, ExternalLink, Gift, Lock, Star } from "lucide-react";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { AddItemModal } from "@/components/add-item-modal";
 import { WishlistFilters } from "@/components/wishlist-filters";
@@ -185,7 +185,7 @@ export default async function WishlistPage({ params, searchParams }: WishlistPag
                                         />
                                     ) : (
                                         <div className="flex h-full items-center justify-center text-muted-foreground">
-                                            <span className="text-4xl">🎁</span>
+                                            <Gift className="w-12 h-12" />
                                         </div>
                                     )}
                                 </div>
@@ -194,13 +194,13 @@ export default async function WishlistPage({ params, searchParams }: WishlistPag
                                     <div className="flex justify-between items-start gap-2 mb-2">
                                         <h3 className="line-clamp-2 font-semibold flex items-center gap-2">
                                             {item.name}
-                                            {item.isPrivate && <span title="Private Item" className="text-xs bg-red-100 text-red-800 px-1 rounded">🔒</span>}
+                                            {item.isPrivate && <span title="Private Item" className="text-xs bg-red-100 text-red-800 px-1 rounded flex items-center"><Lock className="w-3 h-3 mr-1" /> Private</span>}
                                         </h3>
                                         <div
                                             className="px-2 py-1 rounded text-xs font-bold text-white shrink-0"
                                             style={{ backgroundColor: appearance.primaryColor || '#000' }}
                                         >
-                                            {item.priority} ★
+                                            <span className="flex items-center gap-1">{item.priority} <Star className="w-3 h-3 fill-current" /></span>
                                         </div>
                                     </div>
 

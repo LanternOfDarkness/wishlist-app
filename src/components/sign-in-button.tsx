@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 
@@ -11,9 +11,9 @@ export function SignInButton() {
         <Button
             variant="default"
             size="sm"
-            onClick={() => signIn("google", { redirectTo: "/dashboard" })}
+            asChild
         >
-            {t("login")}
+            <Link href="/login">{t("login")}</Link>
         </Button>
     );
 }
