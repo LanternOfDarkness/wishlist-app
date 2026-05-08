@@ -12,6 +12,12 @@ export async function updateProfile(formData: FormData) {
 
     const name = formData.get("name") as string;
     const username = formData.get("username") as string;
+    const bgImage = formData.get("bgImage") as string;
+    const bannerImage = formData.get("bannerImage") as string;
+    const welcomeMessage = formData.get("welcomeMessage") as string;
+    const itemBorder = formData.get("itemBorder") as string;
+    const primaryColor = formData.get("primaryColor") as string;
+    const font = formData.get("font") as string;
 
     if (username) {
         const existingUser = await prisma.user.findUnique({
@@ -23,11 +29,25 @@ export async function updateProfile(formData: FormData) {
         }
     }
 
+    const appearance = {
+      bgImage,
+      bannerImage,
+      welcomeMessage,
+      itemBorder,
+      primaryColor,
+      font
+    };
+
     await prisma.user.update({
         where: { id: session.user.id },
         data: {
             name,
             username,
+            wishlist: {
+                update: {
+                    appearance
+                }
+            }
         },
     });
 

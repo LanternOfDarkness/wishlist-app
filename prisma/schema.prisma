@@ -45,6 +45,22 @@ model User {
   pledges       Pledge[]
   sessions      Session[]
   wishlist      Wishlist?
+
+  followers Follows[] @relation("following")
+  following Follows[] @relation("follower")
+
+  categories Category[]
+}
+
+model Follows {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
 }
 
 model Wishlist {
@@ -61,6 +77,18 @@ model Wishlist {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String?
+  createdAt DateTime @default(now())
+
+  user  User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items Item[]
+
+  @@unique([name, userId])
+}
+
 model Item {
   id         String   @id @default(cuid())
   name       String
@@ -70,10 +98,14 @@ model Item {
   currency   String   @default("UAH")
   priority   Int      @default(0)
   isReserved Boolean  @default(false)
+  isPrivate  Boolean  @default(false)
   wishlistId String
+  categoryId String?
   createdAt  DateTime @default(now())
-  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
-  pledges    Pledge[]
+
+  wishlist Wishlist  @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  pledges  Pledge[]
 }
 
 model Pledge {
