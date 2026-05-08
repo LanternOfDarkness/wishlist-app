@@ -14,15 +14,33 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Потім перезаписуємо jwt та session
         async jwt({ token, user }) {
             // При першому вході (коли user існує), зберігаємо id
-            if (user?.id) {
+            if (user) {
                 token.userId = user.id;
+                token.username = user.username;
             }
+
+            // Якщо username немає в токені, спробуємо отримати його з бази
+            if (token.userId && !token.username) {
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: token.userId as string },
+                    select: { username: true }
+                });
+                if (dbUser) {
+                    token.username = dbUser.username;
+                }
+            }
+
             return token;
         },
         async session({ session, token }) {
-            // Додаємо userId з токена до session.user.id
-            if (session.user && token.userId) {
-                session.user.id = token.userId as string;
+            // Додаємо userId та username з токена до session.user
+            if (session.user) {
+                if (token.userId) {
+                    session.user.id = token.userId as string;
+                }
+                if (token.username) {
+                    session.user.username = token.username as string;
+                }
             }
             return session;
         },
