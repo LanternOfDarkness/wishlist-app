@@ -1,4 +1,5 @@
 import { SignInButton } from "@/components/sign-in-button";
+import { Palette, Handshake, Package } from "lucide-react";
 import { getTranslations } from 'next-intl/server';
 import { Metadata } from "next";
 
@@ -58,8 +59,8 @@ async function LandingView({ locale }: { locale: string }) {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center text-center p-6 bg-card rounded-lg border shadow-sm">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary text-xl">
-                🎨
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
+                <Palette size={24} />
               </div>
               <h3 className="text-xl font-semibold mb-2">{t('feature1Title') || "Fully Customizable"}</h3>
               <p className="text-muted-foreground">
@@ -68,8 +69,8 @@ async function LandingView({ locale }: { locale: string }) {
             </div>
 
             <div className="flex flex-col items-center text-center p-6 bg-card rounded-lg border shadow-sm">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary text-xl">
-                🤝
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
+                <Handshake size={24} />
               </div>
               <h3 className="text-xl font-semibold mb-2">{t('feature2Title') || "Connect with Friends"}</h3>
               <p className="text-muted-foreground">
@@ -78,8 +79,8 @@ async function LandingView({ locale }: { locale: string }) {
             </div>
 
             <div className="flex flex-col items-center text-center p-6 bg-card rounded-lg border shadow-sm">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary text-xl">
-                📦
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
+                <Package size={24} />
               </div>
               <h3 className="text-xl font-semibold mb-2">{t('feature3Title') || "Organize & Filter"}</h3>
               <p className="text-muted-foreground">

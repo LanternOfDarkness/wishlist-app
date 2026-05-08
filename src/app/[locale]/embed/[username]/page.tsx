@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { User as UserIcon } from "lucide-react";
+import { User as UserIcon, Gift } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 interface EmbedPageProps {
@@ -93,7 +93,7 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
                                 />
                             ) : (
                                 <div className="flex h-full items-center justify-center text-muted-foreground">
-                                    <span className="text-xl">🎁</span>
+                                    <Gift className="w-6 h-6" />
                                 </div>
                             )}
                         </div>
