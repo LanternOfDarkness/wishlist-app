@@ -29,7 +29,7 @@ export function CreateWishlistModal() {
         setIsLoading(false);
 
         if (result.error) {
-            toast.error(t(result.error as any));
+            toast.error(t(result.error as Parameters<typeof t>[0]));
         } else {
             toast.success(t("success"));
             setOpen(false);
