@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { createWishlist } from "@/actions/create-wishlist";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 
 export function CreateWishlistModal() {
+    const t = useTranslations("CreateWishlist");
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -27,9 +29,9 @@ export function CreateWishlistModal() {
         setIsLoading(false);
 
         if (result.error) {
-            toast.error(result.error);
+            toast.error(t(result.error as any));
         } else {
-            toast.success("Вішліст створено!");
+            toast.success(t("success"));
             setOpen(false);
         }
     }
@@ -38,25 +40,25 @@ export function CreateWishlistModal() {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Створити вішліст
+                    <Plus className="mr-2 h-4 w-4" /> {t("trigger")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Створити новий список</DialogTitle>
+                    <DialogTitle>{t("title")}</DialogTitle>
                 </DialogHeader>
                 <form action={handleSubmit} className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="title">Назва списку</Label>
+                        <Label htmlFor="title">{t("label")}</Label>
                         <Input
                             id="title"
                             name="title"
-                            placeholder="Наприклад: День народження 2025"
+                            placeholder={t("placeholder")}
                             required
                         />
                     </div>
                     <Button type="submit" disabled={isLoading}>
-                        {isLoading ? "Створення..." : "Створити"}
+                        {isLoading ? t("submitting") : t("submit")}
                     </Button>
                 </form>
             </DialogContent>

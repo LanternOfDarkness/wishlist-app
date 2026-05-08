@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -18,7 +19,24 @@ export interface AddItemData {
 }
 
 export async function addItem(data: AddItemData) {
+    const session = await auth();
+    if (!session?.user?.id) {
+        return { success: false, error: 'Unauthorized' };
+    }
+
     try {
+        // Verify that the wishlist belongs to the user
+        const wishlist = await prisma.wishlist.findFirst({
+            where: {
+                id: data.wishlistId,
+                userId: session.user.id,
+            },
+        });
+
+        if (!wishlist) {
+            return { success: false, error: 'Wishlist not found or access denied' };
+        }
+
         let finalCategoryId = data.categoryId;
 
         // If user provided a new category name, create it
