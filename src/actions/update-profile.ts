@@ -17,7 +17,10 @@ export async function updateProfile(formData: FormData) {
     const welcomeMessage = formData.get("welcomeMessage") as string;
     const itemBorder = formData.get("itemBorder") as string;
     const primaryColor = formData.get("primaryColor") as string;
+    const textColor = formData.get("textColor") as string;
+    const bgColor = formData.get("bgColor") as string;
     const font = formData.get("font") as string;
+    const favoriteCurrencies = formData.getAll("favoriteCurrencies") as string[];
 
     if (username) {
         const existingUser = await prisma.user.findUnique({
@@ -35,7 +38,10 @@ export async function updateProfile(formData: FormData) {
       welcomeMessage,
       itemBorder,
       primaryColor,
-      font
+      font,
+      favoriteCurrencies,
+      textColor,
+      bgColor
     };
 
     await prisma.user.update({

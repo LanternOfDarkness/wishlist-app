@@ -9,14 +9,31 @@ interface EmbedWidgetProps {
     username: string;
 }
 
-export function EmbedWidget({ username }: EmbedWidgetProps) {
+import { updateWidgetItems } from "@/actions/update-widget-items";
+import { useTransition } from "react";
+import { Item } from "@prisma/client";
+
+interface EmbedWidgetProps {
+    username: string;
+    items?: Item[];
+}
+
+export function EmbedWidget({ username, items = [] }: EmbedWidgetProps) {
+    const [isPending, startTransition] = useTransition();
+
+    const handleToggleItem = (itemId: string, currentStatus: boolean) => {
+        startTransition(async () => {
+            await updateWidgetItems(itemId, !currentStatus);
+        });
+    };
+
     const [copied, setCopied] = useState(false);
 
     // In a real app, use the actual domain.
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://wishlist.com';
     const embedUrl = `${baseUrl}/en/embed/${username}`;
 
-    const iframeCode = `<iframe src="${embedUrl}" width="350" height="500" style="border:none; border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" title="${username}'s Wishlist"></iframe>`;
+    const iframeCode = `<iframe src="${embedUrl}" width="100%" height="250" style="border:none; border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" title="${username}'s Wishlist"></iframe>`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(iframeCode);
@@ -54,6 +71,35 @@ export function EmbedWidget({ username }: EmbedWidgetProps) {
                     )}
                 </Button>
             </div>
+            <div className="space-y-4 pt-6 border-t mt-6">
+                <div>
+                    <h3 className="text-lg font-medium">Select items for widget (max 5)</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Choose which items you want to feature in your embed widget. If none are selected, your top 5 items will be shown.
+                    </p>
+                </div>
+
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                    {items.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No items in your wishlist yet.</p>
+                    ) : items.map(item => (
+                        <div key={item.id} className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded-md">
+                            <input
+                                type="checkbox"
+                                id={`widget-${item.id}`}
+                                checked={item.showInWidget}
+                                onChange={() => handleToggleItem(item.id, item.showInWidget)}
+                                disabled={isPending || (!item.showInWidget && items.filter(i => i.showInWidget).length >= 5)}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50"
+                            />
+                            <Label htmlFor={`widget-${item.id}`} className="flex-1 cursor-pointer truncate">
+                                {item.name} {item.price ? `- ${item.price} ${item.currency}` : ''}
+                            </Label>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
         </div>
     );
 }
