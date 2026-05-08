@@ -4,7 +4,21 @@
         "subtitle": "Keep your dreams in one place",
         "login": "Sign in with Google",
         "welcome": "Welcome, {name}!",
-        "go_to_dashboard": "Go to Dashboard"
+        "go_to_dashboard": "Go to Dashboard",
+        "metaTitle": "Wishlist - Create, Share, and Discover",
+        "metaDescription": "Create your ultimate wishlist, organize items, and share with friends.",
+        "heroTitle": "Your Ultimate Wishlist",
+        "heroSubtitle": "Create personalized wishlists, customize your page, and share your dreams with friends.",
+        "featuresTitle": "Everything you need to manage your wishes",
+        "feature1Title": "Fully Customizable",
+        "feature1Desc": "Change your profile picture, background, banner, colors, and fonts to match your personal style.",
+        "feature2Title": "Connect with Friends",
+        "feature2Desc": "Follow friends, see what they want, and even discover private wishes from people you follow back.",
+        "feature3Title": "Organize & Filter",
+        "feature3Desc": "Categorize items, set priorities from 1 to 5, and filter by price to find the perfect gift.",
+        "embedTitle": "Embed anywhere",
+        "embedDesc": "Want to show off your wishlist on your own website or blog? Use our customizable widget to embed your top wishes directly.",
+        "ctaText": "Ready to start building your wishlist?"
     },
     "Dashboard": {
         "title": "Dashboard",
