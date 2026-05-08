@@ -7,13 +7,13 @@ import { revalidatePath } from "next/cache";
 export async function createWishlist(formData: FormData) {
     const session = await auth();
     if (!session?.user?.id) {
-        return { error: "Не авторизований" };
+        return { error: "error_unauthorized" };
     }
 
     const title = formData.get("title") as string;
 
     if (!title || title.length < 3) {
-        return { error: "Назва має бути довшою за 3 символи" };
+        return { error: "error_too_short" };
     }
 
     const cleanSlug = title
@@ -37,6 +37,6 @@ export async function createWishlist(formData: FormData) {
         return { success: true, wishlist };
     } catch (error) {
         console.error("Помилка створення:", error);
-        return { error: "Не вдалося створити вішліст" };
+        return { error: "error_generic" };
     }
 }
