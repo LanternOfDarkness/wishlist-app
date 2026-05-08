@@ -50,5 +50,17 @@
         "logout": "Log out",
         "login": "Sign in",
         "my_wishlist": "My Wishlist"
+    },
+    "CreateWishlist": {
+        "trigger": "Create wishlist",
+        "title": "Create new list",
+        "label": "List name",
+        "placeholder": "Example: Birthday 2025",
+        "submitting": "Creating...",
+        "submit": "Create",
+        "success": "Wishlist created!",
+        "error_unauthorized": "Unauthorized",
+        "error_too_short": "Title must be at least 3 characters long",
+        "error_generic": "Failed to create wishlist"
     }
 }
