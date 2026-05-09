@@ -129,26 +129,6 @@ export function EmbedWidget({ username, items = [] }: EmbedWidgetProps) {
 
       <div className="space-y-4 pt-6 border-t mt-6">
         <div>
-          <h3 className="text-lg font-medium">Widget Preview</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            This is how your widget will look when embedded on your site.
-          </p>
-        </div>
-        <iframe
-          src={embedUrl}
-          width="100%"
-          height="250"
-          style={{
-            border: "none",
-            borderRadius: "12px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          }}
-          title={`${username}'s Wishlist`}
-        ></iframe>
-      </div>
-
-      <div className="space-y-4 pt-6 border-t mt-6">
-        <div>
           <h3 className="text-lg font-medium">
             {t("widgetPreviewTitle") || "Widget Preview"}
           </h3>
