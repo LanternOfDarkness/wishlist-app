@@ -223,7 +223,6 @@ export default async function WishlistPage({
                 return (
                   <WishlistFilters
                     categories={user.categories}
-                    username={user.username!}
                     maxPriceOverall={maxP > 0 ? maxP : 10000}
                   />
                 );

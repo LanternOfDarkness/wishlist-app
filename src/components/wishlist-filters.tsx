@@ -1,21 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "@/i18n/routing";
 import { Category } from "@prisma/client";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Filter, ArrowDownUp } from "lucide-react";
+import { Filter } from "lucide-react";
 import { AVAILABLE_CURRENCIES } from "@/lib/currencies";
 
 interface WishlistFiltersProps {
     categories: Category[];
-    username: string;
     maxPriceOverall?: number;
 }
 
-export function WishlistFilters({ categories, username, maxPriceOverall = 10000 }: WishlistFiltersProps) {
+export function WishlistFilters({ categories, maxPriceOverall = 10000 }: WishlistFiltersProps) {
     const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
 
     const currentCategories = searchParams.getAll('category');
@@ -39,7 +40,7 @@ export function WishlistFilters({ categories, username, maxPriceOverall = 10000 
                 params.delete(key);
             }
         }
-        router.push(`/${username}?${params.toString()}`);
+        router.push(`${pathname}?${params.toString()}`);
     };
 
     const toggleCategory = (categoryId: string) => {
@@ -114,27 +115,68 @@ export function WishlistFilters({ categories, username, maxPriceOverall = 10000 
                 </div>
 
                 {/* Price Range */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                     <label className="text-sm font-semibold flex justify-between">
                         <span>Price Range</span>
-                        <span className="text-muted-foreground font-normal text-xs">{minPrice} - {maxPrice}</span>
                     </label>
-                    <div className="px-2">
-                        <input
-                            type="range"
-                            min="0"
-                            max={maxPriceOverall}
-                            value={maxPrice}
-                            onChange={(e) => updateFilter('maxPrice', e.target.value)}
-                            className="w-full accent-primary"
-                        />
+                    <div className="flex items-center gap-2">
+                        <div className="flex flex-col gap-1 w-full">
+                            <span className="text-xs text-muted-foreground">Min</span>
+                            <Input
+                                type="number"
+                                min="0"
+                                max={maxPrice}
+                                value={minPrice}
+                                onChange={(e) => updateFilter('minPrice', e.target.value)}
+                                className="h-8 text-xs"
+                                placeholder="Min"
+                            />
+                        </div>
+                        <span className="text-muted-foreground mt-5">-</span>
+                        <div className="flex flex-col gap-1 w-full">
+                            <span className="text-xs text-muted-foreground">Max</span>
+                            <Input
+                                type="number"
+                                min={minPrice}
+                                max={maxPriceOverall}
+                                value={maxPrice}
+                                onChange={(e) => updateFilter('maxPrice', e.target.value)}
+                                className="h-8 text-xs"
+                                placeholder="Max"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 mt-2 px-1">
+                         <div className="flex flex-col gap-1">
+                             <label className="text-[10px] text-muted-foreground">Min Price</label>
+                             <input
+                                 type="range"
+                                 min="0"
+                                 max={maxPriceOverall}
+                                 value={minPrice}
+                                 onChange={(e) => updateFilter('minPrice', e.target.value)}
+                                 className="w-full accent-primary h-1"
+                             />
+                         </div>
+                         <div className="flex flex-col gap-1">
+                             <label className="text-[10px] text-muted-foreground">Max Price</label>
+                             <input
+                                 type="range"
+                                 min="0"
+                                 max={maxPriceOverall}
+                                 value={maxPrice}
+                                 onChange={(e) => updateFilter('maxPrice', e.target.value)}
+                                 className="w-full accent-primary h-1"
+                             />
+                         </div>
                     </div>
                 </div>
 
                 <Button
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => router.push(`/${username}`)}
+                    onClick={() => router.push(pathname)}
                 >
                     Clear Filters
                 </Button>
