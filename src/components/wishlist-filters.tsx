@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter, usePathname } from "@/i18n/routing";
 import { Category } from "@prisma/client";
@@ -18,11 +18,29 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const [, startTransition] = useTransition();
+    const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const currentCategories = searchParams.getAll('category');
     const currentSort = searchParams.get('sort') || 'priority';
-    const minPrice = searchParams.get('minPrice') || '0';
-    const maxPrice = searchParams.get('maxPrice') || maxPriceOverall.toString();
+    const urlMinPrice = searchParams.get('minPrice') || '0';
+    const urlMaxPrice = searchParams.get('maxPrice') || maxPriceOverall.toString();
+
+    const [localMinPrice, setLocalMinPrice] = useState(urlMinPrice);
+    const [localMaxPrice, setLocalMaxPrice] = useState(urlMaxPrice);
+
+    // Sync local state when URL changes externally (e.g. clear filters)
+    const [prevUrlMinPrice, setPrevUrlMinPrice] = useState(urlMinPrice);
+    const [prevUrlMaxPrice, setPrevUrlMaxPrice] = useState(urlMaxPrice);
+
+    if (urlMinPrice !== prevUrlMinPrice) {
+        setLocalMinPrice(urlMinPrice);
+        setPrevUrlMinPrice(urlMinPrice);
+    }
+    if (urlMaxPrice !== prevUrlMaxPrice) {
+        setLocalMaxPrice(urlMaxPrice);
+        setPrevUrlMaxPrice(urlMaxPrice);
+    }
     const currentCurrency = searchParams.get('currency') || '';
 
     const [isExpanded, setIsExpanded] = useState(false);
@@ -40,7 +58,18 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                 params.delete(key);
             }
         }
-        router.push(`${pathname}?${params.toString()}`);
+        startTransition(() => {
+            router.push(`${pathname}?${params.toString()}`, { scroll: false });
+        });
+    };
+
+    const debouncedUpdateFilter = (key: string, value: string | string[]) => {
+        if (debounceTimeout.current) {
+            clearTimeout(debounceTimeout.current);
+        }
+        debounceTimeout.current = setTimeout(() => {
+            updateFilter(key, value);
+        }, 300);
     };
 
     const toggleCategory = (categoryId: string) => {
@@ -125,9 +154,9 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                             <Input
                                 type="number"
                                 min="0"
-                                max={maxPrice}
-                                value={minPrice}
-                                onChange={(e) => updateFilter('minPrice', e.target.value)}
+                                max={localMaxPrice}
+                                value={localMinPrice}
+                                onChange={(e) => { setLocalMinPrice(e.target.value); debouncedUpdateFilter('minPrice', e.target.value); }}
                                 className="h-8 text-xs"
                                 placeholder="Min"
                             />
@@ -137,10 +166,10 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                             <span className="text-xs text-muted-foreground">Max</span>
                             <Input
                                 type="number"
-                                min={minPrice}
+                                min={localMinPrice}
                                 max={maxPriceOverall}
-                                value={maxPrice}
-                                onChange={(e) => updateFilter('maxPrice', e.target.value)}
+                                value={localMaxPrice}
+                                onChange={(e) => { setLocalMaxPrice(e.target.value); debouncedUpdateFilter('maxPrice', e.target.value); }}
                                 className="h-8 text-xs"
                                 placeholder="Max"
                             />
@@ -154,8 +183,8 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                                  type="range"
                                  min="0"
                                  max={maxPriceOverall}
-                                 value={minPrice}
-                                 onChange={(e) => updateFilter('minPrice', e.target.value)}
+                                 value={localMinPrice}
+                                 onChange={(e) => { setLocalMinPrice(e.target.value); debouncedUpdateFilter('minPrice', e.target.value); }}
                                  className="w-full accent-primary h-1"
                              />
                          </div>
@@ -165,8 +194,8 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                                  type="range"
                                  min="0"
                                  max={maxPriceOverall}
-                                 value={maxPrice}
-                                 onChange={(e) => updateFilter('maxPrice', e.target.value)}
+                                 value={localMaxPrice}
+                                 onChange={(e) => { setLocalMaxPrice(e.target.value); debouncedUpdateFilter('maxPrice', e.target.value); }}
                                  className="w-full accent-primary h-1"
                              />
                          </div>
@@ -176,7 +205,9 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                 <Button
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => router.push(pathname)}
+                    onClick={() => startTransition(() => {
+            router.push(pathname, { scroll: false });
+        })}
                 >
                     Clear Filters
                 </Button>
