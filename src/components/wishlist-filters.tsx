@@ -57,16 +57,24 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                     <Filter className="w-4 h-4" />
                     <h3 className="font-medium text-lg">Filters</h3>
                 </div>
-                <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setIsExpanded(!isExpanded)}>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="md:hidden"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    aria-expanded={isExpanded}
+                    aria-controls="filters-content"
+                >
                     {isExpanded ? 'Hide' : 'Show'}
                 </Button>
             </div>
 
-            <div className={`space-y-6 ${isExpanded ? 'block' : 'hidden md:block'}`}>
+            <div id="filters-content" className={`space-y-6 ${isExpanded ? 'block' : 'hidden md:block'}`}>
                 {/* Sort */}
                 <div className="space-y-3">
-                    <label className="text-sm font-semibold">Sort By</label>
+                    <label htmlFor="sort-select" className="text-sm font-semibold">Sort By</label>
                     <select
+                        id="sort-select"
                         className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                         value={currentSort}
                         onChange={(e) => updateFilter('sort', e.target.value)}
@@ -101,8 +109,9 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
 
                 {/* Currency */}
                 <div className="space-y-3">
-                    <label className="text-sm font-semibold">Currency</label>
+                    <label htmlFor="currency-select" className="text-sm font-semibold">Currency</label>
                     <select
+                        id="currency-select"
                         className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                         value={currentCurrency}
                         onChange={(e) => updateFilter('currency', e.target.value)}
@@ -116,13 +125,14 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
 
                 {/* Price Range */}
                 <div className="space-y-4">
-                    <label className="text-sm font-semibold flex justify-between">
+                    <div className="text-sm font-semibold flex justify-between">
                         <span>Price Range</span>
-                    </label>
+                    </div>
                     <div className="flex items-center gap-2">
                         <div className="flex flex-col gap-1 w-full">
-                            <span className="text-xs text-muted-foreground">Min</span>
+                            <label htmlFor="min-price-input" className="text-xs text-muted-foreground">Min</label>
                             <Input
+                                id="min-price-input"
                                 type="number"
                                 min="0"
                                 max={maxPrice}
@@ -132,10 +142,11 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                                 placeholder="Min"
                             />
                         </div>
-                        <span className="text-muted-foreground mt-5">-</span>
+                        <span className="text-muted-foreground mt-5" aria-hidden="true">-</span>
                         <div className="flex flex-col gap-1 w-full">
-                            <span className="text-xs text-muted-foreground">Max</span>
+                            <label htmlFor="max-price-input" className="text-xs text-muted-foreground">Max</label>
                             <Input
+                                id="max-price-input"
                                 type="number"
                                 min={minPrice}
                                 max={maxPriceOverall}
@@ -149,8 +160,9 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
 
                     <div className="flex flex-col gap-2 mt-2 px-1">
                          <div className="flex flex-col gap-1">
-                             <label className="text-[10px] text-muted-foreground">Min Price</label>
+                             <label htmlFor="min-price-range" className="text-[10px] text-muted-foreground">Min Price</label>
                              <input
+                                 id="min-price-range"
                                  type="range"
                                  min="0"
                                  max={maxPriceOverall}
@@ -160,8 +172,9 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                              />
                          </div>
                          <div className="flex flex-col gap-1">
-                             <label className="text-[10px] text-muted-foreground">Max Price</label>
+                             <label htmlFor="max-price-range" className="text-[10px] text-muted-foreground">Max Price</label>
                              <input
+                                 id="max-price-range"
                                  type="range"
                                  min="0"
                                  max={maxPriceOverall}
