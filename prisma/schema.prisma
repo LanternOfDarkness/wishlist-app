@@ -99,6 +99,7 @@ model Item {
   priority   Int      @default(0)
   isReserved Boolean  @default(false)
   isPrivate  Boolean  @default(false)
+  showInWidget Boolean @default(false)
   wishlistId String
   categoryId String?
   createdAt  DateTime @default(now())
