@@ -1,6 +1,8 @@
 "use server";
 
+import type { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
+import { buildWishlistAppearanceFromFormData } from "@/lib/wishlist-appearance-form";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -12,17 +14,6 @@ export async function updateProfile(formData: FormData) {
 
     const name = formData.get("name") as string;
     const username = formData.get("username") as string;
-    const bgImage = formData.get("bgImage") as string;
-    const bannerImage = formData.get("bannerImage") as string;
-    const welcomeMessage = formData.get("welcomeMessage") as string;
-    const itemBorder = formData.get("itemBorder") as string;
-    const themeMode = formData.get("themeMode") as string;
-    const primaryColor = formData.get("primaryColor") as string;
-    const textColor = formData.get("textColor") as string;
-    const bgColor = formData.get("bgColor") as string;
-    const font = formData.get("font") as string;
-    const favoriteCurrencies = formData.getAll("favoriteCurrencies") as string[];
-
     if (username) {
         const existingUser = await prisma.user.findUnique({
             where: { username },
@@ -41,22 +32,13 @@ export async function updateProfile(formData: FormData) {
         wishlist?.appearance &&
         typeof wishlist.appearance === "object" &&
         !Array.isArray(wishlist.appearance)
-            ? wishlist.appearance
-            : {};
+            ? (wishlist.appearance as Prisma.JsonObject)
+            : ({} as Prisma.JsonObject);
 
-    const appearance = {
-      ...currentAppearance,
-      bgImage,
-      bannerImage,
-      welcomeMessage,
-      itemBorder,
-      themeMode,
-      primaryColor,
-      font,
-      favoriteCurrencies,
-      textColor,
-      bgColor
-    };
+    const appearance = buildWishlistAppearanceFromFormData(
+      currentAppearance,
+      formData,
+    );
 
     await prisma.user.update({
         where: { id: session.user.id },
@@ -72,5 +54,7 @@ export async function updateProfile(formData: FormData) {
     });
 
     revalidatePath("/dashboard");
+    revalidatePath("/[locale]/[username]", "page");
+    revalidatePath("/[locale]/embed/[username]", "page");
     return { success: true };
 }
