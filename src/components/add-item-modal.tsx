@@ -19,19 +19,17 @@ import { addItem } from "@/actions/add-item";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Category } from "@prisma/client";
-import { AVAILABLE_CURRENCIES } from "@/lib/currencies";
+import Image from "next/image";
 
 
 interface AddItemModalProps {
   wishlistId: string;
-  userId: string;
   categories?: Category[];
-    favoriteCurrencies?: string[];
+  favoriteCurrencies?: string[];
 }
 
 export function AddItemModal({
   wishlistId,
-  userId,
   categories = [],
 }: AddItemModalProps) {
   const t = useTranslations("AddItem");
@@ -97,7 +95,6 @@ export function AddItemModal({
         currency,
         priority: parseInt(priority, 10),
         wishlistId,
-        userId,
         categoryId: categoryId === "new" || categoryId === "" ? undefined : categoryId,
         newCategoryName: categoryId === "new" ? newCategoryName : undefined,
         isPrivate,
@@ -203,9 +200,12 @@ export function AddItemModal({
               />
               {imageUrl && (
                 <div className="mt-2 rounded border p-2 bg-muted/50">
-                  <img
+                  <Image
                     src={imageUrl}
                     alt="Preview"
+                    width={480}
+                    height={128}
+                    unoptimized
                     className="h-32 w-full object-contain"
                   />
                 </div>
@@ -326,4 +326,3 @@ export function AddItemModal({
     </Dialog>
   );
 }
-// To insert the privacy toggle into the form, I will rewrite the form content

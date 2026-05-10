@@ -29,18 +29,6 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
     const [localMinPrice, setLocalMinPrice] = useState(urlMinPrice);
     const [localMaxPrice, setLocalMaxPrice] = useState(urlMaxPrice);
 
-    // Sync local state when URL changes externally (e.g. clear filters)
-    const [prevUrlMinPrice, setPrevUrlMinPrice] = useState(urlMinPrice);
-    const [prevUrlMaxPrice, setPrevUrlMaxPrice] = useState(urlMaxPrice);
-
-    if (urlMinPrice !== prevUrlMinPrice) {
-        setLocalMinPrice(urlMinPrice);
-        setPrevUrlMinPrice(urlMinPrice);
-    }
-    if (urlMaxPrice !== prevUrlMaxPrice) {
-        setLocalMaxPrice(urlMaxPrice);
-        setPrevUrlMaxPrice(urlMaxPrice);
-    }
     const currentCurrency = searchParams.get('currency') || '';
 
     const [isExpanded, setIsExpanded] = useState(false);
@@ -218,9 +206,13 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                 <Button
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => startTransition(() => {
-            router.push(pathname, { scroll: false });
-        })}
+                    onClick={() => {
+                        setLocalMinPrice("0");
+                        setLocalMaxPrice(maxPriceOverall.toString());
+                        startTransition(() => {
+                            router.push(pathname, { scroll: false });
+                        });
+                    }}
                 >
                     Clear Filters
                 </Button>

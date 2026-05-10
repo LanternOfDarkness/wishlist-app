@@ -6,7 +6,7 @@ export const authConfig = {
     },
     trustHost: true,
     callbacks: {
-        authorized({ auth, request: { nextUrl } }) {
+        authorized() {
             return true;
         },
     },

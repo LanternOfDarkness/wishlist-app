@@ -21,7 +21,7 @@ export function FollowButton({ userId, isFollowing }: FollowButtonProps) {
         try {
             await followUser(userId, pathname);
             toast.success(isFollowing ? "Unfollowed" : "Followed successfully");
-        } catch (error) {
+        } catch {
             toast.error("An error occurred");
         } finally {
             setIsLoading(false);
