@@ -16,6 +16,7 @@ export async function updateProfile(formData: FormData) {
     const bannerImage = formData.get("bannerImage") as string;
     const welcomeMessage = formData.get("welcomeMessage") as string;
     const itemBorder = formData.get("itemBorder") as string;
+    const themeMode = formData.get("themeMode") as string;
     const primaryColor = formData.get("primaryColor") as string;
     const textColor = formData.get("textColor") as string;
     const bgColor = formData.get("bgColor") as string;
@@ -32,11 +33,24 @@ export async function updateProfile(formData: FormData) {
         }
     }
 
+    const wishlist = await prisma.wishlist.findUnique({
+        where: { userId: session.user.id },
+        select: { appearance: true },
+    });
+    const currentAppearance =
+        wishlist?.appearance &&
+        typeof wishlist.appearance === "object" &&
+        !Array.isArray(wishlist.appearance)
+            ? wishlist.appearance
+            : {};
+
     const appearance = {
+      ...currentAppearance,
       bgImage,
       bannerImage,
       welcomeMessage,
       itemBorder,
+      themeMode,
       primaryColor,
       font,
       favoriteCurrencies,

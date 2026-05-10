@@ -129,3 +129,21 @@
     cursor: pointer;
   }
 }
+
+@layer utilities {
+  .font-comic {
+    font-family: "Comic Sans MS", "Comic Sans", cursive;
+  }
+
+  .font-georgia {
+    font-family: Georgia, "Times New Roman", serif;
+  }
+
+  .font-trebuchet {
+    font-family: "Trebuchet MS", Arial, sans-serif;
+  }
+
+  .font-verdana {
+    font-family: Verdana, Geneva, sans-serif;
+  }
+}
