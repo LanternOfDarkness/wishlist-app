@@ -6,7 +6,20 @@ import { revalidatePath } from "next/cache";
 
 export type WidgetLayout = "grid" | "list";
 
-export async function updateWidgetSettings(layout: WidgetLayout) {
+interface WidgetSettingsInput {
+  layout?: WidgetLayout;
+  itemSize?: number;
+}
+
+function normalizeItemSize(itemSize: number | undefined) {
+  if (!itemSize) {
+    return undefined;
+  }
+
+  return Math.min(Math.max(Math.round(itemSize), 70), 160);
+}
+
+export async function updateWidgetSettings(settings: WidgetSettingsInput) {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -34,7 +47,10 @@ export async function updateWidgetSettings(layout: WidgetLayout) {
     data: {
       appearance: {
         ...currentAppearance,
-        widgetLayout: layout,
+        ...(settings.layout ? { widgetLayout: settings.layout } : {}),
+        ...(settings.itemSize
+          ? { widgetItemSize: normalizeItemSize(settings.itemSize) }
+          : {}),
       },
     },
   });

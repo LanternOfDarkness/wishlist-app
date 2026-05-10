@@ -12,7 +12,7 @@ interface EmbedPageProps {
   }>;
 }
 
-type WidgetAppearance = Record<string, string | string[] | undefined>;
+type WidgetAppearance = Record<string, string | string[] | number | undefined>;
 
 function getAppearanceString(
   appearance: WidgetAppearance,
@@ -23,8 +23,17 @@ function getAppearanceString(
   return typeof value === "string" ? value : fallback;
 }
 
+function getAppearanceNumber(
+  appearance: WidgetAppearance,
+  key: string,
+  fallback: number,
+) {
+  const value = appearance[key];
+  return typeof value === "number" ? value : fallback;
+}
+
 export default async function EmbedPage({ params }: EmbedPageProps) {
-  const { username } = await params;
+  const { locale, username } = await params;
 
   const user = await prisma.user.findUnique({
     where: { username: username },
@@ -63,7 +72,9 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
   const itemBorderClass = getAppearanceString(appearance, "itemBorder", "rounded-lg");
   const welcomeMessage = getAppearanceString(appearance, "welcomeMessage");
   const widgetLayout = getAppearanceString(appearance, "widgetLayout", "grid");
+  const widgetItemSize = getAppearanceNumber(appearance, "widgetItemSize", 100);
   const bannerImage = getAppearanceString(appearance, "bannerImage");
+  const profileUrl = `/${locale}/${username}`;
 
   const themeStyle = {
     "--primary": primaryColor,
@@ -73,6 +84,7 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
     "--card-foreground": textColor,
     "--muted-foreground": textColor,
     "--border": `${primaryColor}30`,
+    "--widget-item-size": `${widgetItemSize}px`,
     backgroundColor: bgColor,
     color: textColor,
   } as CSSProperties;
@@ -89,12 +101,12 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
   const itemsClassName =
     widgetLayout === "list"
       ? "flex flex-col gap-3"
-      : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3";
+      : "grid justify-center gap-3";
 
   const itemClassName =
     widgetLayout === "list"
       ? `grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3 border bg-card/90 shadow-sm ${itemBorderClass}`
-      : `flex flex-col gap-2 p-3 border bg-card/90 shadow-sm ${itemBorderClass}`;
+      : `flex w-[var(--widget-item-size)] max-w-[var(--widget-item-size)] flex-col gap-2 p-2 border bg-card/90 shadow-sm ${itemBorderClass}`;
 
   return (
     <div
@@ -126,6 +138,16 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
             )}
           </div>
 
+          <a
+            href={profileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 text-sm font-medium underline-offset-4 hover:underline"
+            style={{ color: primaryColor }}
+          >
+            /{user.username}
+          </a>
+
           {welcomeMessage && (
             <p className="mt-3 max-w-xl text-sm leading-relaxed opacity-80">
               {welcomeMessage}
@@ -134,11 +156,21 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
         </div>
       </div>
 
-      <div className={`px-4 pb-5 ${itemsClassName}`}>
+      <div
+        className={`px-4 pb-5 ${itemsClassName}`}
+        style={
+          widgetLayout === "grid"
+            ? {
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(var(--widget-item-size), var(--widget-item-size)))",
+              }
+            : undefined
+        }
+      >
         {displayItems.map((item) => (
           <a
             key={item.id}
-            href={item.url || `/${user.username}`}
+            href={item.url || profileUrl}
             target="_blank"
             rel="noopener noreferrer"
             className={itemClassName}
@@ -152,7 +184,7 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
                   src={item.imageUrl}
                   alt={item.name}
                   fill
-                  sizes={widgetLayout === "list" ? "72px" : "160px"}
+                  sizes={widgetLayout === "list" ? "72px" : `${widgetItemSize}px`}
                   unoptimized
                   className="object-cover"
                 />

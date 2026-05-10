@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { updateWidgetItems } from "@/actions/update-widget-items";
 import {
   updateWidgetSettings,
@@ -11,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Copy, Check, Grid2X2, List } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { Item } from "@prisma/client";
 import type { JsonValue } from "@prisma/client/runtime/library";
 
@@ -33,6 +33,19 @@ function getInitialWidgetLayout(appearance: JsonValue | undefined): WidgetLayout
   return "grid";
 }
 
+function getInitialWidgetItemSize(appearance: JsonValue | undefined) {
+  if (
+    appearance &&
+    typeof appearance === "object" &&
+    !Array.isArray(appearance) &&
+    typeof appearance.widgetItemSize === "number"
+  ) {
+    return appearance.widgetItemSize;
+  }
+
+  return 100;
+}
+
 export function EmbedWidget({
   username,
   items = [],
@@ -41,20 +54,64 @@ export function EmbedWidget({
   const [isPending, startTransition] = useTransition();
   const t = useTranslations("Settings");
   const locale = useLocale();
+  const router = useRouter();
+  const [localItems, setLocalItems] = useState(items);
   const [widgetLayout, setWidgetLayout] = useState<WidgetLayout>(
     getInitialWidgetLayout(appearance),
   );
+  const [widgetItemSize, setWidgetItemSize] = useState(
+    getInitialWidgetItemSize(appearance),
+  );
+  const [previewVersion, setPreviewVersion] = useState(0);
+
+  const selectedItemsCount = useMemo(
+    () => localItems.filter((item) => item.showInWidget).length,
+    [localItems],
+  );
+
+  const refreshPreview = () => {
+    setPreviewVersion((version) => version + 1);
+    router.refresh();
+  };
 
   const handleToggleItem = (itemId: string, currentStatus: boolean) => {
+    const nextStatus = !currentStatus;
+
+    setLocalItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === itemId ? { ...item, showInWidget: nextStatus } : item,
+      ),
+    );
+
     startTransition(async () => {
-      await updateWidgetItems(itemId, !currentStatus);
+      const result = await updateWidgetItems(itemId, nextStatus);
+
+      if (result?.error) {
+        setLocalItems((currentItems) =>
+          currentItems.map((item) =>
+            item.id === itemId ? { ...item, showInWidget: currentStatus } : item,
+          ),
+        );
+        return;
+      }
+
+      refreshPreview();
     });
   };
 
   const handleLayoutChange = (layout: WidgetLayout) => {
     setWidgetLayout(layout);
     startTransition(async () => {
-      await updateWidgetSettings(layout);
+      await updateWidgetSettings({ layout });
+      refreshPreview();
+    });
+  };
+
+  const handleItemSizeChange = (size: number) => {
+    setWidgetItemSize(size);
+    startTransition(async () => {
+      await updateWidgetSettings({ itemSize: size });
+      refreshPreview();
     });
   };
 
@@ -65,6 +122,7 @@ export function EmbedWidget({
       ? window.location.origin
       : "https://wishlist.com";
   const embedUrl = `${baseUrl}/${locale}/embed/${username}`;
+  const previewUrl = `${embedUrl}?preview=${previewVersion}`;
 
   const iframeCode = `<iframe src="${embedUrl}" width="100%" height="420" style="border:none; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);" title="${username}'s Wishlist"></iframe>`;
 
@@ -139,6 +197,33 @@ export function EmbedWidget({
         </div>
       </div>
 
+      <div className="space-y-3 pt-6 border-t mt-6">
+        <div>
+          <Label htmlFor="widget-item-size">{t("widgetItemSizeTitle")}</Label>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t("widgetItemSizeDesc")}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            id="widget-item-size"
+            type="range"
+            min="70"
+            max="160"
+            step="10"
+            value={widgetItemSize}
+            onChange={(event) =>
+              handleItemSizeChange(Number(event.target.value))
+            }
+            disabled={isPending}
+            className="w-full accent-primary"
+          />
+          <span className="w-14 text-right text-sm text-muted-foreground">
+            {widgetItemSize}px
+          </span>
+        </div>
+      </div>
+
       <div className="space-y-4 pt-6 border-t mt-6">
         <div>
           <h3 className="text-lg font-medium">
@@ -155,7 +240,7 @@ export function EmbedWidget({
               {t("noItems")}
             </p>
           ) : (
-            items.map((item) => (
+            localItems.map((item) => (
               <div
                 key={item.id}
                 className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded-md"
@@ -168,7 +253,7 @@ export function EmbedWidget({
                   disabled={
                     isPending ||
                     (!item.showInWidget &&
-                      items.filter((i) => i.showInWidget).length >= 5)
+                      selectedItemsCount >= 5)
                   }
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50"
                 />
@@ -195,7 +280,8 @@ export function EmbedWidget({
           </p>
         </div>
         <iframe
-          src={embedUrl}
+          src={previewUrl}
+          key={previewVersion}
           width="100%"
           height="420"
           style={{

@@ -43,6 +43,8 @@
         "widgetLayoutDesc": "Choose how selected items are displayed inside the embedded widget.",
         "layoutGrid": "Horizontal grid",
         "layoutList": "Vertical list",
+        "widgetItemSizeTitle": "Grid item width",
+        "widgetItemSizeDesc": "Set the item width for the horizontal grid. Default is 100px.",
         "widgetItemsTitle": "Widget items",
         "widgetItemsDesc": "Select up to 5 items. If none are selected, the widget shows the top 5 public items.",
         "noItems": "No items in your wishlist yet.",

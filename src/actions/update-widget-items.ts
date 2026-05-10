@@ -10,7 +10,6 @@ export async function updateWidgetItems(itemId: string, showInWidget: boolean) {
         throw new Error("Unauthorized");
     }
 
-    // Verify item belongs to user
     const item = await prisma.item.findFirst({
         where: {
             id: itemId,
@@ -45,7 +44,7 @@ export async function updateWidgetItems(itemId: string, showInWidget: boolean) {
     });
 
     revalidatePath("/dashboard/settings");
-    revalidatePath("/embed/[username]");
+    revalidatePath("/[locale]/embed/[username]", "page");
 
     return { success: true };
 }
