@@ -9,9 +9,9 @@ import { WishlistFilters } from "@/components/wishlist-filters";
 import { FollowButton } from "@/components/follow-button";
 import { getTranslations } from "next-intl/server";
 import { isSafeUrl } from "@/lib/utils";
+import { resolveWishlistAppearance } from "@/lib/wishlist-appearance";
 import Image from "next/image";
 import type { Prisma } from "@prisma/client";
-import type { CSSProperties } from "react";
 
 type WishlistSearchParams = {
   category?: string | string[];
@@ -88,44 +88,6 @@ function buildItemOrderBy(
   }
 }
 
-function getWishlistStyles(appearance: WishlistAppearance) {
-  const primaryColor = getAppearanceString(appearance, "primaryColor", "#000000");
-  const backgroundColor = getAppearanceString(appearance, "bgColor", "oklch(1 0 0)");
-  const textColor = getAppearanceString(
-    appearance,
-    "textColor",
-    "oklch(0.141 0.005 285.823)",
-  );
-
-  const bannerStyle: CSSProperties =
-    typeof appearance.bannerImage === "string" &&
-    isSafeUrl(appearance.bannerImage)
-      ? {
-          backgroundImage: `url(${appearance.bannerImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }
-      : { backgroundColor: primaryColor || "#f1f5f9" };
-
-  const bgStyle: CSSProperties =
-    typeof appearance.bgImage === "string" && isSafeUrl(appearance.bgImage)
-      ? {
-          backgroundImage: `url(${appearance.bgImage})`,
-          backgroundSize: "cover",
-          backgroundAttachment: "fixed",
-          minHeight: "100vh",
-        }
-      : { minHeight: "100vh" };
-
-  const themeStyle = {
-    "--primary": primaryColor,
-    "--background": backgroundColor,
-    "--foreground": textColor,
-  } as CSSProperties;
-
-  return { bannerStyle, bgStyle, themeStyle };
-}
-
 function getMaxPrice(items: Array<{ price: number | null }>) {
   const prices = items
     .map((item) => item.price)
@@ -197,8 +159,8 @@ export default async function WishlistPage({
   }
 
   const appearance = (wishlist.appearance as WishlistAppearance) || {};
-  const { bannerStyle, bgStyle, themeStyle } = getWishlistStyles(appearance);
-  const primaryColor = getAppearanceString(appearance, "primaryColor", "#000000");
+  const resolvedAppearance = resolveWishlistAppearance(appearance);
+  const primaryColor = resolvedAppearance.primaryColor;
   const fontClass = getAppearanceString(appearance, "font", "font-sans");
   const itemBorderClass = getAppearanceString(
     appearance,
@@ -212,18 +174,29 @@ export default async function WishlistPage({
 
   return (
     <div
-      style={{ ...bgStyle, ...themeStyle }}
+      style={{
+        ...resolvedAppearance.page.style,
+        ...resolvedAppearance.cssVariables,
+      }}
       className={`flex flex-col ${fontClass}`}
     >
       {/* Banner Area */}
-      <div
-        className="h-48 md:h-64 w-full relative border-b"
-        style={bannerStyle}
-      >
-        <div className="absolute inset-0 bg-black/10"></div>
-      </div>
+      {resolvedAppearance.banner.visible ? (
+        <div
+          className="h-48 md:h-64 w-full relative border-b"
+          style={resolvedAppearance.banner.style}
+        >
+          <div className="absolute inset-0 bg-black/10"></div>
+        </div>
+      ) : null}
 
-      <div className="container mx-auto py-10 px-4 -mt-20 relative z-10 bg-background/80 backdrop-blur-sm rounded-xl min-h-[calc(100vh-16rem)] shadow-lg">
+      <div
+        className={`container mx-auto relative z-10 bg-background/80 backdrop-blur-sm rounded-xl shadow-lg px-4 py-10 ${
+          resolvedAppearance.layout.overlapBanner
+            ? "-mt-20 min-h-[calc(100vh-16rem)]"
+            : "mt-0 min-h-screen"
+        }`}
+      >
         <div className="flex flex-col items-center text-center mb-8 space-y-4">
           <div className="relative w-32 h-32 bg-background rounded-full flex items-center justify-center text-5xl mb-2 overflow-hidden border-4 border-background shadow-md">
             {user.image && isSafeUrl(user.image) ? (
@@ -343,9 +316,10 @@ export default async function WishlistPage({
                           )}
                         </h3>
                         <div
-                          className="px-2 py-1 rounded text-xs font-bold text-white shrink-0"
+                          className="px-2 py-1 rounded text-xs font-bold shrink-0"
                           style={{
                             backgroundColor: primaryColor,
+                            color: resolvedAppearance.tokens.primaryForeground,
                           }}
                         >
                           <span className="flex items-center gap-1">
