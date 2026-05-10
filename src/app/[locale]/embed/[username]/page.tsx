@@ -3,12 +3,24 @@ import { isSafeUrl } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import { Gift } from "lucide-react";
 import Image from "next/image";
+import type { CSSProperties } from "react";
 
 interface EmbedPageProps {
   params: Promise<{
     locale: string;
     username: string;
   }>;
+}
+
+type WidgetAppearance = Record<string, string | string[] | undefined>;
+
+function getAppearanceString(
+  appearance: WidgetAppearance,
+  key: string,
+  fallback = "",
+) {
+  const value = appearance[key];
+  return typeof value === "string" ? value : fallback;
 }
 
 export default async function EmbedPage({ params }: EmbedPageProps) {
@@ -35,7 +47,7 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
     return notFound();
   }
 
-  const appearance = (user.wishlist.appearance as Record<string, string>) || {};
+  const appearance = (user.wishlist.appearance as WidgetAppearance) || {};
 
   let displayItems = user.wishlist.items.filter((i) => i.showInWidget);
   if (displayItems.length === 0) {
@@ -44,37 +56,105 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
     displayItems = displayItems.slice(0, 5);
   }
 
-  const primaryColor = appearance.primaryColor || "#000000";
+  const primaryColor = getAppearanceString(appearance, "primaryColor", "#000000");
+  const bgColor = getAppearanceString(appearance, "bgColor", "#ffffff");
+  const textColor = getAppearanceString(appearance, "textColor", "#111827");
+  const fontClass = getAppearanceString(appearance, "font", "font-sans");
+  const itemBorderClass = getAppearanceString(appearance, "itemBorder", "rounded-lg");
+  const welcomeMessage = getAppearanceString(appearance, "welcomeMessage");
+  const widgetLayout = getAppearanceString(appearance, "widgetLayout", "grid");
+  const bannerImage = getAppearanceString(appearance, "bannerImage");
 
   const themeStyle = {
     "--primary": primaryColor,
-  } as React.CSSProperties;
+    "--background": bgColor,
+    "--foreground": textColor,
+    "--card": bgColor,
+    "--card-foreground": textColor,
+    "--muted-foreground": textColor,
+    "--border": `${primaryColor}30`,
+    backgroundColor: bgColor,
+    color: textColor,
+  } as CSSProperties;
+
+  const bannerStyle: CSSProperties =
+    bannerImage && isSafeUrl(bannerImage)
+      ? {
+          backgroundImage: `url(${bannerImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }
+      : { backgroundColor: primaryColor };
+
+  const itemsClassName =
+    widgetLayout === "list"
+      ? "flex flex-col gap-3"
+      : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3";
+
+  const itemClassName =
+    widgetLayout === "list"
+      ? `grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3 border bg-card/90 shadow-sm ${itemBorderClass}`
+      : `flex flex-col gap-2 p-3 border bg-card/90 shadow-sm ${itemBorderClass}`;
 
   return (
     <div
       style={themeStyle}
-      className={`flex flex-col h-screen w-full bg-background overflow-hidden border shadow-sm ${appearance.font || "font-sans"}`}
+      className={`min-h-screen w-full overflow-auto border shadow-sm ${fontClass}`}
     >
-      <div className="flex-1 overflow-x-auto p-4 flex gap-4 snap-x">
+      <style>{`header { display: none !important; }`}</style>
+
+      <div className="relative h-28 w-full border-b" style={bannerStyle}>
+        <div className="absolute inset-0 bg-black/10" />
+      </div>
+
+      <div className="px-4 pb-4">
+        <div className="relative -mt-12 flex flex-col items-center text-center">
+          <div className="relative h-24 w-24 overflow-hidden rounded-full border-4 border-background bg-background shadow-md">
+            {user.image && isSafeUrl(user.image) ? (
+              <Image
+                src={user.image}
+                alt={user.name || user.username || "User"}
+                fill
+                sizes="96px"
+                unoptimized
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Gift className="h-8 w-8 text-muted-foreground" />
+              </div>
+            )}
+          </div>
+
+          {welcomeMessage && (
+            <p className="mt-3 max-w-xl text-sm leading-relaxed opacity-80">
+              {welcomeMessage}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className={`px-4 pb-5 ${itemsClassName}`}>
         {displayItems.map((item) => (
           <a
             key={item.id}
             href={item.url || `/${user.username}`}
             target="_blank"
             rel="noopener noreferrer"
-            className={`flex flex-col gap-2 p-3 bg-card border hover:shadow-sm transition-shadow shrink-0 w-36 snap-start ${appearance.itemBorder || "rounded-lg"}`}
+            className={itemClassName}
+            style={{ borderColor: `${primaryColor}30` }}
           >
             <div
-              className={`w-full aspect-square bg-muted shrink-0 overflow-hidden ${appearance.itemBorder || "rounded-lg"}`}
+              className={`relative aspect-square w-full shrink-0 overflow-hidden bg-muted ${itemBorderClass}`}
             >
               {item.imageUrl && isSafeUrl(item.imageUrl) ? (
                 <Image
                   src={item.imageUrl}
                   alt={item.name}
-                  width={144}
-                  height={144}
+                  fill
+                  sizes={widgetLayout === "list" ? "72px" : "160px"}
                   unoptimized
-                  className="h-full w-full object-cover"
+                  className="object-cover"
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground">

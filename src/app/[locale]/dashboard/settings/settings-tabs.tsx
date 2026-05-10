@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SettingsForm } from "./settings-form";
 import { EmbedWidget } from "./embed-widget";
 import { User, Wishlist, Item } from "@prisma/client";
+import { useTranslations } from "next-intl";
 
 type UserWithData = User & {
     wishlist: (Wishlist & { items?: Item[] }) | null
@@ -15,28 +16,29 @@ interface SettingsTabsProps {
 
 export function SettingsTabs({ user }: SettingsTabsProps) {
     const [activeTab, setActiveTab] = useState("general");
+    const t = useTranslations("Settings");
 
     return (
         <div className="w-full">
             <div className="flex border-b mb-6 overflow-x-auto">
                 <button
-                    className={`px-4 py-2 font-medium text-sm whitespace-nowrap \${activeTab === 'general' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${activeTab === 'general' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                     onClick={() => setActiveTab("general")}
                 >
-                    General
+                    {t("generalTab")}
                 </button>
                 <button
-                    className={`px-4 py-2 font-medium text-sm whitespace-nowrap \${activeTab === 'appearance' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${activeTab === 'appearance' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                     onClick={() => setActiveTab("appearance")}
                 >
-                    Appearance
+                    {t("appearanceTab")}
                 </button>
                 {user.username && (
                     <button
-                        className={`px-4 py-2 font-medium text-sm whitespace-nowrap \${activeTab === 'widget' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                        className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${activeTab === 'widget' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                         onClick={() => setActiveTab("widget")}
                     >
-                        Widget Options
+                        {t("widgetTab")}
                     </button>
                 )}
             </div>
@@ -51,7 +53,11 @@ export function SettingsTabs({ user }: SettingsTabsProps) {
 
                 {activeTab === "widget" && user.username && (
                     <div className="space-y-6 max-w-xl pb-10">
-                        <EmbedWidget username={user.username} items={user.wishlist?.items || []} />
+                        <EmbedWidget
+                            username={user.username}
+                            items={user.wishlist?.items || []}
+                            appearance={user.wishlist?.appearance}
+                        />
                     </div>
                 )}
             </div>
