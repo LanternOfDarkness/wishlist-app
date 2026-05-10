@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { SiteHeader } from "@/components/site-header";
+import { ThemeInitializer } from "@/components/theme-initializer";
 
 export const metadata: Metadata = {
   title: "Wishlist App",
@@ -25,6 +26,7 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning>
       <body className="font-sans" suppressHydrationWarning>
         <NextIntlClientProvider messages={messages}>
+          <ThemeInitializer />
           <SiteHeader />
           {children}
           <Toaster />

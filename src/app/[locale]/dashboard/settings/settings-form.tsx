@@ -6,10 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { User, Wishlist } from "@prisma/client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { AVAILABLE_CURRENCIES } from "@/lib/currencies";
 
 type UserWithWishlist = User & { wishlist: Wishlist | null };
+const LEGACY_BORDER_DEFAULTS: Record<string, string> = {
+  "rounded-none": "rounded-none border-solid",
+  "rounded-md": "rounded-md border-solid",
+  "rounded-lg": "rounded-lg border-solid",
+  "rounded-2xl": "rounded-2xl border-solid",
+};
 
 interface SettingsFormProps {
   user: UserWithWishlist;
@@ -19,6 +26,7 @@ export function SettingsForm({
   user,
   tab = "general",
 }: SettingsFormProps & { tab?: "general" | "appearance" }) {
+  const t = useTranslations("Settings");
   const [isLoading, setIsLoading] = useState(false);
 
   // Typecast appearance safely
@@ -31,6 +39,24 @@ export function SettingsForm({
       ? rawAppearance.favoriteCurrencies
       : ["UAH"],
   };
+  const [themeMode, setThemeMode] = useState(
+    typeof appearance.themeMode === "string" ? appearance.themeMode : "system",
+  );
+  const itemBorderValue =
+    typeof appearance.itemBorder === "string"
+      ? LEGACY_BORDER_DEFAULTS[appearance.itemBorder] || appearance.itemBorder
+      : "rounded-lg border-solid";
+
+  useEffect(() => {
+    const systemPrefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    const shouldUseDark =
+      themeMode === "dark" || (themeMode === "system" && systemPrefersDark);
+
+    document.documentElement.classList.toggle("dark", shouldUseDark);
+    localStorage.setItem("themeMode", themeMode);
+  }, [themeMode]);
 
   async function handleSubmit(formData: FormData) {
     setIsLoading(true);
@@ -44,8 +70,8 @@ export function SettingsForm({
         description: result.error,
       });
     } else {
-      toast.success("Success!", {
-        description: "Your profile has been updated.",
+      toast.success(t("saveSuccessTitle"), {
+        description: t("saveSuccessDesc"),
       });
     }
   }
@@ -56,20 +82,22 @@ export function SettingsForm({
         className="space-y-4"
         style={{ display: tab === "general" ? "block" : "none" }}
       >
-        <h3 className="text-lg font-medium border-b pb-2">General Settings</h3>
+        <h3 className="text-lg font-medium border-b pb-2">
+          {t("generalSettingsTitle")}
+        </h3>
 
         <div className="space-y-2">
-          <Label htmlFor="name">Name</Label>
+          <Label htmlFor="name">{t("nameLabel")}</Label>
           <Input
             id="name"
             name="name"
             defaultValue={user.name || ""}
-            placeholder="Your name"
+            placeholder={t("namePlaceholder")}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="username">Username (Slug)</Label>
+          <Label htmlFor="username">{t("usernameLabel")}</Label>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground text-sm">wishlist.com/</span>
             <Input
@@ -81,7 +109,7 @@ export function SettingsForm({
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            This is your wishlist URL. Letters, numbers and dashes only.
+            {t("usernameHelp")}
           </p>
         </div>
       </div>
@@ -90,43 +118,53 @@ export function SettingsForm({
         className="space-y-4"
         style={{ display: tab === "appearance" ? "block" : "none" }}
       >
-        <h3 className="text-lg font-medium border-b pb-2">Appearance</h3>
+        <h3 className="text-lg font-medium border-b pb-2">
+          {t("appearanceTitle")}
+        </h3>
 
         <div className="space-y-2">
-          <Label>Theme</Label>
-          <div className="flex gap-4">
-            <button
+          <Label>{t("themeLabel")}</Label>
+          <input type="hidden" name="themeMode" value={themeMode} />
+          <div className="grid grid-cols-3 gap-2">
+            <Button
               type="button"
-              onClick={() => document.documentElement.classList.remove("dark")}
-              className="px-4 py-2 border rounded hover:bg-muted"
+              variant={themeMode === "system" ? "default" : "outline"}
+              onClick={() => setThemeMode("system")}
             >
-              Light
-            </button>
-            <button
+              {t("themeSystem")}
+            </Button>
+            <Button
               type="button"
-              onClick={() => document.documentElement.classList.add("dark")}
-              className="px-4 py-2 border rounded hover:bg-muted bg-slate-900 text-white"
+              variant={themeMode === "light" ? "default" : "outline"}
+              onClick={() => setThemeMode("light")}
             >
-              Dark
-            </button>
+              {t("themeLight")}
+            </Button>
+            <Button
+              type="button"
+              variant={themeMode === "dark" ? "default" : "outline"}
+              onClick={() => setThemeMode("dark")}
+            >
+              {t("themeDark")}
+            </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Changes apply immediately to your dashboard.
+            {t("themeHelp")}
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="welcomeMessage">Welcome Message</Label>
+          <Label htmlFor="welcomeMessage">{t("welcomeMessageLabel")}</Label>
           <Input
             id="welcomeMessage"
             name="welcomeMessage"
             defaultValue={appearance?.welcomeMessage || ""}
-            placeholder="Welcome to my wishlist!"
+            placeholder={t("welcomeMessagePlaceholder")}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="bgImage">Background Image URL</Label>
+          <Label htmlFor="bgImage">{t("backgroundImageLabel")}</Label>
           <Input
             id="bgImage"
             name="bgImage"
@@ -136,7 +174,7 @@ export function SettingsForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="bannerImage">Top Banner URL</Label>
+          <Label htmlFor="bannerImage">{t("bannerImageLabel")}</Label>
           <Input
             id="bannerImage"
             name="bannerImage"
@@ -147,7 +185,7 @@ export function SettingsForm({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="primaryColor">Primary Color</Label>
+            <Label htmlFor="primaryColor">{t("primaryColorLabel")}</Label>
             <div className="flex gap-2">
               <Input
                 id="primaryColor"
@@ -165,7 +203,7 @@ export function SettingsForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="textColor">Text Color</Label>
+            <Label htmlFor="textColor">{t("textColorLabel")}</Label>
             <div className="flex gap-2">
               <Input
                 id="textColor"
@@ -183,7 +221,7 @@ export function SettingsForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bgColor">Background Color</Label>
+            <Label htmlFor="bgColor">{t("backgroundColorLabel")}</Label>
             <div className="flex gap-2">
               <Input
                 id="bgColor"
@@ -201,32 +239,53 @@ export function SettingsForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="itemBorder">Item Border Radius</Label>
+            <Label htmlFor="itemBorder">{t("itemBorderLabel")}</Label>
             <select
               id="itemBorder"
               name="itemBorder"
-              defaultValue={appearance?.itemBorder || "rounded-lg"}
+              defaultValue={itemBorderValue}
               className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="rounded-none">Square (0px)</option>
-              <option value="rounded-md">Slightly Rounded</option>
-              <option value="rounded-lg">Rounded</option>
-              <option value="rounded-2xl">Very Rounded</option>
+              <option value="rounded-none border-solid">
+                {t("borderSquareSolid")}
+              </option>
+              <option value="rounded-md border-solid">
+                {t("borderSlightSolid")}
+              </option>
+              <option value="rounded-lg border-solid">
+                {t("borderRoundedSolid")}
+              </option>
+              <option value="rounded-2xl border-solid">
+                {t("borderLargeSolid")}
+              </option>
+              <option value="rounded-lg border-dashed">
+                {t("borderDashed")}
+              </option>
+              <option value="rounded-lg border-dotted">
+                {t("borderDotted")}
+              </option>
+              <option value="rounded-lg border-double">
+                {t("borderDouble")}
+              </option>
             </select>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="font">Font Family</Label>
+          <Label htmlFor="font">{t("fontLabel")}</Label>
           <select
             id="font"
             name="font"
             defaultValue={appearance?.font || "font-sans"}
             className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <option value="font-sans">Sans Serif (Modern)</option>
-            <option value="font-serif">Serif (Classic)</option>
-            <option value="font-mono">Monospace (Code)</option>
+            <option value="font-sans">{t("fontSans")}</option>
+            <option value="font-serif">{t("fontSerif")}</option>
+            <option value="font-mono">{t("fontMono")}</option>
+            <option value="font-comic">{t("fontComic")}</option>
+            <option value="font-georgia">{t("fontGeorgia")}</option>
+            <option value="font-trebuchet">{t("fontTrebuchet")}</option>
+            <option value="font-verdana">{t("fontVerdana")}</option>
           </select>
         </div>
       </div>
@@ -236,7 +295,7 @@ export function SettingsForm({
         style={{ display: tab === "general" ? "block" : "none" }}
       >
         <h3 className="text-lg font-medium border-b pb-2">
-          Favorite Currencies
+          {t("favoriteCurrenciesTitle")}
         </h3>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {AVAILABLE_CURRENCIES.map((curr) => (
@@ -256,7 +315,7 @@ export function SettingsForm({
       </div>
 
       <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? "Saving..." : "Save Changes"}
+        {isLoading ? t("saving") : t("saveChanges")}
       </Button>
     </form>
   );
