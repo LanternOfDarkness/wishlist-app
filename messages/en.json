@@ -30,6 +30,27 @@
         "stats_placeholder": "Wishlist statistics will appear here",
         "copy_link": "Copy link"
     },
+    "Settings": {
+        "generalTab": "General",
+        "appearanceTab": "Appearance",
+        "widgetTab": "Widget",
+        "embedTitle": "Embed your wishlist",
+        "embedDesc": "Copy this iframe code to show your wishlist widget on another site.",
+        "iframeCodeLabel": "Iframe code",
+        "copyCode": "Copy code",
+        "copied": "Copied",
+        "widgetLayoutTitle": "Widget layout",
+        "widgetLayoutDesc": "Choose how selected items are displayed inside the embedded widget.",
+        "layoutGrid": "Horizontal grid",
+        "layoutList": "Vertical list",
+        "widgetItemSizeTitle": "Grid item width",
+        "widgetItemSizeDesc": "Set the item width for the horizontal grid. Default is 100px.",
+        "widgetItemsTitle": "Widget items",
+        "widgetItemsDesc": "Select up to 5 items. If none are selected, the widget shows the top 5 public items.",
+        "noItems": "No items in your wishlist yet.",
+        "widgetPreviewTitle": "Widget preview",
+        "widgetPreviewDesc": "Preview the embedded widget with your current theme settings."
+    },
     "AddItem": {
         "title": "Add Item",
         "url_label": "Product URL",
