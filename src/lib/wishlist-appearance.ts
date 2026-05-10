@@ -44,7 +44,7 @@ type ThemePreset = {
 export const APPEARANCE_PRESETS: Record<ColorPreset, ThemePreset> = {
   light: {
     primaryColor: "#0f172a",
-    labelKey: "appearance.presets.light",
+    labelKey: "colorPresetLight",
     tokens: {
       primary: "#1e293b",
       primaryForeground: "#f8fafc",
@@ -63,7 +63,7 @@ export const APPEARANCE_PRESETS: Record<ColorPreset, ThemePreset> = {
   },
   rose: {
     primaryColor: "#e11d48",
-    labelKey: "appearance.presets.rose",
+    labelKey: "colorPresetRose",
     tokens: {
       primary: "#e11d48",
       primaryForeground: "#fff1f2",
@@ -82,7 +82,7 @@ export const APPEARANCE_PRESETS: Record<ColorPreset, ThemePreset> = {
   },
   green: {
     primaryColor: "#16a34a",
-    labelKey: "appearance.presets.green",
+    labelKey: "colorPresetGreen",
     tokens: {
       primary: "#16a34a",
       primaryForeground: "#f0fdf4",
@@ -101,7 +101,7 @@ export const APPEARANCE_PRESETS: Record<ColorPreset, ThemePreset> = {
   },
   dark: {
     primaryColor: "#f8fafc",
-    labelKey: "appearance.presets.dark",
+    labelKey: "colorPresetDark",
     tokens: {
       primary: "#f8fafc",
       primaryForeground: "#0f172a",
@@ -120,7 +120,7 @@ export const APPEARANCE_PRESETS: Record<ColorPreset, ThemePreset> = {
   },
   minimal: {
     primaryColor: "#52525b",
-    labelKey: "appearance.presets.minimal",
+    labelKey: "colorPresetMinimal",
     tokens: {
       primary: "#52525b",
       primaryForeground: "#fafafa",
