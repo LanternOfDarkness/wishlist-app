@@ -15,7 +15,6 @@ export interface AddItemData {
     wishlistId: string;
     categoryId?: string;
     newCategoryName?: string;
-    userId: string;
 }
 
 export async function addItem(data: AddItemData) {
@@ -44,7 +43,7 @@ export async function addItem(data: AddItemData) {
             const category = await prisma.category.create({
                 data: {
                     name: data.newCategoryName,
-                    userId: data.userId,
+                    userId: session.user.id,
                 }
             });
             finalCategoryId = category.id;

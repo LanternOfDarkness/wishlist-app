@@ -9,18 +9,21 @@ export interface MetadataResult {
     currency?: string;
 }
 
-export async function fetchMetadata(url: string): Promise<MetadataResult | null> {
+function parseHttpUrl(url: string) {
+    const parsedUrl = new URL(url);
+
+    if (!parsedUrl.protocol.startsWith('http')) {
+        throw new Error('Invalid URL protocol');
+    }
+
+    return parsedUrl;
+}
+
+async function fetchHtml(url: string) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
-        // Валідація URL
-        const urlObj = new URL(url);
-        if (!urlObj.protocol.startsWith('http')) {
-            throw new Error('Invalid URL protocol');
-        }
-
-        // Fetch HTML з timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд timeout
-
         const response = await fetch(url, {
             signal: controller.signal,
             headers: {
@@ -28,65 +31,74 @@ export async function fetchMetadata(url: string): Promise<MetadataResult | null>
             },
         });
 
-        clearTimeout(timeoutId);
-
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const html = await response.text();
+        return response.text();
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
+type MetadataDocument = ReturnType<typeof cheerio.load>;
+
+function extractTitle($: MetadataDocument) {
+    return (
+        $('meta[property="og:title"]').attr('content') ||
+        $('meta[name="twitter:title"]').attr('content') ||
+        $('title').text() ||
+        'Untitled'
+    ).trim();
+}
+
+function extractImage($: MetadataDocument, sourceUrl: string) {
+    const image =
+        $('meta[property="og:image"]').attr('content') ||
+        $('meta[name="twitter:image"]').attr('content') ||
+        $('img').first().attr('src');
+
+    if (!image) {
+        return undefined;
+    }
+
+    return image.startsWith('http') ? image : new URL(image, sourceUrl).href;
+}
+
+function extractPrice($: MetadataDocument) {
+    const priceContent =
+        $('meta[property="product:price:amount"]').attr('content') ||
+        $('meta[property="og:price:amount"]').attr('content') ||
+        $('[itemprop="price"]').attr('content');
+
+    if (!priceContent) {
+        return undefined;
+    }
+
+    const parsedPrice = parseFloat(priceContent.replace(/[^0-9.]/g, ''));
+    return Number.isNaN(parsedPrice) ? undefined : parsedPrice;
+}
+
+function extractCurrency($: MetadataDocument) {
+    const currencyContent =
+        $('meta[property="product:price:currency"]').attr('content') ||
+        $('meta[property="og:price:currency"]').attr('content') ||
+        $('[itemprop="priceCurrency"]').attr('content');
+
+    return currencyContent?.toUpperCase() || 'UAH';
+}
+
+export async function fetchMetadata(url: string): Promise<MetadataResult | null> {
+    try {
+        const parsedUrl = parseHttpUrl(url);
+        const html = await fetchHtml(parsedUrl.href);
         const $ = cheerio.load(html);
 
-        // Витягуємо title
-        let title =
-            $('meta[property="og:title"]').attr('content') ||
-            $('meta[name="twitter:title"]').attr('content') ||
-            $('title').text() ||
-            'Untitled';
-
-        title = title.trim();
-
-        // Витягуємо image
-        let image =
-            $('meta[property="og:image"]').attr('content') ||
-            $('meta[name="twitter:image"]').attr('content') ||
-            $('img').first().attr('src');
-
-        // Перетворюємо відносний URL в абсолютний
-        if (image && !image.startsWith('http')) {
-            image = new URL(image, url).href;
-        }
-
-        // Витягуємо price (опціонально)
-        let price: number | undefined;
-        let currency: string | undefined;
-
-        const priceContent =
-            $('meta[property="product:price:amount"]').attr('content') ||
-            $('meta[property="og:price:amount"]').attr('content') ||
-            $('[itemprop="price"]').attr('content');
-
-        if (priceContent) {
-            const parsedPrice = parseFloat(priceContent.replace(/[^0-9.]/g, ''));
-            if (!isNaN(parsedPrice)) {
-                price = parsedPrice;
-            }
-        }
-
-        const currencyContent =
-            $('meta[property="product:price:currency"]').attr('content') ||
-            $('meta[property="og:price:currency"]').attr('content') ||
-            $('[itemprop="priceCurrency"]').attr('content');
-
-        if (currencyContent) {
-            currency = currencyContent.toUpperCase();
-        }
-
         return {
-            title,
-            image: image || undefined,
-            price,
-            currency: currency || 'UAH',
+            title: extractTitle($),
+            image: extractImage($, parsedUrl.href),
+            price: extractPrice($),
+            currency: extractCurrency($),
         };
 
     } catch (error) {

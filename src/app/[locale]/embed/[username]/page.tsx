@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { isSafeUrl } from "@/lib/utils";
 import { notFound } from "next/navigation";
-import { User as UserIcon, Gift } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { Gift } from "lucide-react";
+import Image from "next/image";
 
 interface EmbedPageProps {
   params: Promise<{
@@ -12,7 +13,6 @@ interface EmbedPageProps {
 
 export default async function EmbedPage({ params }: EmbedPageProps) {
   const { username } = await params;
-  const t = await getTranslations("Wishlist");
 
   const user = await prisma.user.findUnique({
     where: { username: username },
@@ -67,10 +67,13 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
             <div
               className={`w-full aspect-square bg-muted shrink-0 overflow-hidden ${appearance.itemBorder || "rounded-lg"}`}
             >
-              {item.imageUrl ? (
-                <img
+              {item.imageUrl && isSafeUrl(item.imageUrl) ? (
+                <Image
                   src={item.imageUrl}
                   alt={item.name}
+                  width={144}
+                  height={144}
+                  unoptimized
                   className="h-full w-full object-cover"
                 />
               ) : (

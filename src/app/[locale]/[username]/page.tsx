@@ -9,19 +9,134 @@ import { WishlistFilters } from "@/components/wishlist-filters";
 import { FollowButton } from "@/components/follow-button";
 import { getTranslations } from "next-intl/server";
 import { isSafeUrl } from "@/lib/utils";
+import Image from "next/image";
+import type { Prisma } from "@prisma/client";
+import type { CSSProperties } from "react";
+
+type WishlistSearchParams = {
+  category?: string | string[];
+  sort?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  currency?: string;
+};
+
+type WishlistAppearance = Record<string, string | string[] | undefined>;
+
+function getAppearanceString(
+  appearance: WishlistAppearance,
+  key: string,
+  fallback = "",
+) {
+  const value = appearance[key];
+  return typeof value === "string" ? value : fallback;
+}
 
 interface WishlistPageProps {
   params: Promise<{
     locale: string;
     username: string;
   }>;
-  searchParams: Promise<{
-    category?: string | string[];
-    sort?: string;
-    minPrice?: string;
-    maxPrice?: string;
-    currency?: string;
-  }>;
+  searchParams: Promise<WishlistSearchParams>;
+}
+
+function buildItemWhere(
+  searchParams: WishlistSearchParams,
+  canViewPrivateItems: boolean,
+): Prisma.ItemWhereInput {
+  const where: Prisma.ItemWhereInput = {};
+
+  if (searchParams.currency) {
+    where.currency = searchParams.currency;
+  }
+
+  if (searchParams.category) {
+    const categoryIds = Array.isArray(searchParams.category)
+      ? searchParams.category
+      : [searchParams.category];
+    where.categoryId = { in: categoryIds };
+  }
+
+  const minPrice = Number.parseFloat(searchParams.minPrice || "");
+  const maxPrice = Number.parseFloat(searchParams.maxPrice || "");
+  if (!Number.isNaN(minPrice) || !Number.isNaN(maxPrice)) {
+    where.price = {
+      ...(!Number.isNaN(minPrice) ? { gte: minPrice } : {}),
+      ...(!Number.isNaN(maxPrice) ? { lte: maxPrice } : {}),
+    };
+  }
+
+  if (!canViewPrivateItems) {
+    where.isPrivate = false;
+  }
+
+  return where;
+}
+
+function buildItemOrderBy(
+  sort?: string,
+): Prisma.ItemOrderByWithRelationInput[] {
+  switch (sort) {
+    case "price_asc":
+      return [{ price: "asc" }];
+    case "price_desc":
+      return [{ price: "desc" }];
+    case "newest":
+      return [{ createdAt: "desc" }];
+    default:
+      return [{ priority: "desc" }, { createdAt: "desc" }];
+  }
+}
+
+function getWishlistStyles(appearance: WishlistAppearance) {
+  const primaryColor = getAppearanceString(appearance, "primaryColor", "#000000");
+  const backgroundColor = getAppearanceString(appearance, "bgColor", "oklch(1 0 0)");
+  const textColor = getAppearanceString(
+    appearance,
+    "textColor",
+    "oklch(0.141 0.005 285.823)",
+  );
+
+  const bannerStyle: CSSProperties =
+    typeof appearance.bannerImage === "string" &&
+    isSafeUrl(appearance.bannerImage)
+      ? {
+          backgroundImage: `url(${appearance.bannerImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }
+      : { backgroundColor: primaryColor || "#f1f5f9" };
+
+  const bgStyle: CSSProperties =
+    typeof appearance.bgImage === "string" && isSafeUrl(appearance.bgImage)
+      ? {
+          backgroundImage: `url(${appearance.bgImage})`,
+          backgroundSize: "cover",
+          backgroundAttachment: "fixed",
+          minHeight: "100vh",
+        }
+      : { minHeight: "100vh" };
+
+  const themeStyle = {
+    "--primary": primaryColor,
+    "--background": backgroundColor,
+    "--foreground": textColor,
+  } as CSSProperties;
+
+  return { bannerStyle, bgStyle, themeStyle };
+}
+
+function getMaxPrice(items: Array<{ price: number | null }>) {
+  const prices = items
+    .map((item) => item.price)
+    .filter((price): price is number => price !== null);
+
+  if (prices.length === 0) {
+    return 10000;
+  }
+
+  const maxPrice = Math.max(...prices);
+  return maxPrice > 0 ? maxPrice : 10000;
 }
 
 export default async function WishlistPage({
@@ -29,7 +144,7 @@ export default async function WishlistPage({
   searchParams,
 }: WishlistPageProps) {
   const session = await auth();
-  const { locale, username } = await params;
+  const { username } = await params;
   const resolvedSearchParams = await searchParams;
   const t = await getTranslations("Wishlist");
 
@@ -58,46 +173,11 @@ export default async function WishlistPage({
     isMutualFollower = isFollowing && userFollowsViewer;
   }
 
-  // Build the query
-  const itemWhere: Record<string, unknown> = {};
-  if (resolvedSearchParams.currency) {
-    itemWhere.currency = resolvedSearchParams.currency;
-  }
-  if (resolvedSearchParams.category) {
-    const cats = Array.isArray(resolvedSearchParams.category)
-      ? resolvedSearchParams.category
-      : [resolvedSearchParams.category];
-    itemWhere.categoryId = { in: cats };
-  }
-
-  if (resolvedSearchParams.minPrice || resolvedSearchParams.maxPrice) {
-    itemWhere.price = {};
-    if (resolvedSearchParams.minPrice)
-      (itemWhere.price as Record<string, number>).gte = parseFloat(
-        resolvedSearchParams.minPrice,
-      );
-    if (resolvedSearchParams.maxPrice)
-      (itemWhere.price as Record<string, number>).lte = parseFloat(
-        resolvedSearchParams.maxPrice,
-      );
-  }
-
-  // Filter private items
-  if (!isOwner && !isMutualFollower) {
-    itemWhere.isPrivate = false;
-  }
-
-  let orderBy: Record<string, string>[] = [
-    { priority: "desc" },
-    { createdAt: "desc" },
-  ];
-  if (resolvedSearchParams.sort === "price_asc") {
-    orderBy = [{ price: "asc" }];
-  } else if (resolvedSearchParams.sort === "price_desc") {
-    orderBy = [{ price: "desc" }];
-  } else if (resolvedSearchParams.sort === "newest") {
-    orderBy = [{ createdAt: "desc" }];
-  }
+  const itemWhere = buildItemWhere(
+    resolvedSearchParams,
+    isOwner || isMutualFollower,
+  );
+  const orderBy = buildItemOrderBy(resolvedSearchParams.sort);
 
   const wishlist = await prisma.wishlist.findUnique({
     where: { userId: user.id },
@@ -116,37 +196,24 @@ export default async function WishlistPage({
     return notFound();
   }
 
-  const appearance = (wishlist.appearance as Record<string, string>) || {};
-
-  const bannerStyle =
-    appearance.bannerImage && isSafeUrl(appearance.bannerImage)
-      ? {
-          backgroundImage: `url(${appearance.bannerImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }
-      : { backgroundColor: appearance.primaryColor || "#f1f5f9" };
-  const bgStyle =
-    appearance.bgImage && isSafeUrl(appearance.bgImage)
-      ? {
-          backgroundImage: `url(${appearance.bgImage})`,
-          backgroundSize: "cover",
-          backgroundAttachment: "fixed",
-          minHeight: "100vh",
-        }
-      : { minHeight: "100vh" };
-
-  // Apply primary color as CSS variable for children to use
-  const themeStyle = {
-    "--primary": appearance.primaryColor || "#000000",
-    "--background": appearance.bgColor || "oklch(1 0 0)",
-    "--foreground": appearance.textColor || "oklch(0.141 0.005 285.823)",
-  } as React.CSSProperties;
+  const appearance = (wishlist.appearance as WishlistAppearance) || {};
+  const { bannerStyle, bgStyle, themeStyle } = getWishlistStyles(appearance);
+  const primaryColor = getAppearanceString(appearance, "primaryColor", "#000000");
+  const fontClass = getAppearanceString(appearance, "font", "font-sans");
+  const itemBorderClass = getAppearanceString(
+    appearance,
+    "itemBorder",
+    "rounded-lg",
+  );
+  const welcomeMessage = getAppearanceString(appearance, "welcomeMessage");
+  const favoriteCurrencies = Array.isArray(appearance.favoriteCurrencies)
+    ? appearance.favoriteCurrencies
+    : [];
 
   return (
     <div
       style={{ ...bgStyle, ...themeStyle }}
-      className={`flex flex-col ${appearance.font || "font-sans"}`}
+      className={`flex flex-col ${fontClass}`}
     >
       {/* Banner Area */}
       <div
@@ -158,11 +225,14 @@ export default async function WishlistPage({
 
       <div className="container mx-auto py-10 px-4 -mt-20 relative z-10 bg-background/80 backdrop-blur-sm rounded-xl min-h-[calc(100vh-16rem)] shadow-lg">
         <div className="flex flex-col items-center text-center mb-8 space-y-4">
-          <div className="w-32 h-32 bg-background rounded-full flex items-center justify-center text-5xl mb-2 overflow-hidden border-4 border-background shadow-md">
+          <div className="relative w-32 h-32 bg-background rounded-full flex items-center justify-center text-5xl mb-2 overflow-hidden border-4 border-background shadow-md">
             {user.image && isSafeUrl(user.image) ? (
-              <img
+              <Image
                 src={user.image}
                 alt={user.name || "User"}
+                fill
+                sizes="128px"
+                unoptimized
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -185,9 +255,9 @@ export default async function WishlistPage({
             </div>
           </div>
 
-          {appearance.welcomeMessage && (
+          {welcomeMessage && (
             <p className="text-lg text-muted-foreground italic">
-              &quot;{appearance.welcomeMessage}&quot;
+              &quot;{welcomeMessage}&quot;
             </p>
           )}
 
@@ -202,11 +272,8 @@ export default async function WishlistPage({
             <div className="pt-4">
               <AddItemModal
                 wishlistId={wishlist.id}
-                userId={user.id}
                 categories={user.categories}
-                favoriteCurrencies={
-                  ((appearance.favoriteCurrencies as unknown) as string[]) || []
-                }
+                favoriteCurrencies={favoriteCurrencies}
               />
             </div>
           )}
@@ -216,14 +283,10 @@ export default async function WishlistPage({
           {wishlist.items.length > 0 ||
           Object.keys(itemWhere).length > (isOwner ? 0 : 1)
             ? (() => {
-                const prices = wishlist.items
-                  .map((i) => i.price)
-                  .filter((p): p is number => p !== null);
-                const maxP = prices.length > 0 ? Math.max(...prices) : 10000;
                 return (
                   <WishlistFilters
                     categories={user.categories}
-                    maxPriceOverall={maxP > 0 ? maxP : 10000}
+                    maxPriceOverall={getMaxPrice(wishlist.items)}
                   />
                 );
               })()
@@ -241,19 +304,22 @@ export default async function WishlistPage({
                 {wishlist.items.map((item) => (
                   <div
                     key={item.id}
-                    className={`group relative overflow-hidden border bg-card transition-shadow hover:shadow-lg flex flex-col ${appearance.itemBorder || "rounded-lg"}`}
+                    className={`group relative overflow-hidden border bg-card transition-shadow hover:shadow-lg flex flex-col ${itemBorderClass}`}
                     style={{
-                      borderColor: appearance.primaryColor
-                        ? `${appearance.primaryColor}30`
+                      borderColor: primaryColor
+                        ? `${primaryColor}30`
                         : undefined,
                     }}
                   >
                     {/* Image */}
-                    <div className="aspect-square overflow-hidden bg-muted">
+                    <div className="relative aspect-square overflow-hidden bg-muted">
                       {item.imageUrl && isSafeUrl(item.imageUrl) ? (
-                        <img
+                        <Image
                           src={item.imageUrl}
                           alt={item.name}
+                          fill
+                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                          unoptimized
                           className="h-full w-full object-cover transition-transform group-hover:scale-105"
                         />
                       ) : (
@@ -279,7 +345,7 @@ export default async function WishlistPage({
                         <div
                           className="px-2 py-1 rounded text-xs font-bold text-white shrink-0"
                           style={{
-                            backgroundColor: appearance.primaryColor || "#000",
+                            backgroundColor: primaryColor,
                           }}
                         >
                           <span className="flex items-center gap-1">
@@ -299,7 +365,7 @@ export default async function WishlistPage({
                         <p
                           className="mt-2 text-lg font-bold"
                           style={{
-                            color: appearance.primaryColor || "var(--primary)",
+                            color: primaryColor || "var(--primary)",
                           }}
                         >
                           {item.price.toFixed(2)} {item.currency}
@@ -320,8 +386,8 @@ export default async function WishlistPage({
                             size="sm"
                             className="w-full"
                             style={{
-                              borderColor: appearance.primaryColor || undefined,
-                              color: appearance.primaryColor || undefined,
+                              borderColor: primaryColor || undefined,
+                              color: primaryColor || undefined,
                             }}
                           >
                             <a
