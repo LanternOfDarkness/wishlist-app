@@ -177,6 +177,8 @@ export default async function WishlistPage({
       style={{
         ...resolvedAppearance.page.style,
         ...resolvedAppearance.cssVariables,
+        backgroundColor: resolvedAppearance.tokens.background,
+        color: resolvedAppearance.tokens.foreground,
       }}
       className={`flex flex-col ${fontClass}`}
     >
