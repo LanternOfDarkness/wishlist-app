@@ -14,6 +14,7 @@ import {
   BannerDisplayMode,
   ColorPreset,
 } from "@/lib/wishlist-appearance";
+import { Loader2 } from "lucide-react";
 
 type UserWithWishlist = User & { wishlist: Wishlist | null };
 type AppearanceValue = string | number | boolean | string[] | undefined;
@@ -539,7 +540,14 @@ export function SettingsForm({
       </div>
 
       <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? t("saving") : t("saveChanges")}
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {t("saving")}
+          </>
+        ) : (
+          t("saveChanges")
+        )}
       </Button>
     </form>
   );
