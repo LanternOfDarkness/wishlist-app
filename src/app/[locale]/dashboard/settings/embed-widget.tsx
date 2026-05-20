@@ -2,10 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { updateWidgetItems } from "@/actions/update-widget-items";
-import {
-  updateWidgetSettings,
-  type WidgetLayout,
-} from "@/actions/update-widget-settings";
+import { updateWidgetSettings } from "@/actions/update-widget-settings";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Copy, Check, Grid2X2, List } from "lucide-react";
@@ -13,37 +10,15 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Item } from "@prisma/client";
 import type { JsonValue } from "@prisma/client/runtime/library";
+import {
+  getWishlistWidgetSettingsState,
+  type WidgetLayout,
+} from "@/lib/wishlist-settings-state";
 
 interface EmbedWidgetProps {
   username: string;
   items?: Item[];
   appearance?: JsonValue;
-}
-
-function getInitialWidgetLayout(appearance: JsonValue | undefined): WidgetLayout {
-  if (
-    appearance &&
-    typeof appearance === "object" &&
-    !Array.isArray(appearance) &&
-    appearance.widgetLayout === "list"
-  ) {
-    return "list";
-  }
-
-  return "grid";
-}
-
-function getInitialWidgetItemSize(appearance: JsonValue | undefined) {
-  if (
-    appearance &&
-    typeof appearance === "object" &&
-    !Array.isArray(appearance) &&
-    typeof appearance.widgetItemSize === "number"
-  ) {
-    return appearance.widgetItemSize;
-  }
-
-  return 100;
 }
 
 export function EmbedWidget({
@@ -55,12 +30,13 @@ export function EmbedWidget({
   const t = useTranslations("Settings");
   const locale = useLocale();
   const router = useRouter();
+  const settings = getWishlistWidgetSettingsState(appearance);
   const [localItems, setLocalItems] = useState(items);
   const [widgetLayout, setWidgetLayout] = useState<WidgetLayout>(
-    getInitialWidgetLayout(appearance),
+    settings.layout,
   );
   const [widgetItemSize, setWidgetItemSize] = useState(
-    getInitialWidgetItemSize(appearance),
+    settings.itemSize,
   );
   const [previewVersion, setPreviewVersion] = useState(0);
 

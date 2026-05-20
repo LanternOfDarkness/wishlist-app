@@ -5,21 +5,15 @@ import {
   requireOwnedWishlistAppearance,
 } from "@/lib/wishlist-command-context";
 import { prisma } from "@/lib/prisma";
+import {
+  normalizeWidgetItemSize,
+  type WidgetLayout,
+} from "@/lib/wishlist-settings-state";
 import { revalidatePath } from "next/cache";
-
-export type WidgetLayout = "grid" | "list";
 
 interface WidgetSettingsInput {
   layout?: WidgetLayout;
   itemSize?: number;
-}
-
-function normalizeItemSize(itemSize: number | undefined) {
-  if (!itemSize) {
-    return undefined;
-  }
-
-  return Math.min(Math.max(Math.round(itemSize), 70), 160);
 }
 
 export async function updateWidgetSettings(settings: WidgetSettingsInput) {
@@ -40,7 +34,7 @@ export async function updateWidgetSettings(settings: WidgetSettingsInput) {
         ...currentAppearance,
         ...(settings.layout ? { widgetLayout: settings.layout } : {}),
         ...(settings.itemSize
-          ? { widgetItemSize: normalizeItemSize(settings.itemSize) }
+          ? { widgetItemSize: normalizeWidgetItemSize(settings.itemSize) }
           : {}),
       },
     },

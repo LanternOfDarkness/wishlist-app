@@ -1,17 +1,20 @@
-import type { Prisma } from "@prisma/client";
-
 import {
   resolveWishlistAppearance,
   type WishlistAppearance,
 } from "./wishlist-appearance";
 import { prisma } from "./prisma";
+import {
+  buildWishlistItemOrderBy,
+  buildWishlistItemWhere,
+  hasActiveWishlistFilters,
+  type WishlistSearchParams,
+} from "./wishlist-filter-state";
 
-export type WishlistSearchParams = {
-  category?: string | string[];
-  sort?: string;
-  minPrice?: string;
-  maxPrice?: string;
-  currency?: string;
+export {
+  buildWishlistItemOrderBy,
+  buildWishlistItemWhere,
+  hasActiveWishlistFilters,
+  type WishlistSearchParams,
 };
 
 type ViewerRelationshipUser = {
@@ -73,63 +76,6 @@ export function getViewerRelationship(
     isMutualFollower,
     canViewPrivateItems: isOwner || isMutualFollower,
   };
-}
-
-export function buildWishlistItemWhere(
-  searchParams: WishlistSearchParams,
-  canViewPrivateItems: boolean,
-): Prisma.ItemWhereInput {
-  const where: Prisma.ItemWhereInput = {};
-
-  if (searchParams.currency) {
-    where.currency = searchParams.currency;
-  }
-
-  if (searchParams.category) {
-    const categoryIds = Array.isArray(searchParams.category)
-      ? searchParams.category
-      : [searchParams.category];
-    where.categoryId = { in: categoryIds };
-  }
-
-  const minPrice = Number.parseFloat(searchParams.minPrice || "");
-  const maxPrice = Number.parseFloat(searchParams.maxPrice || "");
-  if (!Number.isNaN(minPrice) || !Number.isNaN(maxPrice)) {
-    where.price = {
-      ...(!Number.isNaN(minPrice) ? { gte: minPrice } : {}),
-      ...(!Number.isNaN(maxPrice) ? { lte: maxPrice } : {}),
-    };
-  }
-
-  if (!canViewPrivateItems) {
-    where.isPrivate = false;
-  }
-
-  return where;
-}
-
-export function buildWishlistItemOrderBy(
-  sort?: string,
-): Prisma.ItemOrderByWithRelationInput[] {
-  switch (sort) {
-    case "price_asc":
-      return [{ price: "asc" }];
-    case "price_desc":
-      return [{ price: "desc" }];
-    case "newest":
-      return [{ createdAt: "desc" }];
-    default:
-      return [{ priority: "desc" }, { createdAt: "desc" }];
-  }
-}
-
-export function hasActiveWishlistFilters(searchParams: WishlistSearchParams) {
-  return Boolean(
-    searchParams.currency ||
-      searchParams.category ||
-      searchParams.minPrice ||
-      searchParams.maxPrice,
-  );
 }
 
 export function getMaxWishlistItemPrice(items: Array<{ price: number | null }>) {

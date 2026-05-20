@@ -2,23 +2,14 @@
 
 import {
     getAuthenticatedUserId,
-    requireOwnedWishlistById,
 } from "@/lib/wishlist-command-context";
-import { prisma } from "@/lib/prisma";
+import {
+    createWishlistItemFromIntake,
+} from "@/lib/wishlist-item-intake-command";
+import type { WishlistItemIntakeInput } from "@/lib/wishlist-item-intake";
 import { revalidatePath } from "next/cache";
 
-export interface AddItemData {
-    isPrivate?: boolean;
-    name: string;
-    url?: string;
-    imageUrl?: string;
-    price?: number;
-    currency?: string;
-    priority?: number;
-    wishlistId: string;
-    categoryId?: string;
-    newCategoryName?: string;
-}
+export type AddItemData = WishlistItemIntakeInput;
 
 export async function addItem(data: AddItemData) {
     const userId = await getAuthenticatedUserId();
@@ -27,33 +18,7 @@ export async function addItem(data: AddItemData) {
     }
 
     try {
-        await requireOwnedWishlistById(data.wishlistId, userId);
-
-        let finalCategoryId = data.categoryId;
-
-        if (data.newCategoryName) {
-            const category = await prisma.category.create({
-                data: {
-                    name: data.newCategoryName,
-                    userId,
-                }
-            });
-            finalCategoryId = category.id;
-        }
-
-        const item = await prisma.item.create({
-            data: {
-                name: data.name,
-                url: data.url,
-                imageUrl: data.imageUrl,
-                price: data.price,
-                currency: data.currency || 'UAH',
-                priority: data.priority || 0,
-                isPrivate: data.isPrivate || false,
-                wishlistId: data.wishlistId,
-                categoryId: finalCategoryId,
-            },
-        });
+        const item = await createWishlistItemFromIntake(data, userId);
 
         revalidatePath('/[locale]/[username]', 'page');
 

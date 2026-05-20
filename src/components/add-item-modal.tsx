@@ -20,6 +20,10 @@ import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Category } from "@prisma/client";
 import Image from "next/image";
+import {
+  applyMetadataToWishlistItemDraft,
+  createEmptyWishlistItemDraft,
+} from "@/lib/wishlist-item-intake";
 
 
 interface AddItemModalProps {
@@ -34,37 +38,24 @@ export function AddItemModal({
 }: AddItemModalProps) {
   const t = useTranslations("AddItem");
   const [open, setOpen] = useState(false);
-  const [url, setUrl] = useState("");
-  const [name, setName] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState("UAH");
-  const [priority, setPriority] = useState("3");
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [categoryId, setCategoryId] = useState("");
-  const [newCategoryName, setNewCategoryName] = useState("");
+  const [draft, setDraft] = useState(createEmptyWishlistItemDraft);
   const [isFetching, setIsFetching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFetchMetadata = async () => {
-    if (!url.trim()) {
+    if (!draft.url.trim()) {
       toast.error(t("error_fetch") || "Please enter URL");
       return;
     }
 
     setIsFetching(true);
     try {
-      const metadata = await fetchMetadata(url);
+      const metadata = await fetchMetadata(draft.url);
 
       if (metadata) {
-        setName(metadata.title);
-        setImageUrl(metadata.image || "");
-        if (metadata.price) {
-          setPrice(metadata.price.toString());
-        }
-        if (metadata.currency) {
-          setCurrency(metadata.currency);
-        }
+        setDraft((currentDraft) =>
+          applyMetadataToWishlistItemDraft(currentDraft, metadata),
+        );
         toast.success("Дані успішно завантажено!");
       } else {
         toast.error(t("error_fetch") || "Error fetching");
@@ -80,7 +71,7 @@ export function AddItemModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim()) {
+    if (!draft.name.trim()) {
       toast.error("Назва обов'язкова");
       return;
     }
@@ -88,31 +79,23 @@ export function AddItemModal({
     setIsSubmitting(true);
     try {
       const result = await addItem({
-        name: name.trim(),
-        url: url.trim() || undefined,
-        imageUrl: imageUrl.trim() || undefined,
-        price: price ? parseFloat(price) : undefined,
-        currency,
-        priority: parseInt(priority, 10),
+        name: draft.name,
+        url: draft.url,
+        imageUrl: draft.imageUrl,
+        price: draft.price ? parseFloat(draft.price) : undefined,
+        currency: draft.currency,
+        priority: parseInt(draft.priority, 10),
         wishlistId,
-        categoryId: categoryId === "new" || categoryId === "" ? undefined : categoryId,
-        newCategoryName: categoryId === "new" ? newCategoryName : undefined,
-        isPrivate,
+        categoryId: draft.categoryId,
+        newCategoryName:
+          draft.categoryId === "new" ? draft.newCategoryName : undefined,
+        isPrivate: draft.isPrivate,
       });
 
       if (result.success) {
         toast.success("Бажання додано!");
         setOpen(false);
-        // Reset form
-        setUrl("");
-        setName("");
-        setImageUrl("");
-        setPrice("");
-        setCurrency("UAH");
-        setPriority("3");
-        setIsPrivate(false);
-        setCategoryId("");
-        setNewCategoryName("");
+        setDraft(createEmptyWishlistItemDraft());
       } else {
         toast.error(result.error || "Помилка додавання");
       }
@@ -150,15 +133,17 @@ export function AddItemModal({
                   id="url"
                   type="url"
                   placeholder={t("url_placeholder") || "https://"}
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  value={draft.url}
+                  onChange={(e) =>
+                    setDraft({ ...draft, url: e.target.value })
+                  }
                   className="flex-1"
                 />
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={handleFetchMetadata}
-                  disabled={isFetching || !url.trim()}
+                  disabled={isFetching || !draft.url.trim()}
                 >
                   {isFetching ? (
                     <>
@@ -179,8 +164,10 @@ export function AddItemModal({
               <Input
                 id="name"
                 placeholder={t("name_placeholder") || "Item Name"}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={draft.name}
+                onChange={(e) =>
+                  setDraft({ ...draft, name: e.target.value })
+                }
                 required
               />
             </div>
@@ -195,13 +182,15 @@ export function AddItemModal({
                 id="imageUrl"
                 type="url"
                 placeholder="https://..."
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
+                value={draft.imageUrl}
+                onChange={(e) =>
+                  setDraft({ ...draft, imageUrl: e.target.value })
+                }
               />
-              {imageUrl && (
+              {draft.imageUrl && (
                 <div className="mt-2 rounded border p-2 bg-muted/50">
                   <Image
-                    src={imageUrl}
+                    src={draft.imageUrl}
                     alt="Preview"
                     width={480}
                     height={128}
@@ -221,8 +210,10 @@ export function AddItemModal({
                   type="number"
                   step="0.01"
                   placeholder={t("price_placeholder") || "100.00"}
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  value={draft.price}
+                  onChange={(e) =>
+                    setDraft({ ...draft, price: e.target.value })
+                  }
                 />
               </div>
 
@@ -233,8 +224,13 @@ export function AddItemModal({
                 <Input
                   id="currency"
                   placeholder="UAH"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+                  value={draft.currency}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      currency: e.target.value.toUpperCase(),
+                    })
+                  }
                 />
               </div>
             </div>
@@ -246,8 +242,10 @@ export function AddItemModal({
                 <select
                   id="priority"
                   className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
+                  value={draft.priority}
+                  onChange={(e) =>
+                    setDraft({ ...draft, priority: e.target.value })
+                  }
                 >
                   <option value="1">1 - Lowest</option>
                   <option value="2">2 - Low</option>
@@ -262,8 +260,10 @@ export function AddItemModal({
                 <select
                   id="categoryId"
                   className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
+                  value={draft.categoryId}
+                  onChange={(e) =>
+                    setDraft({ ...draft, categoryId: e.target.value })
+                  }
                 >
                   <option value="">No Category</option>
                   {categories.map((c) => (
@@ -276,15 +276,17 @@ export function AddItemModal({
               </div>
             </div>
 
-            {categoryId === "new" && (
+            {draft.categoryId === "new" && (
               <div className="grid gap-2">
                 <Label htmlFor="newCategory">New Category Name</Label>
                 <Input
                   id="newCategory"
                   placeholder="Electronics, Books, etc."
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  required={categoryId === "new"}
+                  value={draft.newCategoryName}
+                  onChange={(e) =>
+                    setDraft({ ...draft, newCategoryName: e.target.value })
+                  }
+                  required={draft.categoryId === "new"}
                 />
               </div>
             )}
@@ -293,8 +295,10 @@ export function AddItemModal({
               <input
                 type="checkbox"
                 id="isPrivate"
-                checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
+                checked={draft.isPrivate}
+                onChange={(e) =>
+                  setDraft({ ...draft, isPrivate: e.target.checked })
+                }
                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
               <Label htmlFor="isPrivate">
