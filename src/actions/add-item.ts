@@ -1,69 +1,25 @@
 "use server";
 
-import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import {
+    getAuthenticatedUserId,
+} from "@/lib/wishlist-command-context";
+import {
+    createWishlistItemFromIntake,
+} from "@/lib/wishlist-item-intake-command";
+import type { WishlistItemIntakeInput } from "@/lib/wishlist-item-intake";
 import { revalidatePath } from "next/cache";
 
-export interface AddItemData {
-    isPrivate?: boolean;
-    name: string;
-    url?: string;
-    imageUrl?: string;
-    price?: number;
-    currency?: string;
-    priority?: number;
-    wishlistId: string;
-    categoryId?: string;
-    newCategoryName?: string;
-}
+export type AddItemData = WishlistItemIntakeInput;
 
 export async function addItem(data: AddItemData) {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
         return { success: false, error: 'Unauthorized' };
     }
 
     try {
-        // Verify that the wishlist belongs to the user
-        const wishlist = await prisma.wishlist.findFirst({
-            where: {
-                id: data.wishlistId,
-                userId: session.user.id,
-            },
-        });
+        const item = await createWishlistItemFromIntake(data, userId);
 
-        if (!wishlist) {
-            return { success: false, error: 'Wishlist not found or access denied' };
-        }
-
-        let finalCategoryId = data.categoryId;
-
-        // If user provided a new category name, create it
-        if (data.newCategoryName) {
-            const category = await prisma.category.create({
-                data: {
-                    name: data.newCategoryName,
-                    userId: session.user.id,
-                }
-            });
-            finalCategoryId = category.id;
-        }
-
-        const item = await prisma.item.create({
-            data: {
-                name: data.name,
-                url: data.url,
-                imageUrl: data.imageUrl,
-                price: data.price,
-                currency: data.currency || 'UAH',
-                priority: data.priority || 0,
-                isPrivate: data.isPrivate || false,
-                wishlistId: data.wishlistId,
-                categoryId: finalCategoryId,
-            },
-        });
-
-        // Revalidate wishlist page
         revalidatePath('/[locale]/[username]', 'page');
 
         return { success: true, item };

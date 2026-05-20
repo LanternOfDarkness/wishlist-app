@@ -1,55 +1,40 @@
 "use server";
 
-import { auth } from "@/auth";
+import {
+  requireAuthenticatedUserId,
+  requireOwnedWishlistAppearance,
+} from "@/lib/wishlist-command-context";
 import { prisma } from "@/lib/prisma";
+import {
+  normalizeWidgetItemSize,
+  type WidgetLayout,
+} from "@/lib/wishlist-settings-state";
 import { revalidatePath } from "next/cache";
-
-export type WidgetLayout = "grid" | "list";
 
 interface WidgetSettingsInput {
   layout?: WidgetLayout;
   itemSize?: number;
 }
 
-function normalizeItemSize(itemSize: number | undefined) {
-  if (!itemSize) {
-    return undefined;
-  }
-
-  return Math.min(Math.max(Math.round(itemSize), 70), 160);
-}
-
 export async function updateWidgetSettings(settings: WidgetSettingsInput) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: { wishlist: true },
-  });
-
-  if (!user?.wishlist) {
-    throw new Error("Wishlist not found");
-  }
+  const userId = await requireAuthenticatedUserId();
+  const wishlist = await requireOwnedWishlistAppearance(userId);
 
   const currentAppearance =
-    user.wishlist.appearance &&
-    typeof user.wishlist.appearance === "object" &&
-    !Array.isArray(user.wishlist.appearance)
-      ? user.wishlist.appearance
+    wishlist.appearance &&
+    typeof wishlist.appearance === "object" &&
+    !Array.isArray(wishlist.appearance)
+      ? wishlist.appearance
       : {};
 
   await prisma.wishlist.update({
-    where: { id: user.wishlist.id },
+    where: { id: wishlist.id },
     data: {
       appearance: {
         ...currentAppearance,
         ...(settings.layout ? { widgetLayout: settings.layout } : {}),
         ...(settings.itemSize
-          ? { widgetItemSize: normalizeItemSize(settings.itemSize) }
+          ? { widgetItemSize: normalizeWidgetItemSize(settings.itemSize) }
           : {}),
       },
     },

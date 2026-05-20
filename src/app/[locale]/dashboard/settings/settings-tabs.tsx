@@ -3,15 +3,11 @@
 import { useState } from "react";
 import { SettingsForm } from "./settings-form";
 import { EmbedWidget } from "./embed-widget";
-import { User, Wishlist, Item } from "@prisma/client";
 import { useTranslations } from "next-intl";
-
-type UserWithData = User & {
-    wishlist: (Wishlist & { items?: Item[] }) | null
-};
+import type { DashboardSettingsUser } from "@/lib/dashboard-settings-intake";
 
 interface SettingsTabsProps {
-    user: UserWithData;
+    user: DashboardSettingsUser;
 }
 
 export function SettingsTabs({ user }: SettingsTabsProps) {

@@ -1,5 +1,4 @@
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { User as UserIcon, ExternalLink, Gift, Lock, Star } from "lucide-react";
@@ -9,28 +8,11 @@ import { WishlistFilters } from "@/components/wishlist-filters";
 import { FollowButton } from "@/components/follow-button";
 import { getTranslations } from "next-intl/server";
 import { isSafeUrl } from "@/lib/utils";
-import { resolveWishlistAppearance } from "@/lib/wishlist-appearance";
+import {
+  getWishlistPresentation,
+  type WishlistSearchParams,
+} from "@/lib/wishlist-presentation";
 import Image from "next/image";
-import type { Prisma } from "@prisma/client";
-
-type WishlistSearchParams = {
-  category?: string | string[];
-  sort?: string;
-  minPrice?: string;
-  maxPrice?: string;
-  currency?: string;
-};
-
-type WishlistAppearance = Record<string, string | string[] | undefined>;
-
-function getAppearanceString(
-  appearance: WishlistAppearance,
-  key: string,
-  fallback = "",
-) {
-  const value = appearance[key];
-  return typeof value === "string" ? value : fallback;
-}
 
 interface WishlistPageProps {
   params: Promise<{
@@ -38,67 +20,6 @@ interface WishlistPageProps {
     username: string;
   }>;
   searchParams: Promise<WishlistSearchParams>;
-}
-
-function buildItemWhere(
-  searchParams: WishlistSearchParams,
-  canViewPrivateItems: boolean,
-): Prisma.ItemWhereInput {
-  const where: Prisma.ItemWhereInput = {};
-
-  if (searchParams.currency) {
-    where.currency = searchParams.currency;
-  }
-
-  if (searchParams.category) {
-    const categoryIds = Array.isArray(searchParams.category)
-      ? searchParams.category
-      : [searchParams.category];
-    where.categoryId = { in: categoryIds };
-  }
-
-  const minPrice = Number.parseFloat(searchParams.minPrice || "");
-  const maxPrice = Number.parseFloat(searchParams.maxPrice || "");
-  if (!Number.isNaN(minPrice) || !Number.isNaN(maxPrice)) {
-    where.price = {
-      ...(!Number.isNaN(minPrice) ? { gte: minPrice } : {}),
-      ...(!Number.isNaN(maxPrice) ? { lte: maxPrice } : {}),
-    };
-  }
-
-  if (!canViewPrivateItems) {
-    where.isPrivate = false;
-  }
-
-  return where;
-}
-
-function buildItemOrderBy(
-  sort?: string,
-): Prisma.ItemOrderByWithRelationInput[] {
-  switch (sort) {
-    case "price_asc":
-      return [{ price: "asc" }];
-    case "price_desc":
-      return [{ price: "desc" }];
-    case "newest":
-      return [{ createdAt: "desc" }];
-    default:
-      return [{ priority: "desc" }, { createdAt: "desc" }];
-  }
-}
-
-function getMaxPrice(items: Array<{ price: number | null }>) {
-  const prices = items
-    .map((item) => item.price)
-    .filter((price): price is number => price !== null);
-
-  if (prices.length === 0) {
-    return 10000;
-  }
-
-  const maxPrice = Math.max(...prices);
-  return maxPrice > 0 ? maxPrice : 10000;
 }
 
 export default async function WishlistPage({
@@ -110,67 +31,26 @@ export default async function WishlistPage({
   const resolvedSearchParams = await searchParams;
   const t = await getTranslations("Wishlist");
 
-  const user = await prisma.user.findUnique({
-    where: { username: username },
-    include: {
-      categories: true,
-      followers: { select: { followerId: true } },
-      following: { select: { followingId: true } },
-    },
+  const presentation = await getWishlistPresentation({
+    username,
+    viewerUserId: session?.user?.id,
+    searchParams: resolvedSearchParams,
   });
 
-  if (!user) {
+  if (!presentation) {
     return notFound();
   }
 
-  const isOwner = session?.user?.id === user.id;
-  let isFollowing = false;
-  let isMutualFollower = false;
-
-  if (session?.user?.id) {
-    isFollowing = user.followers.some((f) => f.followerId === session.user.id);
-    const userFollowsViewer = user.following.some(
-      (f) => f.followingId === session.user.id,
-    );
-    isMutualFollower = isFollowing && userFollowsViewer;
-  }
-
-  const itemWhere = buildItemWhere(
-    resolvedSearchParams,
-    isOwner || isMutualFollower,
-  );
-  const orderBy = buildItemOrderBy(resolvedSearchParams.sort);
-
-  const wishlist = await prisma.wishlist.findUnique({
-    where: { userId: user.id },
-    include: {
-      items: {
-        where: itemWhere,
-        orderBy: orderBy,
-        include: {
-          category: true,
-        },
-      },
-    },
-  });
-
-  if (!wishlist) {
-    return notFound();
-  }
-
-  const appearance = (wishlist.appearance as WishlistAppearance) || {};
-  const resolvedAppearance = resolveWishlistAppearance(appearance);
-  const primaryColor = resolvedAppearance.primaryColor;
-  const fontClass = getAppearanceString(appearance, "font", "font-sans");
-  const itemBorderClass = getAppearanceString(
+  const {
+    user,
+    wishlist,
+    relationship,
+    hasActiveFilters,
+    maxPriceOverall,
     appearance,
-    "itemBorder",
-    "rounded-lg",
-  );
-  const welcomeMessage = getAppearanceString(appearance, "welcomeMessage");
-  const favoriteCurrencies = Array.isArray(appearance.favoriteCurrencies)
-    ? appearance.favoriteCurrencies
-    : [];
+  } = presentation;
+  const resolvedAppearance = appearance.resolved;
+  const primaryColor = appearance.primaryColor;
 
   return (
     <div
@@ -180,7 +60,7 @@ export default async function WishlistPage({
         backgroundColor: resolvedAppearance.tokens.background,
         color: resolvedAppearance.tokens.foreground,
       }}
-      className={`flex flex-col ${fontClass}`}
+      className={`flex flex-col ${appearance.fontClass}`}
     >
       {/* Banner Area */}
       {resolvedAppearance.banner.visible ? (
@@ -221,8 +101,11 @@ export default async function WishlistPage({
                 name: user.name || user.username || "User",
               })}
             </h1>
-            {!isOwner && session?.user && (
-              <FollowButton userId={user.id} isFollowing={isFollowing} />
+            {!relationship.isOwner && session?.user && (
+              <FollowButton
+                userId={user.id}
+                isFollowing={relationship.isFollowing}
+              />
             )}
             <div className="flex gap-4 text-sm text-muted-foreground mt-2">
               <span>{user.followers.length} Followers</span>
@@ -230,9 +113,9 @@ export default async function WishlistPage({
             </div>
           </div>
 
-          {welcomeMessage && (
+          {appearance.welcomeMessage && (
             <p className="text-lg text-muted-foreground italic">
-              &quot;{welcomeMessage}&quot;
+              &quot;{appearance.welcomeMessage}&quot;
             </p>
           )}
 
@@ -243,25 +126,24 @@ export default async function WishlistPage({
             <CopyLinkButton url={`/${user.username}`} />
           </div>
 
-          {isOwner && (
+          {relationship.isOwner && (
             <div className="pt-4">
               <AddItemModal
                 wishlistId={wishlist.id}
                 categories={user.categories}
-                favoriteCurrencies={favoriteCurrencies}
+                favoriteCurrencies={appearance.favoriteCurrencies}
               />
             </div>
           )}
         </div>
 
         <div className="flex flex-col md:flex-row gap-8">
-          {wishlist.items.length > 0 ||
-          Object.keys(itemWhere).length > (isOwner ? 0 : 1)
+          {wishlist.items.length > 0 || hasActiveFilters
             ? (() => {
                 return (
                   <WishlistFilters
                     categories={user.categories}
-                    maxPriceOverall={getMaxPrice(wishlist.items)}
+                    maxPriceOverall={maxPriceOverall}
                   />
                 );
               })()
@@ -279,7 +161,7 @@ export default async function WishlistPage({
                 {wishlist.items.map((item) => (
                   <div
                     key={item.id}
-                    className={`group relative overflow-hidden border bg-card transition-shadow hover:shadow-lg flex flex-col ${itemBorderClass}`}
+                    className={`group relative overflow-hidden border bg-card transition-shadow hover:shadow-lg flex flex-col ${appearance.itemBorderClass}`}
                     style={{
                       borderColor: primaryColor
                         ? `${primaryColor}30`
