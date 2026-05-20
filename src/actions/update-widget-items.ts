@@ -1,37 +1,19 @@
 "use server";
 
-import { auth } from "@/auth";
+import {
+    countSelectedWidgetItems,
+    requireAuthenticatedUserId,
+    requireOwnedWishlistItem,
+} from "@/lib/wishlist-command-context";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export async function updateWidgetItems(itemId: string, showInWidget: boolean) {
-    const session = await auth();
-    if (!session?.user?.id) {
-        throw new Error("Unauthorized");
-    }
-
-    const item = await prisma.item.findFirst({
-        where: {
-            id: itemId,
-            wishlist: {
-                userId: session.user.id
-            }
-        }
-    });
-
-    if (!item) {
-        throw new Error("Item not found");
-    }
+    const userId = await requireAuthenticatedUserId();
+    await requireOwnedWishlistItem(itemId, userId);
 
     if (showInWidget) {
-        const count = await prisma.item.count({
-            where: {
-                wishlist: {
-                    userId: session.user.id
-                },
-                showInWidget: true
-            }
-        });
+        const count = await countSelectedWidgetItems(userId);
 
         if (count >= 5) {
             return { error: "Maximum 5 items can be shown in widget" };

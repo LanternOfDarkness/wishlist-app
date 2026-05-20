@@ -1,16 +1,16 @@
 "use server";
 
 import type { Prisma } from "@prisma/client";
-import { auth } from "@/auth";
 import { buildWishlistAppearanceFromFormData } from "@/lib/wishlist-appearance-form";
 import { prisma } from "@/lib/prisma";
+import {
+    requireAuthenticatedUserId,
+    getOwnedWishlistAppearance,
+} from "@/lib/wishlist-command-context";
 import { revalidatePath } from "next/cache";
 
 export async function updateProfile(formData: FormData) {
-    const session = await auth();
-    if (!session?.user?.id) {
-        throw new Error("Не авторизований");
-    }
+    const userId = await requireAuthenticatedUserId("Не авторизований");
 
     const name = formData.get("name") as string;
     const username = formData.get("username") as string;
@@ -19,15 +19,12 @@ export async function updateProfile(formData: FormData) {
             where: { username },
         });
 
-        if (existingUser && existingUser.id !== session.user.id) {
+        if (existingUser && existingUser.id !== userId) {
             return { error: "Цей нікнейм вже зайнятий" };
         }
     }
 
-    const wishlist = await prisma.wishlist.findUnique({
-        where: { userId: session.user.id },
-        select: { appearance: true },
-    });
+    const wishlist = await getOwnedWishlistAppearance(userId);
     const currentAppearance =
         wishlist?.appearance &&
         typeof wishlist.appearance === "object" &&
@@ -41,7 +38,7 @@ export async function updateProfile(formData: FormData) {
     );
 
     await prisma.user.update({
-        where: { id: session.user.id },
+        where: { id: userId },
         data: {
             name,
             username,

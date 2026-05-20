@@ -1,6 +1,9 @@
 "use server";
 
-import { auth } from "@/auth";
+import {
+    getAuthenticatedUserId,
+    requireOwnedWishlistById,
+} from "@/lib/wishlist-command-context";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -18,32 +21,21 @@ export interface AddItemData {
 }
 
 export async function addItem(data: AddItemData) {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
         return { success: false, error: 'Unauthorized' };
     }
 
     try {
-        // Verify that the wishlist belongs to the user
-        const wishlist = await prisma.wishlist.findFirst({
-            where: {
-                id: data.wishlistId,
-                userId: session.user.id,
-            },
-        });
-
-        if (!wishlist) {
-            return { success: false, error: 'Wishlist not found or access denied' };
-        }
+        await requireOwnedWishlistById(data.wishlistId, userId);
 
         let finalCategoryId = data.categoryId;
 
-        // If user provided a new category name, create it
         if (data.newCategoryName) {
             const category = await prisma.category.create({
                 data: {
                     name: data.newCategoryName,
-                    userId: session.user.id,
+                    userId,
                 }
             });
             finalCategoryId = category.id;
@@ -63,7 +55,6 @@ export async function addItem(data: AddItemData) {
             },
         });
 
-        // Revalidate wishlist page
         revalidatePath('/[locale]/[username]', 'page');
 
         return { success: true, item };

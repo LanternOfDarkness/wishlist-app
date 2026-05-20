@@ -1,6 +1,5 @@
-import { prisma } from "@/lib/prisma";
 import { isSafeUrl } from "@/lib/utils";
-import { resolveWishlistAppearance } from "@/lib/wishlist-appearance";
+import { getEmbedWishlistPresentation } from "@/lib/wishlist-presentation";
 import { notFound } from "next/navigation";
 import { Gift } from "lucide-react";
 import Image from "next/image";
@@ -13,132 +12,43 @@ interface EmbedPageProps {
   }>;
 }
 
-type WidgetAppearance = Record<string, string | string[] | number | undefined>;
-type WidgetFontClass = "font-sans" | "font-serif" | "font-mono";
-
-const ALLOWED_FONT_CLASSES: WidgetFontClass[] = [
-  "font-sans",
-  "font-serif",
-  "font-mono",
-];
-const LEGACY_BORDER_DEFAULTS: Record<string, string> = {
-  "rounded-none": "rounded-none border-solid",
-  "rounded-md": "rounded-md border-solid",
-  "rounded-lg": "rounded-lg border-solid",
-  "rounded-2xl": "rounded-2xl border-solid",
-};
-const ALLOWED_ITEM_BORDER_CLASSES = [
-  "rounded-none border-solid",
-  "rounded-lg border-solid",
-  "rounded-2xl border-solid",
-  "rounded-lg border-dashed",
-  "rounded-lg border-dotted",
-  "rounded-lg border-double",
-] as const;
-
-function getAppearanceString(
-  appearance: WidgetAppearance,
-  key: string,
-  fallback = "",
-) {
-  const value = appearance[key];
-  return typeof value === "string" ? value : fallback;
-}
-
-function getAppearanceNumber(
-  appearance: WidgetAppearance,
-  key: string,
-  fallback: number,
-) {
-  const value = appearance[key];
-  return typeof value === "number" ? value : fallback;
-}
-
-function normalizeFontClass(value: string): WidgetFontClass {
-  return ALLOWED_FONT_CLASSES.includes(value as WidgetFontClass)
-    ? (value as WidgetFontClass)
-    : "font-sans";
-}
-
-function normalizeItemBorderClass(value: string) {
-  const normalizedValue = LEGACY_BORDER_DEFAULTS[value] || value;
-
-  return ALLOWED_ITEM_BORDER_CLASSES.includes(
-    normalizedValue as (typeof ALLOWED_ITEM_BORDER_CLASSES)[number],
-  )
-    ? normalizedValue
-    : "rounded-lg border-solid";
-}
-
 export default async function EmbedPage({ params }: EmbedPageProps) {
   const { locale, username } = await params;
-
-  const user = await prisma.user.findUnique({
-    where: { username: username },
-    include: {
-      wishlist: {
-        include: {
-          items: {
-            where: { isPrivate: false },
-            orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
-          },
-        },
-      },
-    },
+  const presentation = await getEmbedWishlistPresentation({
+    locale,
+    username,
   });
 
-  if (!user || !user.wishlist) {
+  if (!presentation) {
     return notFound();
   }
 
-  const appearance = (user.wishlist.appearance as WidgetAppearance) || {};
-  const resolvedAppearance = resolveWishlistAppearance(appearance);
-
-  let displayItems = user.wishlist.items.filter((i) => i.showInWidget);
-  if (displayItems.length === 0) {
-    displayItems = user.wishlist.items.slice(0, 5);
-  } else {
-    displayItems = displayItems.slice(0, 5);
-  }
-
-  const primaryColor = resolvedAppearance.primaryColor;
-  const fontClass = normalizeFontClass(
-    getAppearanceString(appearance, "font", "font-sans"),
-  );
-  const itemBorderClass = normalizeItemBorderClass(
-    getAppearanceString(appearance, "itemBorder", "rounded-lg"),
-  );
-  const welcomeMessage = getAppearanceString(appearance, "welcomeMessage");
-  const widgetLayoutValue = getAppearanceString(appearance, "widgetLayout", "grid");
-  const widgetLayout = widgetLayoutValue === "list" ? "list" : "grid";
-  const widgetItemSize = Math.min(
-    Math.max(Math.round(getAppearanceNumber(appearance, "widgetItemSize", 100)), 70),
-    160,
-  );
-  const profileUrl = `/${locale}/${username}`;
+  const { user, displayItems, profileUrl, appearance, widget } = presentation;
+  const resolvedAppearance = appearance.resolved;
+  const primaryColor = appearance.primaryColor;
 
   const themeStyle = {
     ...resolvedAppearance.cssVariables,
-    "--widget-item-size": `${widgetItemSize}px`,
+    "--widget-item-size": `${widget.widgetItemSize}px`,
     ...resolvedAppearance.page.style,
     backgroundColor: resolvedAppearance.tokens.background,
     color: resolvedAppearance.tokens.foreground,
   } as CSSProperties;
 
   const itemsClassName =
-    widgetLayout === "list"
+    widget.widgetLayout === "list"
       ? "flex flex-col gap-3"
       : "grid justify-center gap-3";
 
   const itemClassName =
-    widgetLayout === "list"
-      ? `grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3 border bg-card/90 shadow-sm ${itemBorderClass}`
-      : `flex w-[var(--widget-item-size)] max-w-[var(--widget-item-size)] flex-col gap-2 p-2 border bg-card/90 shadow-sm ${itemBorderClass}`;
+    widget.widgetLayout === "list"
+      ? `grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3 border bg-card/90 shadow-sm ${appearance.itemBorderClass}`
+      : `flex w-[var(--widget-item-size)] max-w-[var(--widget-item-size)] flex-col gap-2 p-2 border bg-card/90 shadow-sm ${appearance.itemBorderClass}`;
 
   return (
     <div
       style={themeStyle}
-      className={`min-h-screen w-full overflow-auto border shadow-sm ${fontClass}`}
+      className={`min-h-screen w-full overflow-auto border shadow-sm ${appearance.fontClass}`}
     >
       <style>{`header { display: none !important; }`}</style>
 
@@ -188,9 +98,9 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
             /{user.username}
           </a>
 
-          {welcomeMessage && (
+          {appearance.welcomeMessage && (
             <p className="mt-3 max-w-xl text-sm leading-relaxed opacity-80">
-              {welcomeMessage}
+              {appearance.welcomeMessage}
             </p>
           )}
         </div>
@@ -199,7 +109,7 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
       <div
         className={`px-4 pb-5 ${itemsClassName}`}
         style={
-          widgetLayout === "grid"
+          widget.widgetLayout === "grid"
             ? {
                 gridTemplateColumns:
                   "repeat(auto-fit, minmax(var(--widget-item-size), var(--widget-item-size)))",
@@ -221,14 +131,18 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
               style={{ borderColor: `${primaryColor}30` }}
             >
               <div
-                className={`relative aspect-square w-full shrink-0 overflow-hidden bg-muted ${itemBorderClass}`}
+                className={`relative aspect-square w-full shrink-0 overflow-hidden bg-muted ${appearance.itemBorderClass}`}
               >
                 {item.imageUrl && isSafeUrl(item.imageUrl) ? (
                   <Image
                     src={item.imageUrl}
                     alt={item.name}
                     fill
-                    sizes={widgetLayout === "list" ? "72px" : `${widgetItemSize}px`}
+                    sizes={
+                      widget.widgetLayout === "list"
+                        ? "72px"
+                        : `${widget.widgetItemSize}px`
+                    }
                     unoptimized
                     className="object-cover"
                   />

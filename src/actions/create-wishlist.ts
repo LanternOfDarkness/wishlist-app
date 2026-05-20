@@ -1,12 +1,12 @@
 "use server";
 
-import { auth } from "@/auth";
+import { getAuthenticatedUserId } from "@/lib/wishlist-command-context";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export async function createWishlist(formData: FormData) {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
         return { error: "error_unauthorized" };
     }
 
@@ -29,7 +29,7 @@ export async function createWishlist(formData: FormData) {
             data: {
                 title,
                 slug: uniqueSlug,
-                userId: session.user.id,
+                userId,
             },
         });
 
