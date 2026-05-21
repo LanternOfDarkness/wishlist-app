@@ -4,6 +4,16 @@ import { isSafeUrl } from "./utils";
 
 export type ColorPreset = "light" | "rose" | "green" | "dark" | "minimal";
 export type BannerDisplayMode = "banner-and-page" | "banner-only" | "page-only";
+export type ThemeMode = "system" | "light" | "dark";
+export type WidgetLayout = "grid" | "list";
+export type WishlistFontClass =
+  | "font-sans"
+  | "font-serif"
+  | "font-mono"
+  | "font-comic"
+  | "font-georgia"
+  | "font-trebuchet"
+  | "font-verdana";
 
 export interface AppearanceTokens {
   primary: string;
@@ -33,6 +43,13 @@ export type WishlistAppearance = Record<string, unknown> & {
   textColor?: unknown;
   bannerImage?: unknown;
   bgImage?: unknown;
+  favoriteCurrencies?: unknown;
+  font?: unknown;
+  itemBorder?: unknown;
+  themeMode?: unknown;
+  welcomeMessage?: unknown;
+  widgetLayout?: unknown;
+  widgetItemSize?: unknown;
 };
 
 type ThemePreset = {
@@ -139,6 +156,217 @@ export const APPEARANCE_PRESETS: Record<ColorPreset, ThemePreset> = {
   },
 };
 
+export const COLOR_PRESET_OPTIONS: ColorPreset[] = [
+  "light",
+  "rose",
+  "green",
+  "dark",
+  "minimal",
+];
+
+export const BANNER_DISPLAY_MODE_OPTIONS: BannerDisplayMode[] = [
+  "banner-and-page",
+  "banner-only",
+  "page-only",
+];
+
+export const BANNER_MODE_LABELS: Record<BannerDisplayMode, string> = {
+  "banner-and-page": "bannerDisplayModeBoth",
+  "banner-only": "bannerDisplayModeBannerOnly",
+  "page-only": "bannerDisplayModePageOnly",
+};
+
+export const ITEM_BORDER_OPTIONS = [
+  { value: "rounded-none border-solid", labelKey: "borderSquareSolid" },
+  { value: "rounded-md border-solid", labelKey: "borderSlightSolid" },
+  { value: "rounded-lg border-solid", labelKey: "borderRoundedSolid" },
+  { value: "rounded-2xl border-solid", labelKey: "borderLargeSolid" },
+  { value: "rounded-lg border-dashed", labelKey: "borderDashed" },
+  { value: "rounded-lg border-dotted", labelKey: "borderDotted" },
+  { value: "rounded-lg border-double", labelKey: "borderDouble" },
+] as const;
+
+export const FONT_OPTIONS = [
+  { value: "font-sans", labelKey: "fontSans" },
+  { value: "font-serif", labelKey: "fontSerif" },
+  { value: "font-mono", labelKey: "fontMono" },
+  { value: "font-comic", labelKey: "fontComic" },
+  { value: "font-georgia", labelKey: "fontGeorgia" },
+  { value: "font-trebuchet", labelKey: "fontTrebuchet" },
+  { value: "font-verdana", labelKey: "fontVerdana" },
+] as const;
+
+const LEGACY_BORDER_DEFAULTS: Record<string, string> = {
+  "rounded-none": "rounded-none border-solid",
+  "rounded-md": "rounded-md border-solid",
+  "rounded-lg": "rounded-lg border-solid",
+  "rounded-2xl": "rounded-2xl border-solid",
+};
+
+export function getWishlistAppearanceRecord(
+  appearance: unknown,
+): WishlistAppearance {
+  if (!appearance || typeof appearance !== "object" || Array.isArray(appearance)) {
+    return {};
+  }
+
+  return appearance as WishlistAppearance;
+}
+
+export function getWishlistAppearanceString(
+  appearance: WishlistAppearance,
+  key: string,
+  fallback = "",
+) {
+  const value = appearance[key];
+  return typeof value === "string" ? value : fallback;
+}
+
+export function getWishlistAppearanceStringArray(
+  appearance: WishlistAppearance,
+  key: string,
+  fallback: string[] = [],
+) {
+  const value = appearance[key];
+
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string")
+    : fallback;
+}
+
+export function readWishlistAppearanceBoolean(value: unknown) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes", "on"].includes(normalized)) return true;
+    if (["false", "0", "no", "off"].includes(normalized)) return false;
+  }
+
+  return false;
+}
+
+export function normalizeWishlistColorPreset(value: unknown): ColorPreset {
+  return COLOR_PRESET_OPTIONS.includes(value as ColorPreset)
+    ? (value as ColorPreset)
+    : "light";
+}
+
+export function normalizeWishlistBannerDisplayMode(
+  value: unknown,
+): BannerDisplayMode {
+  return BANNER_DISPLAY_MODE_OPTIONS.includes(value as BannerDisplayMode)
+    ? (value as BannerDisplayMode)
+    : "banner-and-page";
+}
+
+export function normalizeWishlistThemeMode(value: unknown): ThemeMode {
+  return value === "light" || value === "dark" || value === "system"
+    ? value
+    : "system";
+}
+
+export function normalizeWishlistFontClass(value: unknown): WishlistFontClass {
+  return FONT_OPTIONS.some((option) => option.value === value)
+    ? (value as WishlistFontClass)
+    : "font-sans";
+}
+
+export function normalizeWishlistItemBorderClass(value: unknown) {
+  const stringValue = typeof value === "string" ? value : "";
+  const normalizedValue = LEGACY_BORDER_DEFAULTS[stringValue] || stringValue;
+
+  return ITEM_BORDER_OPTIONS.some((option) => option.value === normalizedValue)
+    ? normalizedValue
+    : "rounded-lg border-solid";
+}
+
+export function normalizeWishlistWidgetLayout(value: unknown): WidgetLayout {
+  return value === "list" ? "list" : "grid";
+}
+
+export function normalizeWishlistWidgetItemSize(value: unknown) {
+  return typeof value === "number" ? Math.min(Math.max(Math.round(value), 70), 160) : 100;
+}
+
+export function normalizeWishlistColorInputValue(
+  value: unknown,
+  fallback: string,
+) {
+  const stringValue = typeof value === "string" ? value : "";
+  const match = stringValue.trim().match(/^#?([0-9a-fA-F]{6})$/);
+
+  if (!match) {
+    return fallback;
+  }
+
+  return `#${match[1].toLowerCase()}`;
+}
+
+export function getWishlistAppearanceSettingsState(appearance: unknown) {
+  const rawAppearance = getWishlistAppearanceRecord(appearance);
+  const colorPreset = normalizeWishlistColorPreset(rawAppearance.colorPreset);
+  const presetTheme = APPEARANCE_PRESETS[colorPreset];
+
+  return {
+    rawAppearance,
+    favoriteCurrencies: getWishlistAppearanceStringArray(
+      rawAppearance,
+      "favoriteCurrencies",
+      ["UAH"],
+    ),
+    welcomeMessage: getWishlistAppearanceString(rawAppearance, "welcomeMessage"),
+    backgroundImage: getWishlistAppearanceString(rawAppearance, "bgImage"),
+    bannerImage: getWishlistAppearanceString(rawAppearance, "bannerImage"),
+    font: normalizeWishlistFontClass(rawAppearance.font),
+    themeMode: normalizeWishlistThemeMode(rawAppearance.themeMode),
+    itemBorder: normalizeWishlistItemBorderClass(rawAppearance.itemBorder),
+    colorPreset,
+    advancedColorsEnabled: readWishlistAppearanceBoolean(
+      rawAppearance.advancedColorsEnabled,
+    ),
+    advancedPrimaryColor: normalizeWishlistColorInputValue(
+      getWishlistAppearanceString(rawAppearance, "advancedPrimaryColor") ||
+        getWishlistAppearanceString(rawAppearance, "primaryColor") ||
+        presetTheme.primaryColor,
+      presetTheme.primaryColor,
+    ),
+    advancedBackgroundColor: normalizeWishlistColorInputValue(
+      getWishlistAppearanceString(rawAppearance, "advancedBackgroundColor") ||
+        getWishlistAppearanceString(rawAppearance, "bgColor") ||
+        presetTheme.tokens.background,
+      presetTheme.tokens.background,
+    ),
+    advancedTextColor: normalizeWishlistColorInputValue(
+      getWishlistAppearanceString(rawAppearance, "advancedTextColor") ||
+        getWishlistAppearanceString(rawAppearance, "textColor") ||
+        presetTheme.tokens.foreground,
+      presetTheme.tokens.foreground,
+    ),
+    bannerDisplayMode: normalizeWishlistBannerDisplayMode(
+      rawAppearance.bannerDisplayMode,
+    ),
+  };
+}
+
+export function getWishlistWidgetSettingsState(appearance: unknown) {
+  const rawAppearance = getWishlistAppearanceRecord(appearance);
+
+  return {
+    layout: normalizeWishlistWidgetLayout(rawAppearance.widgetLayout),
+    itemSize: normalizeWishlistWidgetItemSize(rawAppearance.widgetItemSize),
+  } satisfies {
+    layout: WidgetLayout;
+    itemSize: number;
+  };
+}
+
+export function shouldUseDarkTheme(themeMode: ThemeMode, systemPrefersDark: boolean) {
+  return themeMode === "dark" || (themeMode === "system" && systemPrefersDark);
+}
+
 export function getContrastRatio(foreground: string, background: string) {
   const fg = normalizeHexColor(foreground);
   const bg = normalizeHexColor(background);
@@ -179,16 +407,12 @@ export interface ResolvedWishlistAppearance {
 export function resolveWishlistAppearance(
   appearance: WishlistAppearance = {},
 ): ResolvedWishlistAppearance {
-  const presetValue = getString(appearance, "colorPreset");
-  const preset = selectPresetName(presetValue);
+  const presetValue = getWishlistAppearanceString(appearance, "colorPreset");
+  const preset = normalizeWishlistColorPreset(presetValue);
   const presetTheme = APPEARANCE_PRESETS[preset];
   const presetExists = Boolean(
     presetValue &&
-      (presetValue === "light" ||
-        presetValue === "rose" ||
-        presetValue === "green" ||
-        presetValue === "dark" ||
-        presetValue === "minimal"),
+      COLOR_PRESET_OPTIONS.includes(presetValue as ColorPreset),
   );
   const advanced = resolveAdvancedColors(appearance);
   const legacy = !advanced && !presetExists
@@ -200,13 +424,15 @@ export function resolveWishlistAppearance(
     : presetTheme.tokens;
   const resolvedPrimaryColor = custom?.primaryColor ?? presetTheme.primaryColor;
   const cssVariables = tokensToCssVariables(appliedTokens);
-  const displayMode = selectBannerDisplayMode(appearance);
+  const displayMode = normalizeWishlistBannerDisplayMode(
+    getWishlistAppearanceString(appearance, "bannerDisplayMode"),
+  );
   const overlapBanner = displayMode !== "page-only";
   const bannerVisible = displayMode !== "page-only";
 
-  const bannerImage = getString(appearance, "bannerImage");
+  const bannerImage = getWishlistAppearanceString(appearance, "bannerImage");
   const safeBannerImage = bannerVisible && isSafeUrl(bannerImage) ? bannerImage : null;
-  const bgImage = getString(appearance, "bgImage");
+  const bgImage = getWishlistAppearanceString(appearance, "bgImage");
   const safeBgImage =
     displayMode !== "banner-only" && isSafeUrl(bgImage) ? bgImage : null;
 
@@ -252,43 +478,20 @@ export function resolveWishlistAppearance(
   };
 }
 
-function selectPresetName(preset: string | undefined): ColorPreset {
-
-  if (
-    preset === "light" ||
-    preset === "rose" ||
-    preset === "green" ||
-    preset === "dark" ||
-    preset === "minimal"
-  ) {
-    return preset;
-  }
-
-  return "light";
-}
-
-function selectBannerDisplayMode(appearance: WishlistAppearance): BannerDisplayMode {
-  const mode = getString(appearance, "bannerDisplayMode");
-
-  if (
-    mode === "banner-and-page" ||
-    mode === "banner-only" ||
-    mode === "page-only"
-  ) {
-    return mode;
-  }
-
-  return "banner-and-page";
-}
-
 function resolveAdvancedColors(appearance: WishlistAppearance) {
-  if (!readBoolean(appearance, "advancedColorsEnabled")) {
+  if (!readWishlistAppearanceBoolean(appearance.advancedColorsEnabled)) {
     return null;
   }
 
-  const primary = normalizeHexColor(getString(appearance, "advancedPrimaryColor"));
-  const background = normalizeHexColor(getString(appearance, "advancedBackgroundColor"));
-  const text = normalizeHexColor(getString(appearance, "advancedTextColor"));
+  const primary = normalizeHexColor(
+    getWishlistAppearanceString(appearance, "advancedPrimaryColor"),
+  );
+  const background = normalizeHexColor(
+    getWishlistAppearanceString(appearance, "advancedBackgroundColor"),
+  );
+  const text = normalizeHexColor(
+    getWishlistAppearanceString(appearance, "advancedTextColor"),
+  );
 
   if (!primary || !background || !text) {
     return null;
@@ -307,9 +510,15 @@ function resolveAdvancedColors(appearance: WishlistAppearance) {
 }
 
 function resolveLegacyColors(appearance: WishlistAppearance) {
-  const primary = normalizeHexColor(getString(appearance, "primaryColor"));
-  const background = normalizeHexColor(getString(appearance, "bgColor"));
-  const text = normalizeHexColor(getString(appearance, "textColor"));
+  const primary = normalizeHexColor(
+    getWishlistAppearanceString(appearance, "primaryColor"),
+  );
+  const background = normalizeHexColor(
+    getWishlistAppearanceString(appearance, "bgColor"),
+  );
+  const text = normalizeHexColor(
+    getWishlistAppearanceString(appearance, "textColor"),
+  );
 
   if (primary && background && text && getContrastRatio(text, background) >= 4.5) {
     return {
@@ -373,27 +582,6 @@ function tokensToCssVariables(tokens: AppearanceTokens): Record<`--${string}`, s
   };
 }
 
-function getString(appearance: WishlistAppearance, key: string) {
-  const value = appearance[key];
-  return typeof value === "string" ? value.trim() : undefined;
-}
-
-function readBoolean(appearance: WishlistAppearance, key: string) {
-  const value = appearance[key];
-
-  if (typeof value === "boolean") {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase();
-    if (["true", "1", "yes", "on"].includes(normalized)) return true;
-    if (["false", "0", "no", "off"].includes(normalized)) return false;
-  }
-
-  return false;
-}
-
 function normalizeHexColor(value: string | undefined) {
   if (!value) {
     return null;
@@ -432,4 +620,28 @@ function pickReadableForeground(primary: string) {
   const blackContrast = getContrastRatio("#000000", primary);
 
   return whiteContrast >= blackContrast ? "#ffffff" : "#000000";
+}
+
+export function getWishlistAppearancePresentation(appearance: WishlistAppearance) {
+  const resolvedAppearance = resolveWishlistAppearance(appearance);
+
+  return {
+    raw: appearance,
+    resolved: resolvedAppearance,
+    primaryColor: resolvedAppearance.primaryColor,
+    fontClass: normalizeWishlistFontClass(appearance.font),
+    itemBorderClass: normalizeWishlistItemBorderClass(appearance.itemBorder),
+    welcomeMessage: getWishlistAppearanceString(appearance, "welcomeMessage"),
+    favoriteCurrencies: getWishlistAppearanceStringArray(
+      appearance,
+      "favoriteCurrencies",
+    ),
+  };
+}
+
+export function getWishlistWidgetPresentation(appearance: WishlistAppearance) {
+  return {
+    widgetLayout: normalizeWishlistWidgetLayout(appearance.widgetLayout),
+    widgetItemSize: normalizeWishlistWidgetItemSize(appearance.widgetItemSize),
+  };
 }
