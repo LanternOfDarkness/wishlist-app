@@ -1,7 +1,16 @@
 import type { Prisma } from "@prisma/client";
+import {
+  normalizeWishlistBannerDisplayMode,
+  normalizeWishlistColorPreset,
+  normalizeWishlistFontClass,
+  normalizeWishlistItemBorderClass,
+  normalizeWishlistThemeMode,
+  readWishlistAppearanceBoolean,
+} from "./wishlist-appearance";
 import type {
   BannerDisplayMode,
   ColorPreset,
+  WishlistFontClass,
 } from "./wishlist-appearance";
 
 export type WishlistAppearanceFormData = Prisma.InputJsonObject & {
@@ -16,23 +25,9 @@ export type WishlistAppearanceFormData = Prisma.InputJsonObject & {
   welcomeMessage?: string;
   itemBorder?: string;
   themeMode?: string;
-  font?: string;
+  font?: WishlistFontClass;
   favoriteCurrencies?: string[];
 };
-
-const VALID_COLOR_PRESETS: ColorPreset[] = [
-  "light",
-  "rose",
-  "green",
-  "dark",
-  "minimal",
-];
-
-const VALID_BANNER_DISPLAY_MODES: BannerDisplayMode[] = [
-  "banner-and-page",
-  "banner-only",
-  "page-only",
-];
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -43,18 +38,6 @@ function getStringArray(formData: FormData, key: string) {
   return formData
     .getAll(key)
     .filter((value): value is string => typeof value === "string");
-}
-
-function normalizeColorPreset(value: string): ColorPreset {
-  return VALID_COLOR_PRESETS.includes(value as ColorPreset)
-    ? (value as ColorPreset)
-    : "light";
-}
-
-function normalizeBannerDisplayMode(value: string): BannerDisplayMode {
-  return VALID_BANNER_DISPLAY_MODES.includes(value as BannerDisplayMode)
-    ? (value as BannerDisplayMode)
-    : "banner-and-page";
 }
 
 export function buildWishlistAppearanceFromFormData(
@@ -75,21 +58,22 @@ export function buildWishlistAppearanceFromFormData(
 
   return {
     ...appearanceWithoutLegacyColors,
-    colorPreset: normalizeColorPreset(getString(formData, "colorPreset")),
-    bannerDisplayMode: normalizeBannerDisplayMode(
+    colorPreset: normalizeWishlistColorPreset(getString(formData, "colorPreset")),
+    bannerDisplayMode: normalizeWishlistBannerDisplayMode(
       getString(formData, "bannerDisplayMode"),
     ),
-    advancedColorsEnabled:
-      getString(formData, "advancedColorsEnabled") === "true",
+    advancedColorsEnabled: readWishlistAppearanceBoolean(
+      getString(formData, "advancedColorsEnabled"),
+    ),
     advancedPrimaryColor: getString(formData, "advancedPrimaryColor"),
     advancedBackgroundColor: getString(formData, "advancedBackgroundColor"),
     advancedTextColor: getString(formData, "advancedTextColor"),
     bgImage: getString(formData, "bgImage"),
     bannerImage: getString(formData, "bannerImage"),
     welcomeMessage: getString(formData, "welcomeMessage"),
-    itemBorder: getString(formData, "itemBorder"),
-    themeMode: getString(formData, "themeMode") || "system",
-    font: getString(formData, "font") || "font-sans",
+    itemBorder: normalizeWishlistItemBorderClass(getString(formData, "itemBorder")),
+    themeMode: normalizeWishlistThemeMode(getString(formData, "themeMode")),
+    font: normalizeWishlistFontClass(getString(formData, "font")),
     favoriteCurrencies:
       favoriteCurrencies.length > 0 ? favoriteCurrencies : ["UAH"],
   };
