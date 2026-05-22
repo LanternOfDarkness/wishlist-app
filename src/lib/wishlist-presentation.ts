@@ -1,6 +1,10 @@
 import {
   resolveWishlistAppearance,
+  ALLOWED_FONT_CLASSES,
+  ALLOWED_ITEM_BORDER_CLASSES,
+  LEGACY_BORDER_DEFAULTS,
   type WishlistAppearance,
+  type WishlistFontClass,
 } from "./wishlist-appearance";
 import { getRepository } from "./repository";
 import type {
@@ -18,40 +22,6 @@ type ViewerRelationshipUser = {
   followers: Array<{ followerId: string }>;
   following: Array<{ followingId: string }>;
 };
-
-type WishlistFontClass =
-  | "font-sans"
-  | "font-serif"
-  | "font-mono"
-  | "font-comic"
-  | "font-georgia"
-  | "font-trebuchet"
-  | "font-verdana";
-
-const ALLOWED_FONT_CLASSES: WishlistFontClass[] = [
-  "font-sans",
-  "font-serif",
-  "font-mono",
-  "font-comic",
-  "font-georgia",
-  "font-trebuchet",
-  "font-verdana",
-];
-const LEGACY_BORDER_DEFAULTS: Record<string, string> = {
-  "rounded-none": "rounded-none border-solid",
-  "rounded-md": "rounded-md border-solid",
-  "rounded-lg": "rounded-lg border-solid",
-  "rounded-2xl": "rounded-2xl border-solid",
-};
-const ALLOWED_ITEM_BORDER_CLASSES = [
-  "rounded-none border-solid",
-  "rounded-md border-solid",
-  "rounded-lg border-solid",
-  "rounded-2xl border-solid",
-  "rounded-lg border-dashed",
-  "rounded-lg border-dotted",
-  "rounded-lg border-double",
-] as const;
 
 export function getViewerRelationship(
   user: ViewerRelationshipUser,
@@ -114,9 +84,7 @@ export function normalizeWishlistFontClass(value: string): WishlistFontClass {
 export function normalizeWishlistItemBorderClass(value: string) {
   const normalizedValue = LEGACY_BORDER_DEFAULTS[value] || value;
 
-  return ALLOWED_ITEM_BORDER_CLASSES.includes(
-    normalizedValue as (typeof ALLOWED_ITEM_BORDER_CLASSES)[number],
-  )
+  return ALLOWED_ITEM_BORDER_CLASSES.includes(normalizedValue)
     ? normalizedValue
     : "rounded-lg border-solid";
 }

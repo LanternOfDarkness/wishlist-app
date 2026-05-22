@@ -2,64 +2,31 @@ import type { JsonValue } from "@prisma/client/runtime/library";
 
 import {
   APPEARANCE_PRESETS,
+  COLOR_PRESET_OPTIONS,
+  BANNER_DISPLAY_MODE_OPTIONS,
+  BANNER_MODE_LABELS,
+  ITEM_BORDER_OPTIONS,
+  FONT_OPTIONS,
+  LEGACY_BORDER_DEFAULTS,
   type BannerDisplayMode,
   type ColorPreset,
 } from "./wishlist-appearance";
 
-export type { BannerDisplayMode, ColorPreset };
+export {
+  COLOR_PRESET_OPTIONS,
+  BANNER_DISPLAY_MODE_OPTIONS,
+  BANNER_MODE_LABELS,
+  ITEM_BORDER_OPTIONS,
+  FONT_OPTIONS,
+  type BannerDisplayMode,
+  type ColorPreset,
+};
 
 type AppearanceValue = string | number | boolean | string[] | undefined;
 type AppearanceRecord = Record<string, AppearanceValue>;
 
 export type ThemeMode = "system" | "light" | "dark";
 export type WidgetLayout = "grid" | "list";
-
-export const COLOR_PRESET_OPTIONS: ColorPreset[] = [
-  "light",
-  "rose",
-  "green",
-  "dark",
-  "minimal",
-];
-
-export const BANNER_DISPLAY_MODE_OPTIONS: BannerDisplayMode[] = [
-  "banner-and-page",
-  "banner-only",
-  "page-only",
-];
-
-export const BANNER_MODE_LABELS: Record<BannerDisplayMode, string> = {
-  "banner-and-page": "bannerDisplayModeBoth",
-  "banner-only": "bannerDisplayModeBannerOnly",
-  "page-only": "bannerDisplayModePageOnly",
-};
-
-export const ITEM_BORDER_OPTIONS = [
-  { value: "rounded-none border-solid", labelKey: "borderSquareSolid" },
-  { value: "rounded-md border-solid", labelKey: "borderSlightSolid" },
-  { value: "rounded-lg border-solid", labelKey: "borderRoundedSolid" },
-  { value: "rounded-2xl border-solid", labelKey: "borderLargeSolid" },
-  { value: "rounded-lg border-dashed", labelKey: "borderDashed" },
-  { value: "rounded-lg border-dotted", labelKey: "borderDotted" },
-  { value: "rounded-lg border-double", labelKey: "borderDouble" },
-] as const;
-
-export const FONT_OPTIONS = [
-  { value: "font-sans", labelKey: "fontSans" },
-  { value: "font-serif", labelKey: "fontSerif" },
-  { value: "font-mono", labelKey: "fontMono" },
-  { value: "font-comic", labelKey: "fontComic" },
-  { value: "font-georgia", labelKey: "fontGeorgia" },
-  { value: "font-trebuchet", labelKey: "fontTrebuchet" },
-  { value: "font-verdana", labelKey: "fontVerdana" },
-] as const;
-
-const LEGACY_BORDER_DEFAULTS: Record<string, string> = {
-  "rounded-none": "rounded-none border-solid",
-  "rounded-md": "rounded-md border-solid",
-  "rounded-lg": "rounded-lg border-solid",
-  "rounded-2xl": "rounded-2xl border-solid",
-};
 
 export function getWishlistSettingsState(appearance: JsonValue | undefined) {
   const rawAppearance = getAppearanceRecord(appearance);

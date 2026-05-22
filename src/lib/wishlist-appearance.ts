@@ -5,6 +5,62 @@ import { isSafeUrl } from "./utils";
 export type ColorPreset = "light" | "rose" | "green" | "dark" | "minimal";
 export type BannerDisplayMode = "banner-and-page" | "banner-only" | "page-only";
 
+export type WishlistFontClass =
+  | "font-sans"
+  | "font-serif"
+  | "font-mono"
+  | "font-comic"
+  | "font-georgia"
+  | "font-trebuchet"
+  | "font-verdana";
+
+export const COLOR_PRESET_OPTIONS: ColorPreset[] = [
+  "light", "rose", "green", "dark", "minimal",
+];
+
+export const BANNER_DISPLAY_MODE_OPTIONS: BannerDisplayMode[] = [
+  "banner-and-page", "banner-only", "page-only",
+];
+
+export const BANNER_MODE_LABELS: Record<BannerDisplayMode, string> = {
+  "banner-and-page": "bannerDisplayModeBoth",
+  "banner-only": "bannerDisplayModeBannerOnly",
+  "page-only": "bannerDisplayModePageOnly",
+};
+
+export const FONT_OPTIONS = [
+  { value: "font-sans", labelKey: "fontSans" },
+  { value: "font-serif", labelKey: "fontSerif" },
+  { value: "font-mono", labelKey: "fontMono" },
+  { value: "font-comic", labelKey: "fontComic" },
+  { value: "font-georgia", labelKey: "fontGeorgia" },
+  { value: "font-trebuchet", labelKey: "fontTrebuchet" },
+  { value: "font-verdana", labelKey: "fontVerdana" },
+] as const;
+
+export const ALLOWED_FONT_CLASSES: WishlistFontClass[] =
+  FONT_OPTIONS.map((o) => o.value as WishlistFontClass);
+
+export const ITEM_BORDER_OPTIONS = [
+  { value: "rounded-none border-solid", labelKey: "borderSquareSolid" },
+  { value: "rounded-md border-solid", labelKey: "borderSlightSolid" },
+  { value: "rounded-lg border-solid", labelKey: "borderRoundedSolid" },
+  { value: "rounded-2xl border-solid", labelKey: "borderLargeSolid" },
+  { value: "rounded-lg border-dashed", labelKey: "borderDashed" },
+  { value: "rounded-lg border-dotted", labelKey: "borderDotted" },
+  { value: "rounded-lg border-double", labelKey: "borderDouble" },
+] as const;
+
+export const ALLOWED_ITEM_BORDER_CLASSES: readonly string[] =
+  ITEM_BORDER_OPTIONS.map((o) => o.value);
+
+export const LEGACY_BORDER_DEFAULTS: Record<string, string> = {
+  "rounded-none": "rounded-none border-solid",
+  "rounded-md": "rounded-md border-solid",
+  "rounded-lg": "rounded-lg border-solid",
+  "rounded-2xl": "rounded-2xl border-solid",
+};
+
 export interface AppearanceTokens {
   primary: string;
   primaryForeground: string;
