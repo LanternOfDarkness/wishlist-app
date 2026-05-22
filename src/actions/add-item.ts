@@ -1,12 +1,9 @@
 "use server";
 
-import {
-    getAuthenticatedUserId,
-} from "@/lib/wishlist-command-context";
-import {
-    createWishlistItemFromIntake,
-} from "@/lib/wishlist-item-intake-command";
+import { getAuthenticatedUserId } from "@/lib/wishlist-command-context";
+import { normalizeWishlistItemIntake } from "@/lib/wishlist-item-intake";
 import type { WishlistItemIntakeInput } from "@/lib/wishlist-item-intake";
+import { getRepository } from "@/lib/repository";
 import { revalidatePath } from "next/cache";
 
 export type AddItemData = WishlistItemIntakeInput;
@@ -18,7 +15,9 @@ export async function addItem(data: AddItemData) {
     }
 
     try {
-        const item = await createWishlistItemFromIntake(data, userId);
+        const intake = normalizeWishlistItemIntake(data);
+        await getRepository().require({ type: "owned-wishlist", wishlistId: intake.wishlistId, userId });
+        const item = await getRepository().execute({ type: "add-item", userId, item: intake });
 
         revalidatePath('/[locale]/[username]', 'page');
 

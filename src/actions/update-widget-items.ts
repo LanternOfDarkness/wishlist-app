@@ -1,28 +1,25 @@
 "use server";
 
-import {
-    countSelectedWidgetItems,
-    requireAuthenticatedUserId,
-    requireOwnedWishlistItem,
-} from "@/lib/wishlist-command-context";
-import { prisma } from "@/lib/prisma";
+import { requireAuthenticatedUserId } from "@/lib/wishlist-command-context";
+import { getRepository } from "@/lib/repository";
 import { revalidatePath } from "next/cache";
 
 export async function updateWidgetItems(itemId: string, showInWidget: boolean) {
     const userId = await requireAuthenticatedUserId();
-    await requireOwnedWishlistItem(itemId, userId);
+    await getRepository().require({ type: "owned-item", itemId, userId });
 
     if (showInWidget) {
-        const count = await countSelectedWidgetItems(userId);
+        const count = await getRepository().load({ type: "widget-item-count", userId });
 
         if (count >= 5) {
             return { error: "Maximum 5 items can be shown in widget" };
         }
     }
 
-    await prisma.item.update({
-        where: { id: itemId },
-        data: { showInWidget }
+    await getRepository().execute({
+        type: "update-widget-item-visibility",
+        itemId,
+        showInWidget,
     });
 
     revalidatePath("/dashboard/settings");

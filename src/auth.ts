@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { getRepository } from "@/lib/repository";
 import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -10,22 +11,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session: { strategy: "jwt" },
     ...authConfig,
     callbacks: {
-        // Спочатку розпаковуємо callbacks з authConfig
         ...authConfig.callbacks,
-        // Потім перезаписуємо jwt та session
         async jwt({ token, user }) {
-            // При першому вході (коли user існує), зберігаємо id
             if (user) {
                 token.userId = user.id;
                 token.username = user.username;
             }
 
-            // Якщо username немає в токені, спробуємо отримати його з бази
             if (token.userId && !token.username) {
-                const dbUser = await prisma.user.findUnique({
-                    where: { id: token.userId as string },
-                    select: { username: true }
-                });
+                const dbUser = await getRepository().load({ type: "user-by-id", id: token.userId as string });
                 if (dbUser) {
                     token.username = dbUser.username;
                 }
@@ -34,7 +28,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return token;
         },
         async session({ session, token }) {
-            // Додаємо userId та username з токена до session.user
             if (session.user) {
                 if (token.userId) {
                     session.user.id = token.userId as string;
@@ -67,17 +60,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 if (baseUsername.length < 2) baseUsername = emailPrefix;
                 const username = `${baseUsername}-${Date.now().toString().slice(-4)}`;
 
-                await prisma.user.update({
-                    where: { id: user.id },
-                    data: { username: username }
-                });
-
-                await prisma.wishlist.create({
-                    data: {
-                        userId: user.id,
-                        title: "Мої бажання",
-                        slug: username,
-                    },
+                await getRepository().execute({
+                    type: "setup-user-account",
+                    userId: user.id,
+                    username,
                 });
             }
         },

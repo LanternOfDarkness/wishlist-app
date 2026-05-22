@@ -8,10 +8,8 @@ import { WishlistFilters } from "@/components/wishlist-filters";
 import { FollowButton } from "@/components/follow-button";
 import { getTranslations } from "next-intl/server";
 import { isSafeUrl } from "@/lib/utils";
-import {
-  getWishlistPresentation,
-  type WishlistSearchParams,
-} from "@/lib/wishlist-presentation";
+import { getWishlistPresentation } from "@/lib/wishlist-presentation";
+import type { WishlistSearchParams } from "@/lib/wishlist-filter-state";
 import Image from "next/image";
 
 interface WishlistPageProps {

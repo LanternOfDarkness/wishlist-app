@@ -2,20 +2,16 @@ import {
   resolveWishlistAppearance,
   type WishlistAppearance,
 } from "./wishlist-appearance";
-import { prisma } from "./prisma";
+import { getRepository } from "./repository";
+import type {
+  ViewerPageUser,
+} from "./repository";
 import {
   buildWishlistItemOrderBy,
   buildWishlistItemWhere,
   hasActiveWishlistFilters,
   type WishlistSearchParams,
 } from "./wishlist-filter-state";
-
-export {
-  buildWishlistItemOrderBy,
-  buildWishlistItemWhere,
-  hasActiveWishlistFilters,
-  type WishlistSearchParams,
-};
 
 type ViewerRelationshipUser = {
   id: string;
@@ -167,6 +163,42 @@ export function getWishlistWidgetPresentation(
   };
 }
 
+export interface WishlistPresentationInput {
+  viewerUser: ViewerPageUser;
+  wishlistResult: {
+    wishlist: { id: string; title: string; slug: string; appearance: Record<string, unknown> };
+    items: Array<{
+      id: string; name: string; url: string | null; imageUrl: string | null;
+      price: number | null; currency: string; priority: number;
+      isReserved: boolean; isPrivate: boolean; showInWidget: boolean;
+      category: { id: string; name: string } | null;
+    }>;
+    maxPrice: number;
+  };
+  relationship: ReturnType<typeof getViewerRelationship>;
+  searchParams: WishlistSearchParams;
+}
+
+export function buildWishlistPresentation(input: WishlistPresentationInput) {
+  const appearance = (input.wishlistResult.wishlist.appearance as WishlistAppearance) || {};
+  const appearancePresentation = getWishlistAppearancePresentation(appearance);
+
+  return {
+    user: input.viewerUser,
+    wishlist: {
+      id: input.wishlistResult.wishlist.id,
+      title: input.wishlistResult.wishlist.title,
+      slug: input.wishlistResult.wishlist.slug,
+      items: input.wishlistResult.items,
+    },
+    relationship: input.relationship,
+    itemWhere: buildWishlistItemWhere(input.searchParams, input.relationship.canViewPrivateItems),
+    hasActiveFilters: hasActiveWishlistFilters(input.searchParams),
+    maxPriceOverall: getMaxWishlistItemPrice(input.wishlistResult.items),
+    appearance: appearancePresentation,
+  };
+}
+
 export async function getWishlistPresentation({
   username,
   viewerUserId,
@@ -176,54 +208,67 @@ export async function getWishlistPresentation({
   viewerUserId?: string;
   searchParams: WishlistSearchParams;
 }) {
-  const user = await prisma.user.findUnique({
-    where: { username },
-    include: {
-      categories: true,
-      followers: { select: { followerId: true } },
-      following: { select: { followingId: true } },
-    },
-  });
+  const repo = getRepository();
+  const viewerUser = await repo.load({ type: "viewer-page-user", username });
 
-  if (!user) {
+  if (!viewerUser) {
     return null;
   }
 
-  const relationship = getViewerRelationship(user, viewerUserId);
-  const itemWhere = buildWishlistItemWhere(
+  const relationship = getViewerRelationship(viewerUser, viewerUserId);
+
+  const wishlistResult = await repo.load({
+    type: "wishlist-presentation",
+    userId: viewerUser.id,
+    canViewPrivate: relationship.canViewPrivateItems,
+    categories: searchParams.category ? [searchParams.category].flat() : undefined,
+    currency: searchParams.currency || undefined,
+    minPrice: searchParams.minPrice ? parseFloat(searchParams.minPrice) : undefined,
+    maxPrice: searchParams.maxPrice ? parseFloat(searchParams.maxPrice) : undefined,
+    sort: searchParams.sort || undefined,
+  });
+
+  if (!wishlistResult) {
+    return null;
+  }
+
+  return buildWishlistPresentation({
+    viewerUser,
+    wishlistResult,
+    relationship,
     searchParams,
-    relationship.canViewPrivateItems,
-  );
-  const orderBy = buildWishlistItemOrderBy(searchParams.sort);
-
-  const wishlist = await prisma.wishlist.findUnique({
-    where: { userId: user.id },
-    include: {
-      items: {
-        where: itemWhere,
-        orderBy,
-        include: {
-          category: true,
-        },
-      },
-    },
   });
+}
 
-  if (!wishlist) {
-    return null;
-  }
+export interface EmbedPresentationInput {
+  embedData: {
+    user: { id: string; name: string | null; image: string | null; username: string | null };
+    wishlist: { appearance: Record<string, unknown> };
+    items: Array<{
+      id: string; name: string; price: number | null; currency: string;
+      url: string | null; imageUrl: string | null; showInWidget: boolean;
+    }>;
+  };
+  locale: string;
+  username: string;
+}
 
-  const appearance = (wishlist.appearance as WishlistAppearance) || {};
-  const appearancePresentation = getWishlistAppearancePresentation(appearance);
+export function buildEmbedWishlistPresentation(input: EmbedPresentationInput) {
+  const appearance = (input.embedData.wishlist.appearance as WishlistAppearance) || {};
+  const selectedWidgetItems = input.embedData.items.filter(
+    (item) => item.showInWidget,
+  );
+  const displayItems =
+    selectedWidgetItems.length > 0
+      ? selectedWidgetItems.slice(0, 5)
+      : input.embedData.items.slice(0, 5);
 
   return {
-    user,
-    wishlist,
-    relationship,
-    itemWhere,
-    hasActiveFilters: hasActiveWishlistFilters(searchParams),
-    maxPriceOverall: getMaxWishlistItemPrice(wishlist.items),
-    appearance: appearancePresentation,
+    user: input.embedData.user,
+    displayItems,
+    profileUrl: `/${input.locale}/${input.username}`,
+    appearance: getWishlistAppearancePresentation(appearance),
+    widget: getWishlistWidgetPresentation(appearance),
   };
 }
 
@@ -234,38 +279,12 @@ export async function getEmbedWishlistPresentation({
   locale: string;
   username: string;
 }) {
-  const user = await prisma.user.findUnique({
-    where: { username },
-    include: {
-      wishlist: {
-        include: {
-          items: {
-            where: { isPrivate: false },
-            orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
-          },
-        },
-      },
-    },
-  });
+  const repo = getRepository();
+  const embedData = await repo.load({ type: "embed-presentation", username });
 
-  if (!user?.wishlist) {
+  if (!embedData) {
     return null;
   }
 
-  const appearance = (user.wishlist.appearance as WishlistAppearance) || {};
-  const selectedWidgetItems = user.wishlist.items.filter(
-    (item) => item.showInWidget,
-  );
-  const displayItems =
-    selectedWidgetItems.length > 0
-      ? selectedWidgetItems.slice(0, 5)
-      : user.wishlist.items.slice(0, 5);
-
-  return {
-    user,
-    displayItems,
-    profileUrl: `/${locale}/${username}`,
-    appearance: getWishlistAppearancePresentation(appearance),
-    widget: getWishlistWidgetPresentation(appearance),
-  };
+  return buildEmbedWishlistPresentation({ embedData, locale, username });
 }

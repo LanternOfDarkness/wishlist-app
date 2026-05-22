@@ -2,11 +2,10 @@
 
 import type { Prisma } from "@prisma/client";
 import { buildWishlistAppearanceFromFormData } from "@/lib/wishlist-appearance-form";
-import { prisma } from "@/lib/prisma";
 import {
     requireAuthenticatedUserId,
-    getOwnedWishlistAppearance,
 } from "@/lib/wishlist-command-context";
+import { getRepository } from "@/lib/repository";
 import { revalidatePath } from "next/cache";
 
 export async function updateProfile(formData: FormData) {
@@ -15,39 +14,26 @@ export async function updateProfile(formData: FormData) {
     const name = formData.get("name") as string;
     const username = formData.get("username") as string;
     if (username) {
-        const existingUser = await prisma.user.findUnique({
-            where: { username },
-        });
-
+        const existingUser = await getRepository().load({ type: "user-by-username", username });
         if (existingUser && existingUser.id !== userId) {
             return { error: "Цей нікнейм вже зайнятий" };
         }
     }
 
-    const wishlist = await getOwnedWishlistAppearance(userId);
-    const currentAppearance =
-        wishlist?.appearance &&
-        typeof wishlist.appearance === "object" &&
-        !Array.isArray(wishlist.appearance)
-            ? (wishlist.appearance as Prisma.JsonObject)
-            : ({} as Prisma.JsonObject);
+    const wishlist = await getRepository().require({ type: "wishlist-appearance", userId });
+    const currentAppearance = wishlist.appearance;
 
     const appearance = buildWishlistAppearanceFromFormData(
-      currentAppearance,
+      currentAppearance as unknown as Prisma.JsonObject,
       formData,
     );
 
-    await prisma.user.update({
-        where: { id: userId },
-        data: {
-            name,
-            username,
-            wishlist: {
-                update: {
-                    appearance
-                }
-            }
-        },
+    await getRepository().execute({
+        type: "update-user-profile",
+        userId,
+        name,
+        username,
+        appearance,
     });
 
     revalidatePath("/dashboard");

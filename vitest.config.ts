@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config'
+import path from 'path'
 
 export default defineConfig({
   test: {
@@ -8,6 +9,11 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       include: ['src/actions/fetch-metadata.ts', 'src/lib/**/*.ts'],
       exclude: ['src/lib/**/__tests__/**', 'src/lib/**/*.test.ts'],
+    },
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
     },
   },
 })

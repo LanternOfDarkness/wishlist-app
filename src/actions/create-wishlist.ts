@@ -1,7 +1,7 @@
 "use server";
 
 import { getAuthenticatedUserId } from "@/lib/wishlist-command-context";
-import { prisma } from "@/lib/prisma";
+import { getRepository } from "@/lib/repository";
 import { revalidatePath } from "next/cache";
 
 export async function createWishlist(formData: FormData) {
@@ -25,12 +25,11 @@ export async function createWishlist(formData: FormData) {
     const uniqueSlug = `${cleanSlug}-${Date.now().toString().slice(-4)}`;
 
     try {
-        const wishlist = await prisma.wishlist.create({
-            data: {
-                title,
-                slug: uniqueSlug,
-                userId,
-            },
+        const wishlist = await getRepository().execute({
+            type: "create-wishlist",
+            userId,
+            title,
+            slug: uniqueSlug,
         });
 
         revalidatePath("/dashboard");

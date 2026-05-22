@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAuthenticatedUserId } from "@/lib/wishlist-command-context";
-import { prisma } from "@/lib/prisma";
+import { getRepository } from "@/lib/repository";
 import { revalidatePath } from "next/cache";
 
 export async function followUser(userIdToFollow: string, currentPath: string) {
@@ -11,32 +11,11 @@ export async function followUser(userIdToFollow: string, currentPath: string) {
         throw new Error("You cannot follow yourself");
     }
 
-    const existingFollow = await prisma.follows.findUnique({
-        where: {
-            followerId_followingId: {
-                followerId: userId,
-                followingId: userIdToFollow,
-            }
-        }
+    await getRepository().execute({
+        type: "toggle-follow",
+        followerId: userId,
+        followingId: userIdToFollow,
     });
-
-    if (existingFollow) {
-        await prisma.follows.delete({
-            where: {
-                followerId_followingId: {
-                    followerId: userId,
-                    followingId: userIdToFollow,
-                }
-            }
-        });
-    } else {
-        await prisma.follows.create({
-            data: {
-                followerId: userId,
-                followingId: userIdToFollow,
-            }
-        });
-    }
 
     revalidatePath(currentPath);
     return { success: true };

@@ -41,18 +41,18 @@ export function SettingsTabs({ user }: SettingsTabsProps) {
 
             <div className="mt-6">
                 {activeTab === "general" && (
-                    <SettingsForm user={user} tab="general" />
+                    <SettingsForm user={user as any} tab="general" />
                 )}
                 {activeTab === "appearance" && (
-                    <SettingsForm user={user} tab="appearance" />
+                    <SettingsForm user={user as any} tab="appearance" />
                 )}
 
                 {activeTab === "widget" && user.username && (
                     <div className="space-y-6 max-w-xl pb-10">
                         <EmbedWidget
                             username={user.username}
-                            items={user.wishlist?.items || []}
-                            appearance={user.wishlist?.appearance}
+                            items={(user.wishlist?.items || []) as any}
+                            appearance={user.wishlist?.appearance as any}
                         />
                     </div>
                 )}

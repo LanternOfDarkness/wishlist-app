@@ -1,10 +1,7 @@
 "use server";
 
-import {
-  requireAuthenticatedUserId,
-  requireOwnedWishlistAppearance,
-} from "@/lib/wishlist-command-context";
-import { prisma } from "@/lib/prisma";
+import { requireAuthenticatedUserId } from "@/lib/wishlist-command-context";
+import { getRepository } from "@/lib/repository";
 import {
   normalizeWidgetItemSize,
   type WidgetLayout,
@@ -18,25 +15,19 @@ interface WidgetSettingsInput {
 
 export async function updateWidgetSettings(settings: WidgetSettingsInput) {
   const userId = await requireAuthenticatedUserId();
-  const wishlist = await requireOwnedWishlistAppearance(userId);
+  const wishlist = await getRepository().require({ type: "wishlist-appearance", userId });
 
-  const currentAppearance =
-    wishlist.appearance &&
-    typeof wishlist.appearance === "object" &&
-    !Array.isArray(wishlist.appearance)
-      ? wishlist.appearance
-      : {};
+  const currentAppearance = wishlist.appearance;
 
-  await prisma.wishlist.update({
-    where: { id: wishlist.id },
-    data: {
-      appearance: {
-        ...currentAppearance,
-        ...(settings.layout ? { widgetLayout: settings.layout } : {}),
-        ...(settings.itemSize
-          ? { widgetItemSize: normalizeWidgetItemSize(settings.itemSize) }
-          : {}),
-      },
+  await getRepository().execute({
+    type: "update-widget-settings",
+    wishlistId: wishlist.id,
+    appearance: {
+      ...currentAppearance,
+      ...(settings.layout ? { widgetLayout: settings.layout } : {}),
+      ...(settings.itemSize
+        ? { widgetItemSize: normalizeWidgetItemSize(settings.itemSize) }
+        : {}),
     },
   });
 
