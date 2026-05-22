@@ -74,7 +74,7 @@ export function SettingsForm({
 
     setIsLoading(false);
 
-    if (result?.error) {
+    if (!result.success) {
       toast.error("Error", {
         description: result.error,
       });

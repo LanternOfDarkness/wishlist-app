@@ -62,7 +62,7 @@ export function EmbedWidget({
     startTransition(async () => {
       const result = await updateWidgetItems(itemId, nextStatus);
 
-      if (result?.error) {
+      if (!result.success) {
         setLocalItems((currentItems) =>
           currentItems.map((item) =>
             item.id === itemId ? { ...item, showInWidget: currentStatus } : item,

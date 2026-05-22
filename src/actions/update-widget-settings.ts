@@ -6,6 +6,8 @@ import {
   normalizeWidgetItemSize,
   type WidgetLayout,
 } from "@/lib/wishlist-settings-state";
+import { success, type ActionResult } from "@/lib/action-result";
+import { REVALIDATION_PATHS } from "@/lib/revalidate-paths";
 import { revalidatePath } from "next/cache";
 
 interface WidgetSettingsInput {
@@ -13,7 +15,7 @@ interface WidgetSettingsInput {
   itemSize?: number;
 }
 
-export async function updateWidgetSettings(settings: WidgetSettingsInput) {
+export async function updateWidgetSettings(settings: WidgetSettingsInput): Promise<ActionResult> {
   const userId = await requireAuthenticatedUserId();
   const wishlist = await getRepository().require({ type: "wishlist-appearance", userId });
 
@@ -31,8 +33,8 @@ export async function updateWidgetSettings(settings: WidgetSettingsInput) {
     },
   });
 
-  revalidatePath("/dashboard/settings");
-  revalidatePath("/[locale]/embed/[username]", "page");
+  revalidatePath(REVALIDATION_PATHS.dashboardSettings.path, REVALIDATION_PATHS.dashboardSettings.type);
+  revalidatePath(REVALIDATION_PATHS.embedPage.path, REVALIDATION_PATHS.embedPage.type);
 
-  return { success: true };
+  return success();
 }

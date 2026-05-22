@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "@/i18n/routing";
 import { getRepository } from "@/lib/repository";
 import type { UserProfile } from "@/lib/repository";
+import { generateUsername } from "@/lib/slug";
 import { getTranslations } from "next-intl/server";
 
 export default async function DashboardPage({
@@ -25,7 +26,7 @@ export default async function DashboardPage({
     let wishlist = existingWishlist?.wishlist ?? null;
 
     if (!wishlist) {
-        const slug = user.username || `user-${user.id.slice(0, 8)}`;
+        const slug = user.username || generateUsername(user.name, user.email ?? undefined);
         wishlist = await getRepository().execute({
             type: "create-wishlist",
             userId: user.id,

@@ -2,9 +2,11 @@
 
 import { requireAuthenticatedUserId } from "@/lib/wishlist-command-context";
 import { getRepository } from "@/lib/repository";
+import { failure, success, type ActionResult } from "@/lib/action-result";
+import { REVALIDATION_PATHS } from "@/lib/revalidate-paths";
 import { revalidatePath } from "next/cache";
 
-export async function updateWidgetItems(itemId: string, showInWidget: boolean) {
+export async function updateWidgetItems(itemId: string, showInWidget: boolean): Promise<ActionResult> {
     const userId = await requireAuthenticatedUserId();
     await getRepository().require({ type: "owned-item", itemId, userId });
 
@@ -12,7 +14,7 @@ export async function updateWidgetItems(itemId: string, showInWidget: boolean) {
         const count = await getRepository().load({ type: "widget-item-count", userId });
 
         if (count >= 5) {
-            return { error: "Maximum 5 items can be shown in widget" };
+            return failure("Maximum 5 items can be shown in widget");
         }
     }
 
@@ -22,8 +24,8 @@ export async function updateWidgetItems(itemId: string, showInWidget: boolean) {
         showInWidget,
     });
 
-    revalidatePath("/dashboard/settings");
-    revalidatePath("/[locale]/embed/[username]", "page");
+    revalidatePath(REVALIDATION_PATHS.dashboardSettings.path, REVALIDATION_PATHS.dashboardSettings.type);
+    revalidatePath(REVALIDATION_PATHS.embedPage.path, REVALIDATION_PATHS.embedPage.type);
 
-    return { success: true };
+    return success();
 }

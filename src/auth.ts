@@ -4,6 +4,7 @@ import Nodemailer from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { getRepository } from "@/lib/repository";
+import { generateUsername } from "@/lib/slug";
 import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -53,12 +54,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     events: {
         async createUser({ user }) {
             if (user.id) {
-                const emailPrefix = user.email?.split('@')[0] || `user`;
-                let baseUsername = user.name
-                    ? user.name.toLowerCase().replace(/\s+/g, '').replace(/[^\w-]/g, '')
-                    : emailPrefix;
-                if (baseUsername.length < 2) baseUsername = emailPrefix;
-                const username = `${baseUsername}-${Date.now().toString().slice(-4)}`;
+                const username = generateUsername(user.name, user.email ?? undefined);
 
                 await getRepository().execute({
                     type: "setup-user-account",
