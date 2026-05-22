@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildWishlistItemOrderBy,
   getWishlistFilterUrlState,
   writeWishlistFilterParam,
 } from "../wishlist-filter-state";
@@ -23,12 +22,5 @@ describe("wishlist filter state", () => {
 
     expect(source.toString()).toBe("sort=newest&category=old");
     expect(next.getAll("category")).toEqual(["a", "b"]);
-  });
-
-  it("normalizes unknown sort values for query order", () => {
-    expect(buildWishlistItemOrderBy("unknown")).toEqual([
-      { priority: "desc" },
-      { createdAt: "desc" },
-    ]);
   });
 });

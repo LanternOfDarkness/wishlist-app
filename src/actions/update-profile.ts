@@ -1,6 +1,5 @@
 "use server";
 
-import type { Prisma } from "@prisma/client";
 import { buildWishlistAppearanceFromFormData } from "@/lib/wishlist-appearance-form";
 import { requireAuthenticatedUserId } from "@/lib/wishlist-command-context";
 import { getRepository } from "@/lib/repository";
@@ -24,7 +23,7 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
     const currentAppearance = wishlist.appearance;
 
     const appearance = buildWishlistAppearanceFromFormData(
-      currentAppearance as unknown as Prisma.JsonObject,
+      currentAppearance,
       formData,
     );
 

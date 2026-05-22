@@ -15,7 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { fetchMetadata } from "@/actions/fetch-metadata";
-import { addItem } from "@/actions/add-item";
+import { useAddItem } from "@/lib/hooks/use-add-item";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Category } from "@prisma/client";
@@ -40,7 +40,7 @@ export function AddItemModal({
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(createEmptyWishlistItemDraft);
   const [isFetching, setIsFetching] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { execute: addItemAction, isPending: isSubmitting } = useAddItem();
 
   const handleFetchMetadata = async () => {
     if (!draft.url.trim()) {
@@ -76,9 +76,8 @@ export function AddItemModal({
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const result = await addItem({
+    addItemAction(
+      {
         name: draft.name,
         url: draft.url,
         imageUrl: draft.imageUrl,
@@ -90,21 +89,16 @@ export function AddItemModal({
         newCategoryName:
           draft.categoryId === "new" ? draft.newCategoryName : undefined,
         isPrivate: draft.isPrivate,
-      });
-
-      if (result.success) {
-        toast.success("Бажання додано!");
-        setOpen(false);
-        setDraft(createEmptyWishlistItemDraft());
-      } else {
-        toast.error(result.error || "Помилка додавання");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Помилка додавання");
-    } finally {
-      setIsSubmitting(false);
-    }
+      },
+      {
+        onSuccess: () => {
+          toast.success("Бажання додано!");
+          setOpen(false);
+          setDraft(createEmptyWishlistItemDraft);
+        },
+        onError: (error) => toast.error(error || "Помилка додавання"),
+      },
+    );
   };
 
   return (

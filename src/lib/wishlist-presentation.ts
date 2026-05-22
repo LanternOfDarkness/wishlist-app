@@ -11,8 +11,6 @@ import type {
   ViewerPageUser,
 } from "./repository";
 import {
-  buildWishlistItemOrderBy,
-  buildWishlistItemWhere,
   hasActiveWishlistFilters,
   type WishlistSearchParams,
 } from "./wishlist-filter-state";
@@ -160,7 +158,6 @@ export function buildWishlistPresentation(input: WishlistPresentationInput) {
       items: input.wishlistResult.items,
     },
     relationship: input.relationship,
-    itemWhere: buildWishlistItemWhere(input.searchParams, input.relationship.canViewPrivateItems),
     hasActiveFilters: hasActiveWishlistFilters(input.searchParams),
     maxPriceOverall: getMaxWishlistItemPrice(input.wishlistResult.items),
     appearance: appearancePresentation,

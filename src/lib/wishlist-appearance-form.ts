@@ -1,10 +1,9 @@
-import type { Prisma } from "@prisma/client";
 import type {
   BannerDisplayMode,
   ColorPreset,
 } from "./wishlist-appearance";
 
-export type WishlistAppearanceFormData = Prisma.InputJsonObject & {
+export type WishlistAppearanceFormData = Record<string, unknown> & {
   colorPreset?: ColorPreset;
   bannerDisplayMode?: BannerDisplayMode;
   advancedColorsEnabled?: boolean;
@@ -58,13 +57,10 @@ function normalizeBannerDisplayMode(value: string): BannerDisplayMode {
 }
 
 export function buildWishlistAppearanceFromFormData(
-  currentAppearance: Prisma.JsonObject,
+  currentAppearance: Record<string, unknown>,
   formData: FormData,
 ): WishlistAppearanceFormData {
-  const appearanceWithoutLegacyColors: Record<
-    string,
-    Prisma.InputJsonValue | null | undefined
-  > = {
+  const appearanceWithoutLegacyColors: Record<string, unknown | null> = {
     ...currentAppearance,
   };
   delete appearanceWithoutLegacyColors.primaryColor;

@@ -1,7 +1,7 @@
 "use client";
 
-import { updateProfile } from "@/actions/update-profile";
 import { Button } from "@/components/ui/button";
+import { useUpdateProfile } from "@/lib/hooks/use-update-profile";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -33,7 +33,7 @@ export function SettingsForm({
   tab = "general",
 }: SettingsFormProps & { tab?: "general" | "appearance" }) {
   const t = useTranslations("Settings");
-  const [isLoading, setIsLoading] = useState(false);
+  const { execute: saveProfile, isPending: isLoading } = useUpdateProfile();
   const settings = getWishlistSettingsState(user.wishlist?.appearance);
   const [themeMode, setThemeMode] = useState(
     settings.themeMode,
@@ -67,22 +67,17 @@ export function SettingsForm({
     localStorage.setItem("themeMode", themeMode);
   }, [themeMode]);
 
-  async function handleSubmit(formData: FormData) {
-    setIsLoading(true);
-
-    const result = await updateProfile(formData);
-
-    setIsLoading(false);
-
-    if (!result.success) {
-      toast.error("Error", {
-        description: result.error,
-      });
-    } else {
-      toast.success(t("saveSuccessTitle"), {
-        description: t("saveSuccessDesc"),
-      });
-    }
+  function handleSubmit(formData: FormData) {
+    saveProfile(formData, {
+      onSuccess: () => {
+        toast.success(t("saveSuccessTitle"), {
+          description: t("saveSuccessDesc"),
+        });
+      },
+      onError: (error) => {
+        toast.error("Error", { description: error });
+      },
+    });
   }
 
   return (

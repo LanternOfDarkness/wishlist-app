@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  buildWishlistItemOrderBy,
-  buildWishlistItemWhere,
-  hasActiveWishlistFilters,
-} from "../wishlist-filter-state";
+import { hasActiveWishlistFilters } from "../wishlist-filter-state";
 import {
   getMaxWishlistItemPrice,
   getViewerRelationship,
@@ -17,39 +13,6 @@ import {
 } from "../wishlist-presentation";
 
 describe("wishlist presentation helpers", () => {
-  it("builds item filters from search params and hides private items", () => {
-    expect(
-      buildWishlistItemWhere(
-        {
-          category: ["cat-1", "cat-2"],
-          currency: "UAH",
-          minPrice: "10",
-          maxPrice: "200",
-        },
-        false,
-      ),
-    ).toEqual({
-      categoryId: { in: ["cat-1", "cat-2"] },
-      currency: "UAH",
-      price: { gte: 10, lte: 200 },
-      isPrivate: false,
-    });
-  });
-
-  it("omits private filter for viewers who can see private items", () => {
-    expect(buildWishlistItemWhere({}, true)).toEqual({});
-  });
-
-  it("builds item order from supported sort modes", () => {
-    expect(buildWishlistItemOrderBy("price_asc")).toEqual([{ price: "asc" }]);
-    expect(buildWishlistItemOrderBy("price_desc")).toEqual([{ price: "desc" }]);
-    expect(buildWishlistItemOrderBy("newest")).toEqual([{ createdAt: "desc" }]);
-    expect(buildWishlistItemOrderBy("unknown")).toEqual([
-      { priority: "desc" },
-      { createdAt: "desc" },
-    ]);
-  });
-
   it("resolves viewer relationship for owner, follower, and mutual follower", () => {
     const user = {
       id: "owner",

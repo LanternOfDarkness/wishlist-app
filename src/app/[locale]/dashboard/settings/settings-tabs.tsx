@@ -51,8 +51,8 @@ export function SettingsTabs({ user }: SettingsTabsProps) {
                     <div className="space-y-6 max-w-xl pb-10">
                         <EmbedWidget
                             username={user.username}
-                            items={(user.wishlist?.items || []) as any}
-                            appearance={user.wishlist?.appearance as any}
+                            items={user.wishlist?.items || []}
+                            appearance={user.wishlist?.appearance}
                         />
                     </div>
                 )}

@@ -1,4 +1,3 @@
-import type { Prisma } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
 import { buildWishlistAppearanceFromFormData } from "../wishlist-appearance-form";
@@ -26,7 +25,7 @@ function buildFormData(
 
 describe("buildWishlistAppearanceFromFormData", () => {
   it("writes canonical preset and banner settings while preserving widget settings", () => {
-    const currentAppearance: Prisma.JsonObject = {
+    const currentAppearance: Record<string, unknown> = {
       widgetLayout: "list",
       widgetItemSize: 144,
       primaryColor: "#111111",
@@ -70,7 +69,7 @@ describe("buildWishlistAppearanceFromFormData", () => {
   });
 
   it("enables advanced colors only when the toggle is submitted", () => {
-    const currentAppearance: Prisma.JsonObject = {
+    const currentAppearance: Record<string, unknown> = {
       widgetLayout: "grid",
       widgetItemSize: 100,
     };

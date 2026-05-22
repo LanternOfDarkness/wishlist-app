@@ -1,15 +1,14 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { updateWidgetItems } from "@/actions/update-widget-items";
+import { useUpdateWidgetItems } from "@/lib/hooks/use-update-widget-items";
 import { updateWidgetSettings } from "@/actions/update-widget-settings";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Copy, Check, Grid2X2, List } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { Item } from "@prisma/client";
-import type { JsonValue } from "@prisma/client/runtime/library";
+import type { WidgetItemData } from "@/lib/repository";
 import {
   getWishlistWidgetSettingsState,
   type WidgetLayout,
@@ -17,8 +16,8 @@ import {
 
 interface EmbedWidgetProps {
   username: string;
-  items?: Item[];
-  appearance?: JsonValue;
+  items?: WidgetItemData[];
+  appearance?: unknown;
 }
 
 export function EmbedWidget({
@@ -27,6 +26,7 @@ export function EmbedWidget({
   appearance,
 }: EmbedWidgetProps) {
   const [isPending, startTransition] = useTransition();
+  const { execute: toggleWidgetItem } = useUpdateWidgetItems();
   const t = useTranslations("Settings");
   const locale = useLocale();
   const router = useRouter();
@@ -59,20 +59,17 @@ export function EmbedWidget({
       ),
     );
 
-    startTransition(async () => {
-      const result = await updateWidgetItems(itemId, nextStatus);
-
-      if (!result.success) {
+    toggleWidgetItem(itemId, nextStatus, {
+      onError: () => {
         setLocalItems((currentItems) =>
           currentItems.map((item) =>
             item.id === itemId ? { ...item, showInWidget: currentStatus } : item,
           ),
         );
-        return;
-      }
-
-      refreshPreview();
+      },
     });
+
+    refreshPreview();
   };
 
   const handleLayoutChange = (layout: WidgetLayout) => {

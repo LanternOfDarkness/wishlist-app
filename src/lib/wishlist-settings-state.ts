@@ -1,5 +1,3 @@
-import type { JsonValue } from "@prisma/client/runtime/library";
-
 import {
   APPEARANCE_PRESETS,
   COLOR_PRESET_OPTIONS,
@@ -28,7 +26,7 @@ type AppearanceRecord = Record<string, AppearanceValue>;
 export type ThemeMode = "system" | "light" | "dark";
 export type WidgetLayout = "grid" | "list";
 
-export function getWishlistSettingsState(appearance: JsonValue | undefined) {
+export function getWishlistSettingsState(appearance: unknown) {
   const rawAppearance = getAppearanceRecord(appearance);
   const colorPreset = normalizeColorPreset(rawAppearance.colorPreset);
   const presetTheme = APPEARANCE_PRESETS[colorPreset];
@@ -66,7 +64,7 @@ export function getWishlistSettingsState(appearance: JsonValue | undefined) {
   };
 }
 
-export function getWishlistWidgetSettingsState(appearance: JsonValue | undefined) {
+export function getWishlistWidgetSettingsState(appearance: unknown) {
   const rawAppearance = getAppearanceRecord(appearance);
 
   return {
@@ -86,7 +84,7 @@ export function normalizeWidgetItemSize(value: AppearanceValue) {
   return typeof value === "number" ? Math.min(Math.max(Math.round(value), 70), 160) : 100;
 }
 
-function getAppearanceRecord(appearance: JsonValue | undefined): AppearanceRecord {
+function getAppearanceRecord(appearance: unknown): AppearanceRecord {
   if (!appearance || typeof appearance !== "object" || Array.isArray(appearance)) {
     return {};
   }

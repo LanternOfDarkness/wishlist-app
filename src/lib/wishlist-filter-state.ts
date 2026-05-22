@@ -1,5 +1,3 @@
-import type { Prisma } from "@prisma/client";
-
 export type WishlistSort = "priority" | "price_asc" | "price_desc" | "newest";
 
 export type WishlistSearchParams = {
@@ -53,54 +51,6 @@ export function writeWishlistFilterParam(
   }
 
   return params;
-}
-
-export function buildWishlistItemWhere(
-  searchParams: WishlistSearchParams,
-  canViewPrivateItems: boolean,
-): Prisma.ItemWhereInput {
-  const where: Prisma.ItemWhereInput = {};
-
-  if (searchParams.currency) {
-    where.currency = searchParams.currency;
-  }
-
-  if (searchParams.category) {
-    const categoryIds = Array.isArray(searchParams.category)
-      ? searchParams.category
-      : [searchParams.category];
-    where.categoryId = { in: categoryIds };
-  }
-
-  const minPrice = Number.parseFloat(searchParams.minPrice || "");
-  const maxPrice = Number.parseFloat(searchParams.maxPrice || "");
-  if (!Number.isNaN(minPrice) || !Number.isNaN(maxPrice)) {
-    where.price = {
-      ...(!Number.isNaN(minPrice) ? { gte: minPrice } : {}),
-      ...(!Number.isNaN(maxPrice) ? { lte: maxPrice } : {}),
-    };
-  }
-
-  if (!canViewPrivateItems) {
-    where.isPrivate = false;
-  }
-
-  return where;
-}
-
-export function buildWishlistItemOrderBy(
-  sort?: string,
-): Prisma.ItemOrderByWithRelationInput[] {
-  switch (normalizeWishlistSort(sort)) {
-    case "price_asc":
-      return [{ price: "asc" }];
-    case "price_desc":
-      return [{ price: "desc" }];
-    case "newest":
-      return [{ createdAt: "desc" }];
-    default:
-      return [{ priority: "desc" }, { createdAt: "desc" }];
-  }
 }
 
 export function hasActiveWishlistFilters(searchParams: WishlistSearchParams) {

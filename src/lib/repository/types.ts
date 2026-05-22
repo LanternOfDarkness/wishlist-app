@@ -100,6 +100,16 @@ export interface EmbedWishlistData {
   items: ItemData[];
 }
 
+export interface WidgetItemData {
+  id: string;
+  name: string;
+  price: number | null;
+  currency: string;
+  url: string | null;
+  imageUrl: string | null;
+  showInWidget: boolean;
+}
+
 export interface ItemDraft {
   name: string;
   url?: string;
