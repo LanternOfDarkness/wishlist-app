@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useUpdateWidgetItems } from "@/lib/hooks/use-update-widget-items";
-import { updateWidgetSettings } from "@/actions/update-widget-settings";
 import { Button } from "@/components/ui/button";
+import { useUpdateWidgetSettings } from "@/lib/hooks/use-update-widget-settings";
 import { Label } from "@/components/ui/label";
 import { Copy, Check, Grid2X2, List } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -25,8 +25,8 @@ export function EmbedWidget({
   items = [],
   appearance,
 }: EmbedWidgetProps) {
-  const [isPending, startTransition] = useTransition();
   const { execute: toggleWidgetItem } = useUpdateWidgetItems();
+  const { execute: updateWidgetConfig, isPending } = useUpdateWidgetSettings();
   const t = useTranslations("Settings");
   const locale = useLocale();
   const router = useRouter();
@@ -74,18 +74,12 @@ export function EmbedWidget({
 
   const handleLayoutChange = (layout: WidgetLayout) => {
     setWidgetLayout(layout);
-    startTransition(async () => {
-      await updateWidgetSettings({ layout });
-      refreshPreview();
-    });
+    updateWidgetConfig({ layout }, { onSuccess: refreshPreview });
   };
 
   const handleItemSizeChange = (size: number) => {
     setWidgetItemSize(size);
-    startTransition(async () => {
-      await updateWidgetSettings({ itemSize: size });
-      refreshPreview();
-    });
+    updateWidgetConfig({ itemSize: size }, { onSuccess: refreshPreview });
   };
 
   const [copied, setCopied] = useState(false);

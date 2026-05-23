@@ -122,7 +122,11 @@
         "image_label": "Image",
         "priority_label": "Priority",
         "submit": "Add",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "metadata_success": "Data loaded successfully",
+        "error_name_required": "Name is required",
+        "add_success": "Item added!",
+        "error_add": "Failed to add item"
     },
     "Wishlist": {
         "wishlist_title": "{name}'s Wishlist",

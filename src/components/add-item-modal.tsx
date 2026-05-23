@@ -44,7 +44,7 @@ export function AddItemModal({
 
   const handleFetchMetadata = async () => {
     if (!draft.url.trim()) {
-      toast.error(t("error_fetch") || "Please enter URL");
+      toast.error(t("error_fetch"));
       return;
     }
 
@@ -56,13 +56,13 @@ export function AddItemModal({
         setDraft((currentDraft) =>
           applyMetadataToWishlistItemDraft(currentDraft, metadata),
         );
-        toast.success("Дані успішно завантажено!");
+        toast.success(t("metadata_success"));
       } else {
-        toast.error(t("error_fetch") || "Error fetching");
+        toast.error(t("error_fetch"));
       }
     } catch (error) {
       console.error(error);
-      toast.error(t("error_fetch") || "Error fetching");
+      toast.error(t("error_fetch"));
     } finally {
       setIsFetching(false);
     }
@@ -72,7 +72,7 @@ export function AddItemModal({
     e.preventDefault();
 
     if (!draft.name.trim()) {
-      toast.error("Назва обов'язкова");
+      toast.error(t("error_name_required"));
       return;
     }
 
@@ -92,11 +92,11 @@ export function AddItemModal({
       },
       {
         onSuccess: () => {
-          toast.success("Бажання додано!");
+          toast.success(t("add_success"));
           setOpen(false);
           setDraft(createEmptyWishlistItemDraft);
         },
-        onError: (error) => toast.error(error || "Помилка додавання"),
+        onError: (error) => toast.error(error || t("error_add")),
       },
     );
   };
@@ -106,14 +106,14 @@ export function AddItemModal({
       <DialogTrigger asChild>
         <Button size="lg">
           <Sparkles className="mr-2 h-4 w-4" />
-          {t("title") || "Add Item"}
+          {t("title")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t("title") || "Add Item"}</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            {t("url_placeholder") || "Paste link to auto-fill details"}
+            {t("url_placeholder")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -121,12 +121,12 @@ export function AddItemModal({
             {/* URL Field */}
 
             <div className="grid gap-2">
-              <Label htmlFor="url">{t("url_label") || "URL"}</Label>
+              <Label htmlFor="url">{t("url_label")}</Label>
               <div className="flex gap-2">
                 <Input
                   id="url"
                   type="url"
-                  placeholder={t("url_placeholder") || "https://"}
+                   placeholder={t("url_placeholder")}
                   value={draft.url}
                   onChange={(e) =>
                     setDraft({ ...draft, url: e.target.value })
@@ -142,10 +142,10 @@ export function AddItemModal({
                   {isFetching ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t("fetching") || "Fetching..."}
+                      {t("fetching")}
                     </>
                   ) : (
-                    t("fetch_button") || "Fetch"
+                    t("fetch_button")
                   )}
                 </Button>
               </div>
@@ -154,10 +154,10 @@ export function AddItemModal({
             {/* Name Field */}
 
             <div className="grid gap-2">
-              <Label htmlFor="name">{t("name_label") || "Name"} *</Label>
+              <Label htmlFor="name">{t("name_label")} *</Label>
               <Input
                 id="name"
-                placeholder={t("name_placeholder") || "Item Name"}
+                placeholder={t("name_placeholder")}
                 value={draft.name}
                 onChange={(e) =>
                   setDraft({ ...draft, name: e.target.value })
@@ -170,7 +170,7 @@ export function AddItemModal({
 
             <div className="grid gap-2">
               <Label htmlFor="imageUrl">
-                {t("image_label") || "Image URL"}
+                {t("image_label")}
               </Label>
               <Input
                 id="imageUrl"
@@ -198,12 +198,12 @@ export function AddItemModal({
             {/* Price and Currency */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="price">{t("price_label") || "Price"}</Label>
+                <Label htmlFor="price">{t("price_label")}</Label>
                 <Input
                   id="price"
                   type="number"
                   step="0.01"
-                  placeholder={t("price_placeholder") || "100.00"}
+                  placeholder={t("price_placeholder")}
                   value={draft.price}
                   onChange={(e) =>
                     setDraft({ ...draft, price: e.target.value })

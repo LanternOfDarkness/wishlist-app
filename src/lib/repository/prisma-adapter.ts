@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import type { IWishlistRepository, LoadSpec, RequireSpec, WriteCommand, SpecResultMap } from "./interface";
 
+function normalizeAppearance(raw: unknown): Record<string, unknown> {
+  return (raw as Record<string, unknown>) ?? {};
+}
+
 export class PrismaWishlistRepository implements IWishlistRepository {
   async load<S extends LoadSpec>(spec: S): Promise<any> {
     switch (spec.type) {
@@ -52,7 +56,7 @@ export class PrismaWishlistRepository implements IWishlistRepository {
             id: wishlist.id,
             title: wishlist.title,
             slug: wishlist.slug,
-            appearance: (wishlist.appearance as Record<string, unknown>) ?? {},
+            appearance: normalizeAppearance(wishlist.appearance),
           },
           items: wishlist.items.map((i) => ({
             ...i,
@@ -117,7 +121,7 @@ export class PrismaWishlistRepository implements IWishlistRepository {
         if (!w) return null as any;
         return {
           id: w.id,
-          appearance: (w.appearance as Record<string, unknown>) ?? {},
+          appearance: normalizeAppearance(w.appearance),
         } as any;
       }
 
@@ -318,7 +322,7 @@ export class PrismaWishlistRepository implements IWishlistRepository {
           data: { username: command.username },
         });
         await prisma.wishlist.create({
-          data: { userId: command.userId, title: "Мої бажання", slug: command.username },
+          data: { userId: command.userId, title: command.title, slug: command.username },
         });
         return undefined as any;
       }

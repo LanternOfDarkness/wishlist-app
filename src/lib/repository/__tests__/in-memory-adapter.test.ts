@@ -149,7 +149,7 @@ describe("InMemoryWishlistRepository", () => {
 
   describe("add-item", () => {
     it("creates an item under a wishlist", async () => {
-      await repo.execute({ type: "setup-user-account", userId: "user-1", username: "testuser" });
+      await repo.execute({ type: "setup-user-account", userId: "user-1", username: "testuser", title: "Test" });
       const wishlist = [...repo.wishlists.values()].find(w => w.userId === "user-1")!;
 
       const item = as<ItemData>(await repo.execute({
@@ -163,7 +163,7 @@ describe("InMemoryWishlistRepository", () => {
     });
 
     it("creates a category when newCategoryName is provided", async () => {
-      await repo.execute({ type: "setup-user-account", userId: "user-1", username: "testuser" });
+      await repo.execute({ type: "setup-user-account", userId: "user-1", username: "testuser", title: "Test" });
       const wishlist = [...repo.wishlists.values()].find(w => w.userId === "user-1")!;
 
       const item = as<ItemData>(await repo.execute({
@@ -199,7 +199,7 @@ describe("InMemoryWishlistRepository", () => {
     });
 
     it("counts items with showInWidget=true", async () => {
-      await repo.execute({ type: "setup-user-account", userId: "user-1", username: "testuser" });
+      await repo.execute({ type: "setup-user-account", userId: "user-1", username: "testuser", title: "Test" });
       const wishlist = [...repo.wishlists.values()].find(w => w.userId === "user-1")!;
       const item = as<ItemData>(await repo.execute({
         type: "add-item", userId: "user-1",
@@ -267,10 +267,10 @@ describe("InMemoryWishlistRepository", () => {
       const user = makeUser({ username: null });
       repo.users.set(user.id, user);
 
-      await repo.execute({ type: "setup-user-account", userId: user.id, username: "testuser" });
+      await repo.execute({ type: "setup-user-account", userId: user.id, username: "testuser", title: "Test" });
       expect(repo.users.get(user.id)!.username).toBe("testuser");
       expect([...repo.wishlists.values()].length).toBe(1);
-      expect([...repo.wishlists.values()][0].title).toBe("Мої бажання");
+      expect([...repo.wishlists.values()][0].title).toBe("Test");
     });
   });
 

@@ -60,6 +60,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     type: "setup-user-account",
                     userId: user.id,
                     username,
+                    title: "My Wishlist",
                 });
             }
         },

@@ -37,7 +37,7 @@ export type WriteCommand =
   | { type: "update-user-profile"; userId: string; name?: string; username?: string; appearance?: Record<string, unknown> }
   | { type: "update-widget-item-visibility"; itemId: string; showInWidget: boolean }
   | { type: "update-widget-settings"; wishlistId: string; appearance: Record<string, unknown> }
-  | { type: "setup-user-account"; userId: string; username: string };
+  | { type: "setup-user-account"; userId: string; username: string; title: string };
 
 export interface SpecResultMap {
   "viewer-page-user": ViewerPageUser | null;

@@ -122,7 +122,11 @@
         "image_label": "Зображення",
         "priority_label": "Пріоритет",
         "submit": "Додати",
-        "cancel": "Скасувати"
+        "cancel": "Скасувати",
+        "metadata_success": "Дані успішно завантажено!",
+        "error_name_required": "Назва обов'язкова",
+        "add_success": "Бажання додано!",
+        "error_add": "Помилка додавання"
     },
     "Wishlist": {
         "wishlist_title": "Вішліст користувача {name}",

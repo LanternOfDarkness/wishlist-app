@@ -250,7 +250,7 @@ export class InMemoryWishlistRepository implements IWishlistRepository {
         if (!existingWishlist) {
           const w: WishlistData = {
             id: crypto.randomUUID(),
-            title: "Мої бажання",
+            title: command.title,
             slug: command.username,
             description: null,
             isPublic: true,
