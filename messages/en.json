@@ -164,6 +164,7 @@
     "CreateWishlist": {
         "trigger": "Create wishlist",
         "title": "Create new list",
+        "description": "Enter a name for your new wishlist to get started.",
         "label": "List name",
         "placeholder": "Example: Birthday 2025",
         "submitting": "Creating...",
