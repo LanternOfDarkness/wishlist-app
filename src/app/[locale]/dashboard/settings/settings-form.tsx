@@ -2,10 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { useUpdateProfile } from "@/lib/hooks/use-update-profile";
+import { useTheme, applyTheme } from "@/lib/hooks/use-theme";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { DashboardSettingsUser } from "@/lib/dashboard-settings-intake";
 import { useTranslations } from "next-intl";
 import { AVAILABLE_CURRENCIES } from "@/lib/currencies";
@@ -17,7 +18,6 @@ import {
   FONT_OPTIONS,
   ITEM_BORDER_OPTIONS,
   getWishlistSettingsState,
-  shouldUseDarkTheme,
   type BannerDisplayMode,
   type ColorPreset,
 } from "@/lib/wishlist-settings-state";
@@ -33,9 +33,14 @@ export function SettingsForm({
   const t = useTranslations("Settings");
   const { execute: saveProfile, isPending: isLoading } = useUpdateProfile();
   const settings = getWishlistSettingsState(user.wishlist?.appearance);
-  const [themeMode, setThemeMode] = useState(
+  const [themeMode, setFormTheme] = useState<string>(
     settings.themeMode,
   );
+  const { setThemeMode: persistTheme } = useTheme();
+  const setThemeMode = useCallback((mode: string) => {
+    setFormTheme(mode);
+    persistTheme(mode);
+  }, [setFormTheme, persistTheme]);
   const [colorPreset, setColorPreset] = useState<ColorPreset>(
     settings.colorPreset,
   );
@@ -54,16 +59,7 @@ export function SettingsForm({
   const [bannerDisplayMode, setBannerDisplayMode] =
     useState<BannerDisplayMode>(settings.bannerDisplayMode);
 
-  useEffect(() => {
-    const systemPrefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    document.documentElement.classList.toggle(
-      "dark",
-      shouldUseDarkTheme(themeMode, systemPrefersDark),
-    );
-    localStorage.setItem("themeMode", themeMode);
-  }, [themeMode]);
+  useTheme();
 
   function handleSubmit(formData: FormData) {
     saveProfile(formData, {
