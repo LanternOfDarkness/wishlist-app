@@ -239,12 +239,7 @@ export function resolveWishlistAppearance(
   const preset = selectPresetName(presetValue);
   const presetTheme = APPEARANCE_PRESETS[preset];
   const presetExists = Boolean(
-    presetValue &&
-      (presetValue === "light" ||
-        presetValue === "rose" ||
-        presetValue === "green" ||
-        presetValue === "dark" ||
-        presetValue === "minimal"),
+    presetValue && COLOR_PRESET_OPTIONS.includes(presetValue as ColorPreset),
   );
   const advanced = resolveAdvancedColors(appearance);
   const legacy = !advanced && !presetExists
@@ -309,32 +304,16 @@ export function resolveWishlistAppearance(
 }
 
 function selectPresetName(preset: string | undefined): ColorPreset {
-
-  if (
-    preset === "light" ||
-    preset === "rose" ||
-    preset === "green" ||
-    preset === "dark" ||
-    preset === "minimal"
-  ) {
-    return preset;
-  }
-
-  return "light";
+  return COLOR_PRESET_OPTIONS.includes(preset as ColorPreset)
+    ? (preset as ColorPreset)
+    : "light";
 }
 
 function selectBannerDisplayMode(appearance: WishlistAppearance): BannerDisplayMode {
   const mode = getString(appearance, "bannerDisplayMode");
-
-  if (
-    mode === "banner-and-page" ||
-    mode === "banner-only" ||
-    mode === "page-only"
-  ) {
-    return mode;
-  }
-
-  return "banner-and-page";
+  return BANNER_DISPLAY_MODE_OPTIONS.includes(mode as BannerDisplayMode)
+    ? (mode as BannerDisplayMode)
+    : "banner-and-page";
 }
 
 function resolveAdvancedColors(appearance: WishlistAppearance) {

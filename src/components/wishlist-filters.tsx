@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter, usePathname } from "@/i18n/routing";
-import { Category } from "@prisma/client";
+import type { CategoryData } from "@/lib/repository";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Filter } from "lucide-react";
@@ -16,7 +16,7 @@ import {
 import { useTranslations } from "next-intl";
 
 interface WishlistFiltersProps {
-    categories: Category[];
+    categories: CategoryData[];
     maxPriceOverall?: number;
 }
 

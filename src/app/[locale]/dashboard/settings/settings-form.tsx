@@ -5,8 +5,8 @@ import { useUpdateProfile } from "@/lib/hooks/use-update-profile";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { User, Wishlist } from "@prisma/client";
 import { useEffect, useState } from "react";
+import type { DashboardSettingsUser } from "@/lib/dashboard-settings-intake";
 import { useTranslations } from "next-intl";
 import { AVAILABLE_CURRENCIES } from "@/lib/currencies";
 import { APPEARANCE_PRESETS } from "@/lib/wishlist-appearance";
@@ -22,10 +22,8 @@ import {
   type ColorPreset,
 } from "@/lib/wishlist-settings-state";
 
-type UserWithWishlist = User & { wishlist: Wishlist | null };
-
 interface SettingsFormProps {
-  user: UserWithWishlist;
+  user: DashboardSettingsUser;
 }
 
 export function SettingsForm({

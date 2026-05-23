@@ -18,7 +18,7 @@ import { fetchMetadata } from "@/actions/fetch-metadata";
 import { useAddItem } from "@/lib/hooks/use-add-item";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { Category } from "@prisma/client";
+import type { CategoryData } from "@/lib/repository";
 import Image from "next/image";
 import {
   applyMetadataToWishlistItemDraft,
@@ -28,7 +28,7 @@ import {
 
 interface AddItemModalProps {
   wishlistId: string;
-  categories?: Category[];
+  categories?: CategoryData[];
   favoriteCurrencies?: string[];
 }
 

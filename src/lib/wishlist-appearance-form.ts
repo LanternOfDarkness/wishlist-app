@@ -1,6 +1,8 @@
-import type {
-  BannerDisplayMode,
-  ColorPreset,
+import {
+  COLOR_PRESET_OPTIONS,
+  BANNER_DISPLAY_MODE_OPTIONS,
+  type BannerDisplayMode,
+  type ColorPreset,
 } from "./wishlist-appearance";
 
 export type WishlistAppearanceFormData = Record<string, unknown> & {
@@ -19,19 +21,8 @@ export type WishlistAppearanceFormData = Record<string, unknown> & {
   favoriteCurrencies?: string[];
 };
 
-const VALID_COLOR_PRESETS: ColorPreset[] = [
-  "light",
-  "rose",
-  "green",
-  "dark",
-  "minimal",
-];
-
-const VALID_BANNER_DISPLAY_MODES: BannerDisplayMode[] = [
-  "banner-and-page",
-  "banner-only",
-  "page-only",
-];
+const VALID_COLOR_PRESETS = COLOR_PRESET_OPTIONS;
+const VALID_BANNER_DISPLAY_MODES = BANNER_DISPLAY_MODE_OPTIONS;
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);

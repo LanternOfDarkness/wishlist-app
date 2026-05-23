@@ -41,10 +41,10 @@ export function SettingsTabs({ user }: SettingsTabsProps) {
 
             <div className="mt-6">
                 {activeTab === "general" && (
-                    <SettingsForm user={user as any} tab="general" />
+                    <SettingsForm user={user} tab="general" />
                 )}
                 {activeTab === "appearance" && (
-                    <SettingsForm user={user as any} tab="appearance" />
+                    <SettingsForm user={user} tab="appearance" />
                 )}
 
                 {activeTab === "widget" && user.username && (
