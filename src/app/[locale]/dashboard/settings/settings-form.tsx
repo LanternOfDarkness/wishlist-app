@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { User, Wishlist } from "@prisma/client";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Loader2 } from "lucide-react";
 import { AVAILABLE_CURRENCIES } from "@/lib/currencies";
 import { APPEARANCE_PRESETS } from "@/lib/wishlist-appearance";
 import {
@@ -426,7 +427,14 @@ export function SettingsForm({
       </div>
 
       <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? t("saving") : t("saveChanges")}
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {t("saving")}
+          </>
+        ) : (
+          t("saveChanges")
+        )}
       </Button>
     </form>
   );
