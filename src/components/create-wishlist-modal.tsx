@@ -10,11 +10,12 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
+    DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 
 export function CreateWishlistModal() {
     const t = useTranslations("CreateWishlist");
@@ -46,6 +47,7 @@ export function CreateWishlistModal() {
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>{t("title")}</DialogTitle>
+                    <DialogDescription className="sr-only">{t("title")}</DialogDescription>
                 </DialogHeader>
                 <form action={handleSubmit} className="grid gap-4 py-4">
                     <div className="grid gap-2">
@@ -58,7 +60,14 @@ export function CreateWishlistModal() {
                         />
                     </div>
                     <Button type="submit" disabled={isLoading}>
-                        {isLoading ? t("submitting") : t("submit")}
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                {t("submitting")}
+                            </>
+                        ) : (
+                            t("submit")
+                        )}
                     </Button>
                 </form>
             </DialogContent>
