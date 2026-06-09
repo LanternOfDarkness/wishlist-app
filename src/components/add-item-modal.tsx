@@ -299,9 +299,9 @@ export function AddItemModal({
                 onChange={(e) =>
                   setDraft({ ...draft, isPrivate: e.target.checked })
                 }
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer disabled:cursor-not-allowed"
               />
-              <Label htmlFor="isPrivate">
+              <Label htmlFor="isPrivate" className="cursor-pointer">
                 Make this item private (only visible to mutual followers)
               </Label>
             </div>
