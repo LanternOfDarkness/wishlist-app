@@ -1,3 +1,6 @@
 ## 2024-05-24 - Missing form associations and aria-labels on icon buttons
 **Learning:** Found a pattern of missing `htmlFor` to `id` mapping in complex form component groups (e.g. `wishlist-filters`), and missing `aria-label`s on icon-only interactive elements (e.g. avatar triggers and copy link buttons).
 **Action:** When adding new form elements or interactive UI, proactively ensure form labels have `htmlFor` attributes pointing to correctly IDs, and all icon buttons have an explicit `aria-label` or screen reader accessible text.
+## 2024-06-26 - Create Wishlist Modal Accessibility and Loading State
+**Learning:** Adding a visually hidden `DialogDescription` to Shadcn/Radix UI modals prevents a common accessibility warning while ensuring screen reader users have proper context. Utilizing the `Loader2` icon with `animate-spin` on submit buttons during async operations provides necessary visual feedback to users and aligns with the app's established UI patterns.
+**Action:** When creating or modifying Dialog components, always ensure a `DialogDescription` is present, using `className="sr-only"` if no visible text is desired. Additionally, implement loading states on form submit buttons using `lucide-react`'s `Loader2` icon.
