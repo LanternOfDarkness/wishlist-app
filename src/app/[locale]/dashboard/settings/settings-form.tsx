@@ -237,15 +237,7 @@ export function SettingsForm({
         </div>
 
         <div className="space-y-3 rounded-md border border-input p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <Label htmlFor="advancedColorsEnabled">
-                {t("advancedColorsLabel")}
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                {t("advancedColorsHelp")}
-              </p>
-            </div>
+          <div className="flex items-start justify-between gap-4 flex-row-reverse w-full">
             <input
               id="advancedColorsEnabled"
               type="checkbox"
@@ -253,8 +245,16 @@ export function SettingsForm({
               onChange={(event) =>
                 setAdvancedColorsEnabled(event.target.checked)
               }
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              className="peer mt-1 h-4 w-4 cursor-pointer rounded border-gray-300 text-primary focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
             />
+            <div className="space-y-1 flex-1 peer-disabled:cursor-not-allowed peer-disabled:opacity-50">
+              <Label htmlFor="advancedColorsEnabled" className="cursor-pointer">
+                {t("advancedColorsLabel")}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {t("advancedColorsHelp")}
+              </p>
+            </div>
           </div>
           <input
             type="hidden"
@@ -417,9 +417,9 @@ export function SettingsForm({
                 name="favoriteCurrencies"
                 value={curr}
                 defaultChecked={settings.favoriteCurrencies.includes(curr)}
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                className="peer h-4 w-4 cursor-pointer rounded border-gray-300 text-primary focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
               />
-              <Label htmlFor={`curr-${curr}`}>{curr}</Label>
+              <Label htmlFor={`curr-${curr}`} className="cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-50">{curr}</Label>
             </div>
           ))}
         </div>

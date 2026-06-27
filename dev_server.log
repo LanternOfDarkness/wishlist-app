@@ -1,5 +1,95 @@
 
-> my-wishlist@0.1.0 dev
+> my-wishlist@0.1.0 dev /app
 > next dev
 
-sh: 1: next: not found
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+
+✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+✓ Ready in 2.6s
+[31m[auth][error][0m MissingSecret: Please define a `secret`. Read more at https://errors.authjs.dev#missingsecret
+    at assertConfig (/app/.next/dev/server/chunks/53b5f_@auth_core_571edabd._.js:513:16)
+    at Auth (/app/.next/dev/server/chunks/53b5f_@auth_core_571edabd._.js:5344:289)
+○ Compiling /[locale]/login ...
+⨯ ./src/components/ui/avatar.tsx:4:1
+Module not found: Can't resolve '@radix-ui/react-avatar'
+[0m [90m 2 |[39m
+ [90m 3 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mReact[39m [36mfrom[39m [32m"react"[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mAvatarPrimitive[39m [36mfrom[39m [32m"@radix-ui/react-avatar"[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 5 |[39m
+ [90m 6 |[39m [36mimport[39m { cn } [36mfrom[39m [32m"@/lib/utils"[39m
+ [90m 7 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/components/ui/avatar.tsx [Client Component Browser]
+    ./src/components/user-nav.tsx [Client Component Browser]
+    ./src/components/user-nav.tsx [Server Component]
+    ./src/components/site-header.tsx [Server Component]
+    ./src/app/[locale]/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/ui/avatar.tsx [Client Component SSR]
+    ./src/components/user-nav.tsx [Client Component SSR]
+    ./src/components/user-nav.tsx [Server Component]
+    ./src/components/site-header.tsx [Server Component]
+    ./src/app/[locale]/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ GET /en/login 500 in 6.5s (compile: 5.9s, proxy.ts: 291ms, render: 306ms)
+[31m[auth][error][0m MissingSecret: Please define a `secret`. Read more at https://errors.authjs.dev#missingsecret
+    at assertConfig (/app/.next/dev/server/chunks/53b5f_@auth_core_571edabd._.js:513:16)
+    at Auth (/app/.next/dev/server/chunks/53b5f_@auth_core_571edabd._.js:5344:289)
+⨯ ./src/components/ui/avatar.tsx:4:1
+Module not found: Can't resolve '@radix-ui/react-avatar'
+[0m [90m 2 |[39m
+ [90m 3 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mReact[39m [36mfrom[39m [32m"react"[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mAvatarPrimitive[39m [36mfrom[39m [32m"@radix-ui/react-avatar"[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 5 |[39m
+ [90m 6 |[39m [36mimport[39m { cn } [36mfrom[39m [32m"@/lib/utils"[39m
+ [90m 7 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/components/ui/avatar.tsx [Client Component Browser]
+    ./src/components/user-nav.tsx [Client Component Browser]
+    ./src/components/user-nav.tsx [Server Component]
+    ./src/components/site-header.tsx [Server Component]
+    ./src/app/[locale]/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/ui/avatar.tsx [Client Component SSR]
+    ./src/components/user-nav.tsx [Client Component SSR]
+    ./src/components/user-nav.tsx [Server Component]
+    ./src/components/site-header.tsx [Server Component]
+    ./src/app/[locale]/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ GET /en/login 500 in 58ms (compile: 28ms, proxy.ts: 11ms, render: 19ms)
+✓ Compiled in 632ms
+[31m[auth][error][0m MissingSecret: Please define a `secret`. Read more at https://errors.authjs.dev#missingsecret
+    at assertConfig (/app/.next/dev/server/chunks/53b5f_@auth_core_571edabd._.js:513:16)
+    at Auth (/app/.next/dev/server/chunks/53b5f_@auth_core_571edabd._.js:5344:289)
+[31m[auth][error][0m MissingSecret: Please define a `secret`. Read more at https://errors.authjs.dev#missingsecret
+    at assertConfig (/app/.next/dev/server/chunks/ssr/53b5f_@auth_core_0b18cb0c._.js:513:16)
+    at Auth (/app/.next/dev/server/chunks/ssr/53b5f_@auth_core_0b18cb0c._.js:5344:289)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at process.processImmediate (node:internal/timers:452:9)
+    at process.callbackTrampoline (node:internal/async_hooks:130:17)
+ GET /en/login 200 in 1939ms (compile: 1005ms, proxy.ts: 9ms, render: 924ms)
