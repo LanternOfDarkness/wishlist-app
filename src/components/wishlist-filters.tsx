@@ -107,9 +107,9 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                                         id={`cat-${c.id}`}
                                         checked={filterState.currentCategories.includes(c.id)}
                                         onChange={() => toggleCategory(c.id)}
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer peer"
                                     />
-                                    <label htmlFor={`cat-${c.id}`} className="text-sm cursor-pointer">{c.name}</label>
+                                    <label htmlFor={`cat-${c.id}`} className="text-sm cursor-pointer peer-disabled:cursor-not-allowed">{c.name}</label>
                                 </div>
                             ))}
                         </div>
