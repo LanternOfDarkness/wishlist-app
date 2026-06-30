@@ -231,11 +231,11 @@ export function EmbedWidget({
                     (!item.showInWidget &&
                       selectedItemsCount >= 5)
                   }
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50"
+                  className="peer h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50 cursor-pointer"
                 />
                 <Label
                   htmlFor={`widget-${item.id}`}
-                  className="flex-1 cursor-pointer truncate"
+                  className="flex-1 cursor-pointer truncate peer-disabled:cursor-not-allowed"
                 >
                   {item.name}{" "}
                   {item.price ? `- ${item.price} ${item.currency}` : ""}
