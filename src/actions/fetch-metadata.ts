@@ -2,6 +2,9 @@
 
 import * as cheerio from "cheerio";
 
+import { getAuthenticatedUserId } from "@/lib/wishlist-command-context";
+import { safeFetch } from "@/lib/safe-fetch";
+
 export interface MetadataResult {
     title: string;
     image?: string;
@@ -9,22 +12,12 @@ export interface MetadataResult {
     currency?: string;
 }
 
-function parseHttpUrl(url: string) {
-    const parsedUrl = new URL(url);
-
-    if (!parsedUrl.protocol.startsWith('http')) {
-        throw new Error('Invalid URL protocol');
-    }
-
-    return parsedUrl;
-}
-
 async function fetchHtml(url: string) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
-        const response = await fetch(url, {
+        const response = await safeFetch(url, {
             signal: controller.signal,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -89,8 +82,13 @@ function extractCurrency($: MetadataDocument) {
 }
 
 export async function fetchMetadata(url: string): Promise<MetadataResult | null> {
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+        return null;
+    }
+
     try {
-        const parsedUrl = parseHttpUrl(url);
+        const parsedUrl = new URL(url);
         const html = await fetchHtml(parsedUrl.href);
         const $ = cheerio.load(html);
 
