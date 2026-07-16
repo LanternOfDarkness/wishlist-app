@@ -68,31 +68,43 @@ PRs 1, 2, 3 are independent and can go in parallel. PR 4 builds on 3's patterns.
 
 **Problem.** `Wishlist.isPublic` (`prisma/schema.prisma:71`) is read nowhere. A private wishlist still fully renders on `/[username]` and in the embed widget.
 
-**Decision (confirmed by owner):** keep & enforce. Not everyone wants a public wishlist. A non-public list must stay accessible to **friends (mutual followers)** and **by direct link**.
+**Decision (confirmed by owner):** **Public / Private + secret share link.** Two states plus a share token:
 
-> **Open sub-question to resolve before PR 2 coding:** "accessible by link" is a *third* mode, distinct from "friends-only". Two clean options:
-> - **(a) Two states** — `isPublic` true (listed/public) vs false (only owner + mutual followers; a bare link 404s for everyone else). Simplest, but "share by link with a non-friend" is impossible.
-> - **(b) Three states / share token (recommended for the stated intent)** — `public` (anyone), `unlisted` (anyone **with the link/share token**, not discoverable), `private` (owner + mutual followers only). Needs a `visibility` enum (or a `shareToken` column) on `Wishlist` and a share-link URL like `/[username]?k=<token>`.
-> Because the owner explicitly wants "by link" access, option (b) is the likely target — confirm before implementing. Everything else in PR 2 (enforcement points, tests) stays the same; only the predicate changes.
+| Viewer | `isPublic = true` | `isPublic = false` (private) |
+|--------|-------------------|------------------------------|
+| Anyone (no link) | ✅ view | ❌ 404 |
+| Owner | ✅ | ✅ |
+| Mutual follower | ✅ | ✅ |
+| Anyone with `?k=<shareToken>` | ✅ | ✅ |
+
+Schema: `Wishlist.shareToken String? @unique` (already have `isPublic`). The share link is `/{locale}/{username}?k={shareToken}`. Token is **regenerable** so a shared link can be revoked.
 
 **Files**
-- `src/lib/wishlist-presentation.ts` — both `getWishlistPresentation` and `getEmbedWishlistPresentation`.
-- `src/app/[locale]/[username]/page.tsx` and `src/app/[locale]/embed/[username]/page.tsx` — handle the new "not viewable" result (call `notFound()`).
-- `src/lib/__tests__/wishlist-presentation.test.ts` — add visibility cases.
+- `prisma/schema.prisma` — add `shareToken String? @unique` to `Wishlist`; migration `add_wishlist_share_token`.
+- `src/lib/wishlist-presentation.ts` — `getWishlistPresentation` (accept + honor a `shareKey`) and `getEmbedWishlistPresentation`.
+- `src/app/[locale]/[username]/page.tsx` — read `?k=` from `searchParams`, pass as `shareKey`.
+- `src/app/[locale]/embed/[username]/page.tsx` — private ⇒ `notFound()` (no viewer identity in an embed).
+- `src/actions/update-profile.ts` (or a dedicated action) — persist `isPublic`; add `regenerateShareToken`/`revokeShareToken`.
+- Settings General tab UI (`src/app/[locale]/dashboard/settings/…`) — public/private toggle + "copy share link" / "reset link" (reuse `CopyLinkButton`).
+- `src/lib/__tests__/wishlist-presentation.test.ts` — visibility + token cases.
 
 **Steps**
-1. In `getWishlistPresentation`, after loading the wishlist and computing `relationship` (line ~85), add: if `wishlist.isPublic === false` **and** `!relationship.canViewPrivateItems`, return `null` (pages already treat `null` as `notFound()`). Reuse the existing `getViewerRelationship` result — no new query.
-2. In `getEmbedWishlistPresentation`, load `isPublic` and return `null` when the list is private (embeds have no viewer identity, so private ⇒ never embeddable). This also closes the H2 embed leak.
-3. Ensure `isPublic` is actually settable — confirm the settings General tab writes it (`update-profile.ts`); if not, add a toggle there in the same PR so the field isn't write-only.
+1. Schema: add `shareToken` (nullable, unique). Generate a token (e.g. `crypto.randomUUID()` or `randomBytes(16).hex`) lazily when a user first turns the list private or clicks "share", not for every wishlist.
+2. `getWishlistPresentation({ username, viewerUserId, searchParams, shareKey })`: after computing `relationship` (line ~85), compute `canView = wishlist.isPublic || relationship.canViewPrivateItems || (shareKey != null && shareKey === wishlist.shareToken)`. If `!canView`, return `null`. **Note:** the wishlist load currently happens *after* the where-clause is built from `canViewPrivateItems`; a share-link viewer is not an owner/mutual-follower, so `canViewPrivateItems` stays false and per-item private filtering still hides `isPrivate` items — a share link exposes the list, not the private items. Keep that behavior (correct). Reuse the existing relationship result; add no extra query (select `isPublic, shareToken` on the wishlist).
+3. `getEmbedWishlistPresentation`: select `isPublic`; return `null` when the list is private. Closes the H2 embed leak.
+4. Compare `shareKey` with a constant-time check (`crypto.timingSafeEqual` on equal-length buffers, guarded for length) rather than `===`.
+5. Persist `isPublic` from settings (currently `update-profile.ts` never writes it — confirmed) and wire the toggle + share-link UI.
 
 **Tests**
 - Public list → visible to anonymous viewer.
 - Private list → `null` for anonymous and non-follower; visible for owner and mutual follower.
+- Private list + correct `?k=` → visible; wrong/absent `?k=` → `null`.
+- Share-link viewer still does **not** see `isPrivate` items.
 - Private list → embed returns `null`.
 
 **Acceptance criteria**
-- A private wishlist 404s for non-authorized viewers on both the page and the embed.
-- Owner and mutual followers still see it.
+- A private wishlist 404s for non-authorized viewers on page + embed; a valid share link opens it; a revoked/rotated token no longer works.
+- Owner and mutual followers still see it. Private items never leak to a share-link viewer.
 - No extra DB round-trips added.
 
 ---
