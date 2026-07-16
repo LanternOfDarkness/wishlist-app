@@ -19,7 +19,7 @@ interface WishlistPageProps {
     locale: string;
     username: string;
   }>;
-  searchParams: Promise<WishlistSearchParams>;
+  searchParams: Promise<WishlistSearchParams & { k?: string }>;
 }
 
 export default async function WishlistPage({
@@ -35,6 +35,7 @@ export default async function WishlistPage({
     username,
     viewerUserId: session?.user?.id,
     searchParams: resolvedSearchParams,
+    shareKey: resolvedSearchParams.k,
   });
 
   if (!presentation) {

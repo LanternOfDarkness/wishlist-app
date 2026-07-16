@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 import {
   getWishlistAppearancePresentation,
   getWishlistAppearanceRecord,
@@ -47,6 +49,29 @@ export function getViewerRelationship(
   };
 }
 
+/**
+ * Constant-time comparison of a viewer-supplied share key against the stored
+ * token. Returns false for missing values or length mismatches without leaking
+ * timing information about how much of the token matched.
+ */
+export function matchesShareToken(
+  provided: string | undefined | null,
+  actual: string | null,
+): boolean {
+  if (!provided || !actual) {
+    return false;
+  }
+
+  const providedBuffer = Buffer.from(provided);
+  const actualBuffer = Buffer.from(actual);
+
+  if (providedBuffer.length !== actualBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(providedBuffer, actualBuffer);
+}
+
 export function getMaxWishlistItemPrice(items: Array<{ price: number | null }>) {
   const prices = items
     .map((item) => item.price)
@@ -64,10 +89,12 @@ export async function getWishlistPresentation({
   username,
   viewerUserId,
   searchParams,
+  shareKey,
 }: {
   username: string;
   viewerUserId?: string;
   searchParams: WishlistSearchParams;
+  shareKey?: string;
 }) {
   const user = await prisma.user.findUnique({
     where: { username },
@@ -103,6 +130,20 @@ export async function getWishlistPresentation({
   });
 
   if (!wishlist) {
+    return null;
+  }
+
+  // Visibility gate: a private wishlist is only viewable by its owner, mutual
+  // followers, or someone holding the secret share link. A share-link viewer is
+  // not an owner/mutual-follower, so `canViewPrivateItems` stays false and the
+  // per-item `isPrivate` filter above still hides private items — the link
+  // exposes the list, not its private entries.
+  const canView =
+    wishlist.isPublic ||
+    relationship.canViewPrivateItems ||
+    matchesShareToken(shareKey, wishlist.shareToken);
+
+  if (!canView) {
     return null;
   }
 
@@ -142,6 +183,12 @@ export async function getEmbedWishlistPresentation({
   });
 
   if (!user?.wishlist) {
+    return null;
+  }
+
+  // Embeds carry no viewer identity, so a private wishlist can never be
+  // embedded (this also closes the private-item leak via the widget).
+  if (!user.wishlist.isPublic) {
     return null;
   }
 

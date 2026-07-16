@@ -14,6 +14,9 @@ export async function updateProfile(formData: FormData) {
 
     const name = formData.get("name") as string;
     const username = formData.get("username") as string;
+    const isPublicRaw = formData.get("isPublic");
+    const isPublic =
+        isPublicRaw === null ? undefined : isPublicRaw === "true";
     if (username) {
         const existingUser = await prisma.user.findUnique({
             where: { username },
@@ -44,7 +47,8 @@ export async function updateProfile(formData: FormData) {
             username,
             wishlist: {
                 update: {
-                    appearance
+                    appearance,
+                    ...(isPublic === undefined ? {} : { isPublic }),
                 }
             }
         },

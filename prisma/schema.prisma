@@ -69,6 +69,7 @@ model Wishlist {
   description String?
   slug        String   @unique
   isPublic    Boolean  @default(true)
+  shareToken  String?  @unique
   appearance  Json?
   userId      String   @unique
   createdAt   DateTime @default(now())

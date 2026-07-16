@@ -1,7 +1,12 @@
 "use client";
 
 import { updateProfile } from "@/actions/update-profile";
+import {
+  regenerateShareToken,
+  revokeShareToken,
+} from "@/actions/wishlist-visibility";
 import { Button } from "@/components/ui/button";
+import { CopyLinkButton } from "@/components/copy-link-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -55,6 +60,41 @@ export function SettingsForm({
   );
   const [bannerDisplayMode, setBannerDisplayMode] =
     useState<BannerDisplayMode>(settings.bannerDisplayMode);
+  const [isPublic, setIsPublic] = useState(user.wishlist?.isPublic ?? true);
+  const [shareToken, setShareToken] = useState<string | null>(
+    user.wishlist?.shareToken ?? null,
+  );
+  const [shareBusy, setShareBusy] = useState(false);
+  const shareUrl =
+    user.username && shareToken
+      ? `/${user.username}?k=${shareToken}`
+      : null;
+
+  async function handleRegenerateShareToken() {
+    setShareBusy(true);
+    const result = await regenerateShareToken();
+    setShareBusy(false);
+
+    if (result.success) {
+      setShareToken(result.shareToken);
+      toast.success(t("shareLinkUpdated"));
+    } else {
+      toast.error(t("shareLinkError"));
+    }
+  }
+
+  async function handleRevokeShareToken() {
+    setShareBusy(true);
+    const result = await revokeShareToken();
+    setShareBusy(false);
+
+    if (result.success) {
+      setShareToken(null);
+      toast.success(t("shareLinkRevoked"));
+    } else {
+      toast.error(t("shareLinkError"));
+    }
+  }
 
   useEffect(() => {
     const systemPrefersDark = window.matchMedia(
@@ -120,6 +160,69 @@ export function SettingsForm({
           <p className="text-xs text-muted-foreground">
             {t("usernameHelp")}
           </p>
+        </div>
+
+        <div className="space-y-3 rounded-md border border-input p-4">
+          <div className="space-y-1">
+            <Label>{t("visibilityLabel")}</Label>
+            <p className="text-xs text-muted-foreground">
+              {t("visibilityHelp")}
+            </p>
+          </div>
+          <input type="hidden" name="isPublic" value={isPublic ? "true" : "false"} />
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant={isPublic ? "default" : "outline"}
+              onClick={() => setIsPublic(true)}
+            >
+              {t("visibilityPublic")}
+            </Button>
+            <Button
+              type="button"
+              variant={!isPublic ? "default" : "outline"}
+              onClick={() => setIsPublic(false)}
+            >
+              {t("visibilityPrivate")}
+            </Button>
+          </div>
+
+          {!isPublic ? (
+            <div className="space-y-2 border-t pt-3">
+              <Label>{t("shareLinkLabel")}</Label>
+              <p className="text-xs text-muted-foreground">
+                {t("shareLinkHelp")}
+              </p>
+              {shareUrl ? (
+                <div className="flex items-center gap-2">
+                  <Input readOnly value={shareUrl} className="text-xs" />
+                  <CopyLinkButton url={shareUrl} />
+                </div>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={shareBusy}
+                  onClick={handleRegenerateShareToken}
+                >
+                  {shareToken ? t("resetShareLink") : t("generateShareLink")}
+                </Button>
+                {shareToken ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={shareBusy}
+                    onClick={handleRevokeShareToken}
+                  >
+                    {t("revokeShareLink")}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 

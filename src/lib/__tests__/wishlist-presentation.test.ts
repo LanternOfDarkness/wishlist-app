@@ -1,14 +1,28 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+
+vi.mock("../prisma", () => ({
+  prisma: {
+    user: { findUnique: vi.fn() },
+    wishlist: { findUnique: vi.fn() },
+  },
+}));
 
 import {
   buildWishlistItemOrderBy,
   buildWishlistItemWhere,
+  getEmbedWishlistPresentation,
   getMaxWishlistItemPrice,
   getViewerRelationship,
   getWishlistAppearancePresentation,
+  getWishlistPresentation,
   getWishlistWidgetPresentation,
   hasActiveWishlistFilters,
+  matchesShareToken,
 } from "../wishlist-presentation";
+import { prisma } from "../prisma";
+
+const mockUserFind = prisma.user.findUnique as unknown as Mock;
+const mockWishlistFind = prisma.wishlist.findUnique as unknown as Mock;
 
 describe("wishlist presentation helpers", () => {
   it("builds item filters from search params and hides private items", () => {
@@ -114,5 +128,127 @@ describe("wishlist presentation helpers", () => {
       widgetLayout: "grid",
       widgetItemSize: 160,
     });
+  });
+});
+
+describe("matchesShareToken", () => {
+  it("returns false for missing values", () => {
+    expect(matchesShareToken(undefined, "token")).toBe(false);
+    expect(matchesShareToken("token", null)).toBe(false);
+    expect(matchesShareToken("", "")).toBe(false);
+  });
+
+  it("returns false for a length mismatch without throwing", () => {
+    expect(matchesShareToken("short", "a-much-longer-token")).toBe(false);
+  });
+
+  it("returns true only for an exact match", () => {
+    expect(matchesShareToken("secret-token", "secret-token")).toBe(true);
+    expect(matchesShareToken("secret-token", "secret-tokeX")).toBe(false);
+  });
+});
+
+describe("getWishlistPresentation visibility gate", () => {
+  const OWNER = {
+    id: "owner",
+    username: "owner",
+    categories: [],
+    followers: [] as Array<{ followerId: string }>,
+    following: [] as Array<{ followingId: string }>,
+  };
+
+  function mockWishlist(overrides: Record<string, unknown> = {}) {
+    mockWishlistFind.mockResolvedValue({
+      id: "wishlist-1",
+      userId: "owner",
+      isPublic: false,
+      shareToken: "secret-token",
+      appearance: null,
+      items: [],
+      ...overrides,
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUserFind.mockResolvedValue({ ...OWNER });
+  });
+
+  async function present(args: {
+    viewerUserId?: string;
+    shareKey?: string;
+  }) {
+    return getWishlistPresentation({
+      username: "owner",
+      searchParams: {},
+      ...args,
+    });
+  }
+
+  it("shows a public wishlist to an anonymous viewer", async () => {
+    mockWishlist({ isPublic: true, shareToken: null });
+    expect(await present({})).not.toBeNull();
+  });
+
+  it("hides a private wishlist from an anonymous or non-follower viewer", async () => {
+    mockWishlist();
+    expect(await present({})).toBeNull();
+    expect(await present({ viewerUserId: "stranger" })).toBeNull();
+  });
+
+  it("shows a private wishlist to the owner", async () => {
+    mockWishlist();
+    expect(await present({ viewerUserId: "owner" })).not.toBeNull();
+  });
+
+  it("shows a private wishlist to a mutual follower", async () => {
+    mockUserFind.mockResolvedValue({
+      ...OWNER,
+      followers: [{ followerId: "friend" }],
+      following: [{ followingId: "friend" }],
+    });
+    mockWishlist();
+    expect(await present({ viewerUserId: "friend" })).not.toBeNull();
+  });
+
+  it("shows a private wishlist to anyone with the correct share key", async () => {
+    mockWishlist();
+    expect(await present({ shareKey: "secret-token" })).not.toBeNull();
+    expect(await present({ shareKey: "wrong-token" })).toBeNull();
+    expect(await present({})).toBeNull();
+  });
+
+  it("still hides private items from a share-link viewer", async () => {
+    mockWishlist();
+    const result = await present({ shareKey: "secret-token" });
+    expect(result?.itemWhere).toMatchObject({ isPrivate: false });
+  });
+});
+
+describe("getEmbedWishlistPresentation visibility gate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns null for a private wishlist", async () => {
+    mockUserFind.mockResolvedValue({
+      id: "owner",
+      username: "owner",
+      wishlist: { isPublic: false, appearance: null, items: [] },
+    });
+    expect(
+      await getEmbedWishlistPresentation({ locale: "en", username: "owner" }),
+    ).toBeNull();
+  });
+
+  it("returns a presentation for a public wishlist", async () => {
+    mockUserFind.mockResolvedValue({
+      id: "owner",
+      username: "owner",
+      wishlist: { isPublic: true, appearance: null, items: [] },
+    });
+    expect(
+      await getEmbedWishlistPresentation({ locale: "en", username: "owner" }),
+    ).not.toBeNull();
   });
 });
