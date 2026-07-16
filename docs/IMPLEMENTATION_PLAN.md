@@ -68,7 +68,12 @@ PRs 1, 2, 3 are independent and can go in parallel. PR 4 builds on 3's patterns.
 
 **Problem.** `Wishlist.isPublic` (`prisma/schema.prisma:71`) is read nowhere. A private wishlist still fully renders on `/[username]` and in the embed widget.
 
-**Decision to confirm before coding:** do we *want* private wishlists (owner + mutual followers can view, others get 404), or should the field be removed? Plan below assumes **keep & enforce**.
+**Decision (confirmed by owner):** keep & enforce. Not everyone wants a public wishlist. A non-public list must stay accessible to **friends (mutual followers)** and **by direct link**.
+
+> **Open sub-question to resolve before PR 2 coding:** "accessible by link" is a *third* mode, distinct from "friends-only". Two clean options:
+> - **(a) Two states** — `isPublic` true (listed/public) vs false (only owner + mutual followers; a bare link 404s for everyone else). Simplest, but "share by link with a non-friend" is impossible.
+> - **(b) Three states / share token (recommended for the stated intent)** — `public` (anyone), `unlisted` (anyone **with the link/share token**, not discoverable), `private` (owner + mutual followers only). Needs a `visibility` enum (or a `shareToken` column) on `Wishlist` and a share-link URL like `/[username]?k=<token>`.
+> Because the owner explicitly wants "by link" access, option (b) is the likely target — confirm before implementing. Everything else in PR 2 (enforcement points, tests) stays the same; only the predicate changes.
 
 **Files**
 - `src/lib/wishlist-presentation.ts` — both `getWishlistPresentation` and `getEmbedWishlistPresentation`.
@@ -136,6 +141,12 @@ PRs 1, 2, 3 are independent and can go in parallel. PR 4 builds on 3's patterns.
 **Implements:** Notion #15 (Pledge model), #16 (Booking UI), #17 (Guest form), #18 (progress). Fixes Audit M1. The app's differentiator — currently dead schema.
 
 **Problem.** `Item.isReserved` renders a badge but is never set; the `Pledge` model is unreferenced. No reservation write path exists (so no race *yet* — build it race-safe from the start).
+
+**Decision (confirmed by owner): full surprise preservation.** The wishlist owner must **not** be able to see *who* reserved an item **or that anything was reserved at all**. Implications, to bake into the design:
+- The reserved/pledged state and the existing "reserved" badge (`[username]/page.tsx:233`) must be rendered **only when `!relationship.isOwner`**. The owner sees their list exactly as if nothing were reserved.
+- Reservation/pledge data (`isReserved`, `Pledge` rows, `pledgedTotal`, progress bar) must be stripped from the presentation payload for the owner in `getWishlistPresentation` — not just hidden in the UI (don't ship it to the client at all).
+- Reserver identity is never exposed to the owner regardless of `isAnonymous` (anonymous only affects what *other viewers* see).
+- Add a test asserting the owner's presentation payload contains no reservation/pledge fields.
 
 **Schema (`prisma/schema.prisma`)**
 - `Pledge` already exists. Add what the flow needs:
