@@ -137,7 +137,13 @@
         "cancel": "Cancel",
         "editTitle": "Edit Item",
         "editDescription": "Update your item details",
-        "saveEdit": "Save"
+        "saveEdit": "Save",
+        "name_required": "Name is required",
+        "fetch_success": "Data loaded successfully!",
+        "add_success": "Item added!",
+        "add_error": "Failed to add item",
+        "edit_success": "Item updated!",
+        "edit_error": "Failed to update item"
     },
     "Wishlist": {
         "wishlist_title": "{name}'s Wishlist",

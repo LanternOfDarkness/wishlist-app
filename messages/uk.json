@@ -137,7 +137,13 @@
         "cancel": "Скасувати",
         "editTitle": "Редагувати бажання",
         "editDescription": "Оновіть дані про товар",
-        "saveEdit": "Зберегти"
+        "saveEdit": "Зберегти",
+        "name_required": "Назва обов'язкова",
+        "fetch_success": "Дані успішно завантажено!",
+        "add_success": "Бажання додано!",
+        "add_error": "Помилка додавання",
+        "edit_success": "Бажання оновлено!",
+        "edit_error": "Помилка оновлення"
     },
     "Wishlist": {
         "itemActions": "Дії з бажанням",

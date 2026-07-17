@@ -107,7 +107,7 @@ export function AddItemModal({
         setDraft((currentDraft) =>
           applyMetadataToWishlistItemDraft(currentDraft, metadata),
         );
-        toast.success("Дані успішно завантажено!");
+        toast.success(t("fetch_success"));
       } else {
         toast.error(t("error_fetch") || "Error fetching");
       }
@@ -123,7 +123,7 @@ export function AddItemModal({
     e.preventDefault();
 
     if (!draft.name.trim()) {
-      toast.error("Назва обов'язкова");
+      toast.error(t("name_required"));
       return;
     }
 
@@ -147,20 +147,19 @@ export function AddItemModal({
         : await addItem({ ...itemData, wishlistId });
 
       if (result.success) {
-        toast.success(isEditMode ? "Бажання оновлено!" : "Бажання додано!");
+        toast.success(isEditMode ? t("edit_success") : t("add_success"));
         setOpen(false);
         if (!isEditMode) {
           setDraft(createEmptyWishlistItemDraft());
         }
       } else {
         toast.error(
-          result.error ||
-            (isEditMode ? "Помилка оновлення" : "Помилка додавання"),
+          result.error || (isEditMode ? t("edit_error") : t("add_error")),
         );
       }
     } catch (error) {
       console.error(error);
-      toast.error(isEditMode ? "Помилка оновлення" : "Помилка додавання");
+      toast.error(isEditMode ? t("edit_error") : t("add_error"));
     } finally {
       setIsSubmitting(false);
     }
