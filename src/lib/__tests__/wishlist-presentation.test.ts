@@ -235,6 +235,117 @@ describe("getWishlistPresentation visibility gate", () => {
   });
 });
 
+describe("getWishlistPresentation reservation surprise-preservation", () => {
+  const RESERVED_ITEM_BASE = {
+    id: "item-1",
+    name: "Bike",
+    price: 100,
+    currency: "UAH",
+    isReserved: true,
+    category: null,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUserFind.mockResolvedValue({
+      id: "owner",
+      username: "owner",
+      categories: [],
+      followers: [],
+      following: [],
+    });
+  });
+
+  it("omits reservation and pledge fields entirely from the owner's payload", async () => {
+    mockWishlistFind.mockResolvedValue({
+      id: "wishlist-1",
+      userId: "owner",
+      isPublic: true,
+      shareToken: null,
+      appearance: null,
+      items: [
+        {
+          ...RESERVED_ITEM_BASE,
+          pledges: [{ amount: 40 }, { amount: 60 }],
+        },
+      ],
+    });
+
+    const result = await getWishlistPresentation({
+      username: "owner",
+      viewerUserId: "owner",
+      searchParams: {},
+    });
+
+    const item = result?.wishlist.items[0];
+    expect(item).not.toHaveProperty("isReserved");
+    expect(item).not.toHaveProperty("pledgedTotal");
+    expect(item).not.toHaveProperty("progressRatio");
+    expect(item).not.toHaveProperty("pledges");
+  });
+
+  it("computes an aggregate pledged total and progress ratio for a non-owner viewer", async () => {
+    mockWishlistFind.mockResolvedValue({
+      id: "wishlist-1",
+      userId: "owner",
+      isPublic: true,
+      shareToken: null,
+      appearance: null,
+      items: [
+        {
+          ...RESERVED_ITEM_BASE,
+          isReserved: false,
+          pledges: [{ amount: 40 }, { amount: 20 }],
+        },
+      ],
+    });
+
+    const result = await getWishlistPresentation({
+      username: "owner",
+      viewerUserId: "stranger",
+      searchParams: {},
+    });
+
+    const item = result?.wishlist.items[0];
+    expect(item).toMatchObject({
+      isReserved: false,
+      pledgedTotal: 60,
+      progressRatio: 0.6,
+    });
+    expect(item).not.toHaveProperty("pledges");
+  });
+
+  it("never exposes individual pledge rows (guest names/messages) to any viewer", async () => {
+    mockWishlistFind.mockResolvedValue({
+      id: "wishlist-1",
+      userId: "owner",
+      isPublic: true,
+      shareToken: null,
+      appearance: null,
+      items: [
+        {
+          ...RESERVED_ITEM_BASE,
+          pledges: [{ amount: 40 }],
+        },
+      ],
+    });
+
+    const ownerResult = await getWishlistPresentation({
+      username: "owner",
+      viewerUserId: "owner",
+      searchParams: {},
+    });
+    const viewerResult = await getWishlistPresentation({
+      username: "owner",
+      viewerUserId: "stranger",
+      searchParams: {},
+    });
+
+    expect(ownerResult?.wishlist.items[0]).not.toHaveProperty("pledges");
+    expect(viewerResult?.wishlist.items[0]).not.toHaveProperty("pledges");
+  });
+});
+
 describe("getEmbedWishlistPresentation visibility gate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -260,5 +371,33 @@ describe("getEmbedWishlistPresentation visibility gate", () => {
     expect(
       await getEmbedWishlistPresentation({ locale: "en", username: "owner" }),
     ).not.toBeNull();
+  });
+
+  it("never exposes isReserved, even on a public wishlist (embeds have no viewer identity)", async () => {
+    mockUserFind.mockResolvedValue({
+      id: "owner",
+      username: "owner",
+      wishlist: {
+        isPublic: true,
+        appearance: null,
+        items: [
+          {
+            id: "item-1",
+            name: "Bike",
+            price: 100,
+            currency: "UAH",
+            isReserved: true,
+            showInWidget: false,
+          },
+        ],
+      },
+    });
+
+    const result = await getEmbedWishlistPresentation({
+      locale: "en",
+      username: "owner",
+    });
+
+    expect(result?.displayItems[0]).not.toHaveProperty("isReserved");
   });
 });

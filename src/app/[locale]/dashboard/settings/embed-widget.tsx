@@ -8,16 +8,20 @@ import { Label } from "@/components/ui/label";
 import { Copy, Check, Grid2X2, List } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { Item } from "@prisma/client";
 import type { JsonValue } from "@prisma/client/runtime/library";
 import {
   getWishlistWidgetSettingsState,
   type WidgetLayout,
 } from "@/lib/wishlist-settings-state";
+import type { DashboardSettingsUser } from "@/lib/dashboard-settings-intake";
+
+type DashboardSettingsItem = NonNullable<
+  DashboardSettingsUser["wishlist"]
+>["items"][number];
 
 interface EmbedWidgetProps {
   username: string;
-  items?: Item[];
+  items?: DashboardSettingsItem[];
   appearance?: JsonValue;
 }
 

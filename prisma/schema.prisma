@@ -116,6 +116,12 @@ model Item {
 
 model Pledge {
   id          String   @id @default(cuid())
+  // "full" reserves the whole item (at most one per item — enforced by a
+  // partial unique index in the migration SQL, since Prisma's schema
+  // language can't express a `WHERE mode = 'full'` unique constraint).
+  // "partial" contributes an amount toward the item's price; multiple are
+  // allowed per item.
+  mode        String   @default("full")
   amount      Float?
   message     String?
   isAnonymous Boolean  @default(false)
@@ -125,6 +131,9 @@ model Pledge {
   createdAt   DateTime @default(now())
   item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
   user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([itemId])
+  @@index([userId])
 }
 
 model VerificationToken {

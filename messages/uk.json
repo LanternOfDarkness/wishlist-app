@@ -156,7 +156,26 @@
         "add_item": "Додати бажання",
         "no_items": "Поки що немає бажань",
         "reserved": "Зарезервовано",
-        "view_link": "Переглянути"
+        "view_link": "Переглянути",
+        "progressLabel": "Зібрано {pledged} / {price} {currency}"
+    },
+    "Reservation": {
+        "reserveButton": "Забронювати подарунок",
+        "modalTitle": "Забронювати «{name}»",
+        "modalDescription": "Дайте знати іншим, що ви подаруєте цей подарунок. Власник вішліста ніколи не побачить, хто забронював.",
+        "modeContribute": "Внести суму",
+        "modeFull": "Забронювати повністю",
+        "amountLabel": "Сума",
+        "remaining": "Залишилось {amount} до мети",
+        "amountRequired": "Введіть коректну суму",
+        "nameLabel": "Ваше ім'я (необов'язково)",
+        "namePlaceholder": "Анонім",
+        "anonymousLabel": "Залишитися анонімним",
+        "cancel": "Скасувати",
+        "submit": "Забронювати",
+        "submitting": "Бронювання...",
+        "success": "Заброньовано! Власник не дізнається, хто це зробив.",
+        "error": "Не вдалося забронювати цей товар"
     },
     "WishlistFilters": {
         "title": "Фільтри",

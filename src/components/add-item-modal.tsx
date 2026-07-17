@@ -28,12 +28,20 @@ import {
 } from "@/lib/wishlist-item-intake";
 
 
+// Owner-facing item lists omit/optionalize `isReserved` (surprise
+// preservation — see wishlist-presentation.ts), so this modal (and anything
+// that forwards an item into it, like the item actions menu) accepts that
+// narrower shape rather than the full Prisma `Item` type.
+export type EditableWishlistItem = Omit<Item, "isReserved"> & {
+  isReserved?: boolean;
+};
+
 interface AddItemModalProps {
   wishlistId: string;
   categories?: Category[];
   favoriteCurrencies?: string[];
   /** When provided, the modal edits this item instead of creating a new one. */
-  item?: Item;
+  item?: EditableWishlistItem;
   /** Controlled open state, used when rendering without the default trigger (e.g. from an actions menu). */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -41,7 +49,7 @@ interface AddItemModalProps {
   trigger?: React.ReactNode;
 }
 
-function itemToDraft(item: Item): WishlistItemDraft {
+function itemToDraft(item: EditableWishlistItem): WishlistItemDraft {
   return {
     url: item.url || "",
     name: item.name,

@@ -72,6 +72,58 @@ export function matchesShareToken(
   return timingSafeEqual(providedBuffer, actualBuffer);
 }
 
+type ItemWithPledges = {
+  price: number | null;
+  isReserved: boolean;
+  pledges: Array<{ amount: number | null }>;
+};
+
+/**
+ * Splits a raw item (with its private `pledges` relation loaded) into the
+ * public-facing shape for a viewer. For the owner this deliberately OMITS
+ * `isReserved`, `pledgedTotal`, and `progressRatio` entirely — surprise
+ * preservation means the owner must not learn whether their item has been
+ * reserved, not just have it hidden in the UI. For everyone else it strips
+ * the raw `pledges` rows (guest names/messages are never surfaced by the
+ * current UI) and replaces them with an aggregate total + progress ratio.
+ */
+function sanitizeReservationFields<T extends ItemWithPledges>(
+  item: T,
+  isOwner: boolean,
+): Omit<T, "pledges" | "isReserved"> & {
+  isReserved?: boolean;
+  pledgedTotal?: number;
+  progressRatio?: number | null;
+} {
+  const { pledges, isReserved, ...rest } = item;
+
+  if (isOwner) {
+    return rest as Omit<T, "pledges" | "isReserved">;
+  }
+
+  const pledgedTotal = pledges.reduce(
+    (sum, pledge) => sum + (pledge.amount ?? 0),
+    0,
+  );
+  const progressRatio =
+    rest.price && rest.price > 0
+      ? Math.min(pledgedTotal / rest.price, 1)
+      : null;
+
+  return { ...rest, isReserved, pledgedTotal, progressRatio } as Omit<
+    T,
+    "pledges" | "isReserved"
+  > & { isReserved: boolean; pledgedTotal: number; progressRatio: number | null };
+}
+
+function omitIsReserved<T extends { isReserved: boolean }>(
+  item: T,
+): Omit<T, "isReserved"> {
+  const rest: Record<string, unknown> = { ...item };
+  delete rest.isReserved;
+  return rest as Omit<T, "isReserved">;
+}
+
 export function getMaxWishlistItemPrice(items: Array<{ price: number | null }>) {
   const prices = items
     .map((item) => item.price)
@@ -124,6 +176,9 @@ export async function getWishlistPresentation({
         orderBy,
         include: {
           category: true,
+          // Only partial-pledge amounts are needed for the progress bar;
+          // guest names/messages are never fetched here at all.
+          pledges: { where: { mode: "partial" }, select: { amount: true } },
         },
       },
     },
@@ -150,13 +205,17 @@ export async function getWishlistPresentation({
   const appearance = getWishlistAppearanceRecord(wishlist.appearance);
   const appearancePresentation = getWishlistAppearancePresentation(appearance);
 
+  const items = wishlist.items.map((item) =>
+    sanitizeReservationFields(item, relationship.isOwner),
+  );
+
   return {
     user,
-    wishlist,
+    wishlist: { ...wishlist, items },
     relationship,
     itemWhere,
     hasActiveFilters: hasActiveWishlistFilters(searchParams),
-    maxPriceOverall: getMaxWishlistItemPrice(wishlist.items),
+    maxPriceOverall: getMaxWishlistItemPrice(items),
     appearance: appearancePresentation,
   };
 }
@@ -196,10 +255,14 @@ export async function getEmbedWishlistPresentation({
   const selectedWidgetItems = user.wishlist.items.filter(
     (item) => item.showInWidget,
   );
-  const displayItems =
+  // Embeds carry no viewer identity, so we can never tell whether the owner
+  // is the one viewing (e.g. previewing their own widget in Settings).
+  // Reservation state is therefore never exposed here, for anyone.
+  const displayItems = (
     selectedWidgetItems.length > 0
       ? selectedWidgetItems.slice(0, 5)
-      : user.wishlist.items.slice(0, 5);
+      : user.wishlist.items.slice(0, 5)
+  ).map(omitIsReserved);
 
   return {
     user,

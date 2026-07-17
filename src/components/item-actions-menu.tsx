@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Archive, MoreVertical, Pencil, Trash2 } from "lucide-react";
-import { Category, Item } from "@prisma/client";
+import { Category } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,12 +23,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AddItemModal } from "@/components/add-item-modal";
+import {
+  AddItemModal,
+  type EditableWishlistItem,
+} from "@/components/add-item-modal";
 import { deleteItem } from "@/actions/delete-item";
 import { setItemArchived } from "@/actions/archive-item";
 
 interface ItemActionsMenuProps {
-  item: Item;
+  item: EditableWishlistItem;
   wishlistId: string;
   categories?: Category[];
 }

@@ -156,7 +156,26 @@
         "itemUpdated": "Item updated",
         "itemDeleted": "Item deleted",
         "itemArchived": "Item archived",
-        "actionError": "Something went wrong"
+        "actionError": "Something went wrong",
+        "progressLabel": "{pledged} / {price} {currency} pledged"
+    },
+    "Reservation": {
+        "reserveButton": "Reserve this gift",
+        "modalTitle": "Reserve \"{name}\"",
+        "modalDescription": "Let others know you're getting this gift. The wishlist owner will never see who reserved it.",
+        "modeContribute": "Contribute an amount",
+        "modeFull": "Reserve the whole gift",
+        "amountLabel": "Amount",
+        "remaining": "{amount} remaining to reach the goal",
+        "amountRequired": "Enter a valid amount",
+        "nameLabel": "Your name (optional)",
+        "namePlaceholder": "Anonymous",
+        "anonymousLabel": "Keep me anonymous",
+        "cancel": "Cancel",
+        "submit": "Reserve",
+        "submitting": "Reserving...",
+        "success": "Reserved! The owner won't be notified who reserved it.",
+        "error": "Could not reserve this item"
     },
     "WishlistFilters": {
         "title": "Filters",
