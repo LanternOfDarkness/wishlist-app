@@ -373,6 +373,30 @@ describe("getEmbedWishlistPresentation visibility gate", () => {
     ).not.toBeNull();
   });
 
+  it("queries items excluding both private and archived (regression: archived items were leaking into the embed)", async () => {
+    mockUserFind.mockResolvedValue({
+      id: "owner",
+      username: "owner",
+      wishlist: { isPublic: true, appearance: null, items: [] },
+    });
+
+    await getEmbedWishlistPresentation({ locale: "en", username: "owner" });
+
+    expect(mockUserFind).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          wishlist: expect.objectContaining({
+            include: expect.objectContaining({
+              items: expect.objectContaining({
+                where: { isPrivate: false, isArchived: false },
+              }),
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
   it("never exposes isReserved, even on a public wishlist (embeds have no viewer identity)", async () => {
     mockUserFind.mockResolvedValue({
       id: "owner",

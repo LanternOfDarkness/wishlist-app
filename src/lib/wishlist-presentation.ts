@@ -233,7 +233,7 @@ export async function getEmbedWishlistPresentation({
       wishlist: {
         include: {
           items: {
-            where: { isPrivate: false },
+            where: { isPrivate: false, isArchived: false },
             orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
           },
         },
