@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
-import { getTranslations } from "next-intl/server";
+import { ensureUserWishlist } from "@/lib/ensure-user-wishlist";
 
 export default async function DashboardPage({
     params
@@ -9,7 +9,6 @@ export default async function DashboardPage({
     params: Promise<{ locale: string }>;
 }) {
     const { locale } = await params;
-    const t = await getTranslations('Dashboard');
     const session = await auth();
 
     if (!session?.user?.email) {
@@ -23,17 +22,11 @@ export default async function DashboardPage({
 
     if (!user) redirect({ href: "/", locale });
 
-    let wishlist = user!.wishlist;
-
-    if (!wishlist) {
+    // Defensive fallback — the auth.ts createUser event normally creates this
+    // wishlist at signup, but ensure one exists here too rather than crash.
+    if (!user!.wishlist) {
         const slug = user!.username || `user-${user!.id.slice(0, 8)}`;
-        wishlist = await prisma.wishlist.create({
-            data: {
-                userId: user!.id,
-                title: t('my_wishlist'),
-                slug,
-            },
-        });
+        await ensureUserWishlist(user!.id, slug);
     }
 
     // Redirect straight to user's wishlist page

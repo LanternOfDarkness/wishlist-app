@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { ensureUserWishlist } from "@/lib/ensure-user-wishlist";
 import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -72,13 +73,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     data: { username: username }
                 });
 
-                await prisma.wishlist.create({
-                    data: {
-                        userId: user.id,
-                        title: "Мої бажання",
-                        slug: username,
-                    },
-                });
+                await ensureUserWishlist(user.id, username);
             }
         },
     },
