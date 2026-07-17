@@ -7,6 +7,7 @@ import {
     requireAuthenticatedUserId,
     getOwnedWishlistAppearance,
 } from "@/lib/wishlist-command-context";
+import { isValidUsernameFormat, isReservedUsername } from "@/lib/username";
 import { revalidatePath } from "next/cache";
 
 export async function updateProfile(formData: FormData) {
@@ -18,6 +19,17 @@ export async function updateProfile(formData: FormData) {
     const isPublic =
         isPublicRaw === null ? undefined : isPublicRaw === "true";
     if (username) {
+        if (!isValidUsernameFormat(username)) {
+            return {
+                error:
+                    "Неприпустимий нікнейм. Дозволені літери, цифри та дефіси (3-30 символів).",
+            };
+        }
+
+        if (isReservedUsername(username)) {
+            return { error: "Цей нікнейм зарезервовано системою" };
+        }
+
         const existingUser = await prisma.user.findUnique({
             where: { username },
         });

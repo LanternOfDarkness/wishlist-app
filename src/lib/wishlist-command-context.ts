@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 import { auth } from "@/auth";
 
 import { prisma } from "./prisma";
@@ -88,8 +90,11 @@ export async function requireOwnedWishlistItem(
   return item;
 }
 
-export async function countSelectedWidgetItems(userId: string) {
-  return prisma.item.count({
+export async function countSelectedWidgetItems(
+  userId: string,
+  client: Prisma.TransactionClient | typeof prisma = prisma,
+) {
+  return client.item.count({
     where: {
       wishlist: {
         userId,

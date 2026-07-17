@@ -59,7 +59,7 @@ describe('fetchMetadata', () => {
         const result = await fetchMetadata('ftp://example.com/file');
         expect(result).toBeNull();
         expect(global.fetch).not.toHaveBeenCalled();
-        expect(console.error).toHaveBeenCalledWith('Error fetching metadata:', expect.any(Error));
+        expect(console.error).toHaveBeenCalledWith('Error fetching metadata [blocked_url]:', expect.any(Error));
     });
 
     it('should reject file:// URLs', async () => {
@@ -78,7 +78,7 @@ describe('fetchMetadata', () => {
         const result = await fetchMetadata('not-a-url');
         expect(result).toBeNull();
         expect(global.fetch).not.toHaveBeenCalled();
-        expect(console.error).toHaveBeenCalledWith('Error fetching metadata:', expect.any(Error));
+        expect(console.error).toHaveBeenCalledWith('Error fetching metadata [unknown]:', expect.any(Error));
     });
 
     it.each([
@@ -182,7 +182,7 @@ describe('fetchMetadata', () => {
         const result = await fetchMetadata('https://example.com');
 
         expect(result).toBeNull();
-        expect(console.error).toHaveBeenCalledWith('Error fetching metadata:', expect.any(Error));
+        expect(console.error).toHaveBeenCalledWith('Error fetching metadata [http_error]:', expect.any(Error));
     });
 
     it('should handle missing metadata fields gracefully', async () => {

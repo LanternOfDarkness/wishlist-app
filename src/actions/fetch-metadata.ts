@@ -3,7 +3,7 @@
 import * as cheerio from "cheerio";
 
 import { getAuthenticatedUserId } from "@/lib/wishlist-command-context";
-import { safeFetch } from "@/lib/safe-fetch";
+import { safeFetch, UnsafeUrlError } from "@/lib/safe-fetch";
 
 export interface MetadataResult {
     title: string;
@@ -100,7 +100,19 @@ export async function fetchMetadata(url: string): Promise<MetadataResult | null>
         };
 
     } catch (error) {
-        console.error('Error fetching metadata:', error);
+        // The public return type stays `MetadataResult | null` (many existing
+        // callers/tests depend on that), but the *reason* for a null result —
+        // blocked target vs. HTTP failure vs. parse failure — is preserved
+        // here so it's distinguishable in logs instead of flattening to one
+        // generic message.
+        const reason =
+            error instanceof UnsafeUrlError
+                ? 'blocked_url'
+                : error instanceof Error && error.message.startsWith('HTTP error!')
+                  ? 'http_error'
+                  : 'unknown';
+
+        console.error(`Error fetching metadata [${reason}]:`, error);
         return null;
     }
 }
