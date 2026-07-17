@@ -28,7 +28,8 @@
         "wishlist_desc": "Add items, share the link with friends.",
         "go_to_list": "Go to list",
         "stats_placeholder": "Wishlist statistics will appear here",
-        "copy_link": "Copy link"
+        "copy_link": "Copy link",
+        "link_copied": "Link copied!"
     },
     "Settings": {
         "generalTab": "General",
