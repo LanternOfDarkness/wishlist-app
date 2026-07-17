@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { User, Wishlist } from "@prisma/client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { AVAILABLE_CURRENCIES } from "@/lib/currencies";
 import { APPEARANCE_PRESETS } from "@/lib/wishlist-appearance";
@@ -22,7 +22,6 @@ import {
   FONT_OPTIONS,
   ITEM_BORDER_OPTIONS,
   getWishlistSettingsState,
-  shouldUseDarkTheme,
   type BannerDisplayMode,
   type ColorPreset,
 } from "@/lib/wishlist-settings-state";
@@ -96,16 +95,13 @@ export function SettingsForm({
     }
   }
 
-  useEffect(() => {
-    const systemPrefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    document.documentElement.classList.toggle(
-      "dark",
-      shouldUseDarkTheme(themeMode, systemPrefersDark),
-    );
-    localStorage.setItem("themeMode", themeMode);
-  }, [themeMode]);
+  // Note: `themeMode` here is the wishlist's own stored appearance
+  // preference (still just submitted via the hidden input below), not the
+  // app-chrome dark/light mode — that's now handled independently by
+  // next-themes (see ThemeProvider/ThemeToggle). This used to also toggle
+  // the global `.dark` class as a "live preview", but that class now
+  // belongs exclusively to next-themes, and the wishlist's own colors are
+  // resolved from `appearance` server-side regardless of it anyway.
 
   async function handleSubmit(formData: FormData) {
     setIsLoading(true);
