@@ -242,7 +242,7 @@ export function SettingsForm({
               onChange={(event) =>
                 setAdvancedColorsEnabled(event.target.checked)
               }
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer disabled:cursor-not-allowed"
             />
           </div>
           <input
@@ -406,7 +406,7 @@ export function SettingsForm({
                 name="favoriteCurrencies"
                 value={curr}
                 defaultChecked={settings.favoriteCurrencies.includes(curr)}
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer disabled:cursor-not-allowed"
               />
               <Label htmlFor={`curr-${curr}`}>{curr}</Label>
             </div>
