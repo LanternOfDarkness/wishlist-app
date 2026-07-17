@@ -134,14 +134,29 @@
         "image_label": "Image",
         "priority_label": "Priority",
         "submit": "Add",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "editTitle": "Edit Item",
+        "editDescription": "Update your item details",
+        "saveEdit": "Save"
     },
     "Wishlist": {
         "wishlist_title": "{name}'s Wishlist",
         "add_item": "Add Item",
         "no_items": "No items yet",
         "reserved": "Reserved",
-        "view_link": "View"
+        "view_link": "View",
+        "itemActions": "Item actions",
+        "editItem": "Edit",
+        "archiveItem": "Archive",
+        "deleteItem": "Delete",
+        "deleteItemTitle": "Delete this item?",
+        "deleteItemDescription": "This action cannot be undone. The item will be permanently removed from your wishlist.",
+        "deleteItemConfirm": "Delete",
+        "deleteItemCancel": "Cancel",
+        "itemUpdated": "Item updated",
+        "itemDeleted": "Item deleted",
+        "itemArchived": "Item archived",
+        "actionError": "Something went wrong"
     },
     "WishlistFilters": {
         "title": "Filters",

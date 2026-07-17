@@ -59,7 +59,7 @@ export function buildWishlistItemWhere(
   searchParams: WishlistSearchParams,
   canViewPrivateItems: boolean,
 ): Prisma.ItemWhereInput {
-  const where: Prisma.ItemWhereInput = {};
+  const where: Prisma.ItemWhereInput = { isArchived: false };
 
   if (searchParams.currency) {
     where.currency = searchParams.currency;

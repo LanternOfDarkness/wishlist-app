@@ -41,11 +41,21 @@ describe("wishlist presentation helpers", () => {
       currency: "UAH",
       price: { gte: 10, lte: 200 },
       isPrivate: false,
+      isArchived: false,
     });
   });
 
   it("omits private filter for viewers who can see private items", () => {
-    expect(buildWishlistItemWhere({}, true)).toEqual({});
+    expect(buildWishlistItemWhere({}, true)).toEqual({ isArchived: false });
+  });
+
+  it("always excludes archived items, even for the owner", () => {
+    expect(buildWishlistItemWhere({}, true)).toMatchObject({
+      isArchived: false,
+    });
+    expect(buildWishlistItemWhere({}, false)).toMatchObject({
+      isArchived: false,
+    });
   });
 
   it("builds item order from supported sort modes", () => {

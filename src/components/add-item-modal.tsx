@@ -16,13 +16,15 @@ import {
 } from "@/components/ui/dialog";
 import { fetchMetadata } from "@/actions/fetch-metadata";
 import { addItem } from "@/actions/add-item";
+import { updateItem } from "@/actions/update-item";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { Category } from "@prisma/client";
+import { Category, Item } from "@prisma/client";
 import Image from "next/image";
 import {
   applyMetadataToWishlistItemDraft,
   createEmptyWishlistItemDraft,
+  type WishlistItemDraft,
 } from "@/lib/wishlist-item-intake";
 
 
@@ -30,17 +32,58 @@ interface AddItemModalProps {
   wishlistId: string;
   categories?: Category[];
   favoriteCurrencies?: string[];
+  /** When provided, the modal edits this item instead of creating a new one. */
+  item?: Item;
+  /** Controlled open state, used when rendering without the default trigger (e.g. from an actions menu). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Custom trigger element; omit to hide the trigger entirely (fully controlled). */
+  trigger?: React.ReactNode;
+}
+
+function itemToDraft(item: Item): WishlistItemDraft {
+  return {
+    url: item.url || "",
+    name: item.name,
+    imageUrl: item.imageUrl || "",
+    price: item.price != null ? String(item.price) : "",
+    currency: item.currency,
+    priority: String(item.priority),
+    isPrivate: item.isPrivate,
+    categoryId: item.categoryId || "",
+    newCategoryName: "",
+  };
 }
 
 export function AddItemModal({
   wishlistId,
   categories = [],
+  item,
+  open: controlledOpen,
+  onOpenChange,
+  trigger,
 }: AddItemModalProps) {
   const t = useTranslations("AddItem");
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(createEmptyWishlistItemDraft);
+  const isEditMode = Boolean(item);
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setInternalOpen;
+  const [draft, setDraft] = useState(() =>
+    item ? itemToDraft(item) : createEmptyWishlistItemDraft(),
+  );
   const [isFetching, setIsFetching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // The modal instance persists across open/close (it's owned by the actions
+  // menu), so resync the draft whenever it opens rather than only on mount —
+  // otherwise a cancelled edit would leave stale values the next time it opens.
+  const handleOpenChange = (next: boolean) => {
+    if (next) {
+      setDraft(item ? itemToDraft(item) : createEmptyWishlistItemDraft());
+    }
+    setOpen(next);
+  };
 
   const handleFetchMetadata = async () => {
     if (!draft.url.trim()) {
@@ -78,48 +121,64 @@ export function AddItemModal({
 
     setIsSubmitting(true);
     try {
-      const result = await addItem({
+      const itemData = {
         name: draft.name,
         url: draft.url,
         imageUrl: draft.imageUrl,
         price: draft.price ? parseFloat(draft.price) : undefined,
         currency: draft.currency,
         priority: parseInt(draft.priority, 10),
-        wishlistId,
         categoryId: draft.categoryId,
         newCategoryName:
           draft.categoryId === "new" ? draft.newCategoryName : undefined,
         isPrivate: draft.isPrivate,
-      });
+      };
+
+      const result = isEditMode
+        ? await updateItem(item!.id, itemData)
+        : await addItem({ ...itemData, wishlistId });
 
       if (result.success) {
-        toast.success("Бажання додано!");
+        toast.success(isEditMode ? "Бажання оновлено!" : "Бажання додано!");
         setOpen(false);
-        setDraft(createEmptyWishlistItemDraft());
+        if (!isEditMode) {
+          setDraft(createEmptyWishlistItemDraft());
+        }
       } else {
-        toast.error(result.error || "Помилка додавання");
+        toast.error(
+          result.error ||
+            (isEditMode ? "Помилка оновлення" : "Помилка додавання"),
+        );
       }
     } catch (error) {
       console.error(error);
-      toast.error("Помилка додавання");
+      toast.error(isEditMode ? "Помилка оновлення" : "Помилка додавання");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const defaultTrigger = !isEditMode && !isControlled ? (
+    <DialogTrigger asChild>
+      <Button size="lg">
+        <Sparkles className="mr-2 h-4 w-4" />
+        {t("title") || "Add Item"}
+      </Button>
+    </DialogTrigger>
+  ) : null;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="lg">
-          <Sparkles className="mr-2 h-4 w-4" />
-          {t("title") || "Add Item"}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : defaultTrigger}
       <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t("title") || "Add Item"}</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? t("editTitle") || "Edit Item" : t("title") || "Add Item"}
+          </DialogTitle>
           <DialogDescription>
-            {t("url_placeholder") || "Paste link to auto-fill details"}
+            {isEditMode
+              ? t("editDescription") || "Update your item details"
+              : t("url_placeholder") || "Paste link to auto-fill details"}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -318,8 +377,10 @@ export function AddItemModal({
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t("submit") || "Add"}
+                  {isEditMode ? t("saveEdit") || "Save" : t("submit") || "Add"}
                 </>
+              ) : isEditMode ? (
+                t("saveEdit") || "Save"
               ) : (
                 t("submit") || "Add"
               )}

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { User as UserIcon, ExternalLink, Gift, Lock, Star } from "lucide-react";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { AddItemModal } from "@/components/add-item-modal";
+import { ItemActionsMenu } from "@/components/item-actions-menu";
 import { WishlistFilters } from "@/components/wishlist-filters";
 import { FollowButton } from "@/components/follow-button";
 import { getTranslations } from "next-intl/server";
@@ -169,6 +170,16 @@ export default async function WishlistPage({
                         : undefined,
                     }}
                   >
+                    {relationship.isOwner && (
+                      <div className="absolute right-2 top-2 z-10">
+                        <ItemActionsMenu
+                          item={item}
+                          wishlistId={wishlist.id}
+                          categories={user.categories}
+                        />
+                      </div>
+                    )}
+
                     {/* Image */}
                     <div className="relative aspect-square overflow-hidden bg-muted">
                       {item.imageUrl && isSafeUrl(item.imageUrl) ? (
