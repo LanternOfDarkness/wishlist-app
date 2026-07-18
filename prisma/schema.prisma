@@ -61,6 +61,9 @@ model Follows {
   following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@id([followerId, followingId])
+  // followerId is already covered as the leading column of the composite PK;
+  // followingId needs its own index for the reverse lookup (followers of X).
+  @@index([followingId])
 }
 
 model Wishlist {
@@ -69,6 +72,7 @@ model Wishlist {
   description String?
   slug        String   @unique
   isPublic    Boolean  @default(true)
+  shareToken  String?  @unique
   appearance  Json?
   userId      String   @unique
   createdAt   DateTime @default(now())
@@ -87,6 +91,10 @@ model Category {
   items Item[]
 
   @@unique([name, userId])
+  // userId is the second column of the unique constraint above, which
+  // doesn't efficiently serve "all categories for this user" lookups on
+  // its own — a dedicated index does.
+  @@index([userId])
 }
 
 model Item {
@@ -99,6 +107,7 @@ model Item {
   priority   Int      @default(0)
   isReserved Boolean  @default(false)
   isPrivate  Boolean  @default(false)
+  isArchived Boolean  @default(false)
   showInWidget Boolean @default(false)
   wishlistId String
   categoryId String?
@@ -107,10 +116,19 @@ model Item {
   wishlist Wishlist  @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   pledges  Pledge[]
+
+  @@index([wishlistId])
+  @@index([categoryId])
 }
 
 model Pledge {
   id          String   @id @default(cuid())
+  // "full" reserves the whole item (at most one per item — enforced by a
+  // partial unique index in the migration SQL, since Prisma's schema
+  // language can't express a `WHERE mode = 'full'` unique constraint).
+  // "partial" contributes an amount toward the item's price; multiple are
+  // allowed per item.
+  mode        String   @default("full")
   amount      Float?
   message     String?
   isAnonymous Boolean  @default(false)
@@ -120,6 +138,9 @@ model Pledge {
   createdAt   DateTime @default(now())
   item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
   user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([itemId])
+  @@index([userId])
 }
 
 model VerificationToken {

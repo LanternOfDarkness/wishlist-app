@@ -15,36 +15,87 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { fetchMetadata } from "@/actions/fetch-metadata";
-import { useAddItem } from "@/lib/hooks/use-add-item";
+import { addItem } from "@/actions/add-item";
+import { updateItem } from "@/actions/update-item";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import type { CategoryData } from "@/lib/repository";
+import { Category, Item } from "@prisma/client";
 import Image from "next/image";
 import {
   applyMetadataToWishlistItemDraft,
   createEmptyWishlistItemDraft,
+  type WishlistItemDraft,
 } from "@/lib/wishlist-item-intake";
 
 
+// Owner-facing item lists omit/optionalize `isReserved` (surprise
+// preservation — see wishlist-presentation.ts), so this modal (and anything
+// that forwards an item into it, like the item actions menu) accepts that
+// narrower shape rather than the full Prisma `Item` type.
+export type EditableWishlistItem = Omit<Item, "isReserved"> & {
+  isReserved?: boolean;
+};
+
 interface AddItemModalProps {
   wishlistId: string;
-  categories?: CategoryData[];
+  categories?: Category[];
   favoriteCurrencies?: string[];
+  /** When provided, the modal edits this item instead of creating a new one. */
+  item?: EditableWishlistItem;
+  /** Controlled open state, used when rendering without the default trigger (e.g. from an actions menu). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Custom trigger element; omit to hide the trigger entirely (fully controlled). */
+  trigger?: React.ReactNode;
+}
+
+function itemToDraft(item: EditableWishlistItem): WishlistItemDraft {
+  return {
+    url: item.url || "",
+    name: item.name,
+    imageUrl: item.imageUrl || "",
+    price: item.price != null ? String(item.price) : "",
+    currency: item.currency,
+    priority: String(item.priority),
+    isPrivate: item.isPrivate,
+    categoryId: item.categoryId || "",
+    newCategoryName: "",
+  };
 }
 
 export function AddItemModal({
   wishlistId,
   categories = [],
+  item,
+  open: controlledOpen,
+  onOpenChange,
+  trigger,
 }: AddItemModalProps) {
   const t = useTranslations("AddItem");
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(createEmptyWishlistItemDraft);
+  const isEditMode = Boolean(item);
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setInternalOpen;
+  const [draft, setDraft] = useState(() =>
+    item ? itemToDraft(item) : createEmptyWishlistItemDraft(),
+  );
   const [isFetching, setIsFetching] = useState(false);
-  const { execute: addItemAction, isPending: isSubmitting } = useAddItem();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // The modal instance persists across open/close (it's owned by the actions
+  // menu), so resync the draft whenever it opens rather than only on mount —
+  // otherwise a cancelled edit would leave stale values the next time it opens.
+  const handleOpenChange = (next: boolean) => {
+    if (next) {
+      setDraft(item ? itemToDraft(item) : createEmptyWishlistItemDraft());
+    }
+    setOpen(next);
+  };
 
   const handleFetchMetadata = async () => {
     if (!draft.url.trim()) {
-      toast.error(t("error_fetch"));
+      toast.error(t("error_fetch") || "Please enter URL");
       return;
     }
 
@@ -56,13 +107,13 @@ export function AddItemModal({
         setDraft((currentDraft) =>
           applyMetadataToWishlistItemDraft(currentDraft, metadata),
         );
-        toast.success(t("metadata_success"));
+        toast.success(t("fetch_success"));
       } else {
-        toast.error(t("error_fetch"));
+        toast.error(t("error_fetch") || "Error fetching");
       }
     } catch (error) {
       console.error(error);
-      toast.error(t("error_fetch"));
+      toast.error(t("error_fetch") || "Error fetching");
     } finally {
       setIsFetching(false);
     }
@@ -72,48 +123,69 @@ export function AddItemModal({
     e.preventDefault();
 
     if (!draft.name.trim()) {
-      toast.error(t("error_name_required"));
+      toast.error(t("name_required"));
       return;
     }
 
-    addItemAction(
-      {
+    setIsSubmitting(true);
+    try {
+      const itemData = {
         name: draft.name,
         url: draft.url,
         imageUrl: draft.imageUrl,
         price: draft.price ? parseFloat(draft.price) : undefined,
         currency: draft.currency,
         priority: parseInt(draft.priority, 10),
-        wishlistId,
         categoryId: draft.categoryId,
         newCategoryName:
           draft.categoryId === "new" ? draft.newCategoryName : undefined,
         isPrivate: draft.isPrivate,
-      },
-      {
-        onSuccess: () => {
-          toast.success(t("add_success"));
-          setOpen(false);
-          setDraft(createEmptyWishlistItemDraft);
-        },
-        onError: (error) => toast.error(error || t("error_add")),
-      },
-    );
+      };
+
+      const result = isEditMode
+        ? await updateItem(item!.id, itemData)
+        : await addItem({ ...itemData, wishlistId });
+
+      if (result.success) {
+        toast.success(isEditMode ? t("edit_success") : t("add_success"));
+        setOpen(false);
+        if (!isEditMode) {
+          setDraft(createEmptyWishlistItemDraft());
+        }
+      } else {
+        toast.error(
+          result.error || (isEditMode ? t("edit_error") : t("add_error")),
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(isEditMode ? t("edit_error") : t("add_error"));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  const defaultTrigger = !isEditMode && !isControlled ? (
+    <DialogTrigger asChild>
+      <Button size="lg">
+        <Sparkles className="mr-2 h-4 w-4" />
+        {t("title") || "Add Item"}
+      </Button>
+    </DialogTrigger>
+  ) : null;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="lg">
-          <Sparkles className="mr-2 h-4 w-4" />
-          {t("title")}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : defaultTrigger}
       <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t("title")}</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? t("editTitle") || "Edit Item" : t("title") || "Add Item"}
+          </DialogTitle>
           <DialogDescription>
-            {t("url_placeholder")}
+            {isEditMode
+              ? t("editDescription") || "Update your item details"
+              : t("url_placeholder") || "Paste link to auto-fill details"}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -121,12 +193,12 @@ export function AddItemModal({
             {/* URL Field */}
 
             <div className="grid gap-2">
-              <Label htmlFor="url">{t("url_label")}</Label>
+              <Label htmlFor="url">{t("url_label") || "URL"}</Label>
               <div className="flex gap-2">
                 <Input
                   id="url"
                   type="url"
-                   placeholder={t("url_placeholder")}
+                  placeholder={t("url_placeholder") || "https://"}
                   value={draft.url}
                   onChange={(e) =>
                     setDraft({ ...draft, url: e.target.value })
@@ -142,10 +214,10 @@ export function AddItemModal({
                   {isFetching ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t("fetching")}
+                      {t("fetching") || "Fetching..."}
                     </>
                   ) : (
-                    t("fetch_button")
+                    t("fetch_button") || "Fetch"
                   )}
                 </Button>
               </div>
@@ -154,10 +226,10 @@ export function AddItemModal({
             {/* Name Field */}
 
             <div className="grid gap-2">
-              <Label htmlFor="name">{t("name_label")} *</Label>
+              <Label htmlFor="name">{t("name_label") || "Name"} *</Label>
               <Input
                 id="name"
-                placeholder={t("name_placeholder")}
+                placeholder={t("name_placeholder") || "Item Name"}
                 value={draft.name}
                 onChange={(e) =>
                   setDraft({ ...draft, name: e.target.value })
@@ -170,7 +242,7 @@ export function AddItemModal({
 
             <div className="grid gap-2">
               <Label htmlFor="imageUrl">
-                {t("image_label")}
+                {t("image_label") || "Image URL"}
               </Label>
               <Input
                 id="imageUrl"
@@ -198,12 +270,12 @@ export function AddItemModal({
             {/* Price and Currency */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="price">{t("price_label")}</Label>
+                <Label htmlFor="price">{t("price_label") || "Price"}</Label>
                 <Input
                   id="price"
                   type="number"
                   step="0.01"
-                  placeholder={t("price_placeholder")}
+                  placeholder={t("price_placeholder") || "100.00"}
                   value={draft.price}
                   onChange={(e) =>
                     setDraft({ ...draft, price: e.target.value })
@@ -312,8 +384,10 @@ export function AddItemModal({
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t("submit") || "Add"}
+                  {isEditMode ? t("saveEdit") || "Save" : t("submit") || "Add"}
                 </>
+              ) : isEditMode ? (
+                t("saveEdit") || "Save"
               ) : (
                 t("submit") || "Add"
               )}

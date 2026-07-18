@@ -1,9 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "@/i18n/routing";
-import { getRepository } from "@/lib/repository";
-import type { UserProfile } from "@/lib/repository";
-import { generateUsername } from "@/lib/slug";
-import { getTranslations } from "next-intl/server";
+import { prisma } from "@/lib/prisma";
+import { ensureUserWishlist } from "@/lib/ensure-user-wishlist";
 
 export default async function DashboardPage({
     params
@@ -11,31 +9,28 @@ export default async function DashboardPage({
     params: Promise<{ locale: string }>;
 }) {
     const { locale } = await params;
-    const t = await getTranslations('Dashboard');
     const session = await auth();
 
     if (!session?.user?.email) {
         redirect({ href: "/", locale });
-        return;
     }
 
-    const user = await getRepository().load({ type: "user-by-email", email: session.user.email }) as UserProfile | null;
-    if (!user) { redirect({ href: "/", locale }); return; }
+    const user = await prisma.user.findUnique({
+        where: { email: session!.user.email! },
+        include: { wishlist: true },
+    });
 
-    const existingWishlist = await getRepository().load({ type: "dashboard-user", userId: user.id });
-    let wishlist = existingWishlist?.wishlist ?? null;
+    if (!user) redirect({ href: "/", locale });
 
-    if (!wishlist) {
-        const slug = user.username || generateUsername(user.name, user.email ?? undefined);
-        wishlist = await getRepository().execute({
-            type: "create-wishlist",
-            userId: user.id,
-            title: t('my_wishlist'),
-            slug,
-        });
+    // Defensive fallback — the auth.ts createUser event normally creates this
+    // wishlist at signup, but ensure one exists here too rather than crash.
+    if (!user!.wishlist) {
+        const slug = user!.username || `user-${user!.id.slice(0, 8)}`;
+        await ensureUserWishlist(user!.id, slug);
     }
 
-    if (user.username) {
+    // Redirect straight to user's wishlist page
+    if (user?.username) {
         redirect({ href: `/${user.username}`, locale });
     } else {
         redirect({ href: "/", locale });

@@ -42,6 +42,18 @@
         "namePlaceholder": "Your name",
         "usernameLabel": "Username (slug)",
         "usernameHelp": "This is your wishlist URL. Use letters, numbers, and dashes.",
+        "visibilityLabel": "Visibility",
+        "visibilityHelp": "Public wishlists are visible to anyone. Private wishlists are visible only to you, mutual followers, and anyone with your secret share link.",
+        "visibilityPublic": "Public",
+        "visibilityPrivate": "Private",
+        "shareLinkLabel": "Share link",
+        "shareLinkHelp": "Anyone with this link can view your private wishlist. Reset it to revoke access.",
+        "generateShareLink": "Generate share link",
+        "resetShareLink": "Reset link",
+        "revokeShareLink": "Disable link",
+        "shareLinkUpdated": "Share link updated",
+        "shareLinkRevoked": "Share link disabled",
+        "shareLinkError": "Could not update the share link",
         "appearanceTitle": "Appearance",
         "themeLabel": "Theme",
         "themeSystem": "System",
@@ -124,17 +136,53 @@
         "priority_label": "Priority",
         "submit": "Add",
         "cancel": "Cancel",
-        "metadata_success": "Data loaded successfully",
-        "error_name_required": "Name is required",
+        "editTitle": "Edit Item",
+        "editDescription": "Update your item details",
+        "saveEdit": "Save",
+        "name_required": "Name is required",
+        "fetch_success": "Data loaded successfully!",
         "add_success": "Item added!",
-        "error_add": "Failed to add item"
+        "add_error": "Failed to add item",
+        "edit_success": "Item updated!",
+        "edit_error": "Failed to update item"
     },
     "Wishlist": {
         "wishlist_title": "{name}'s Wishlist",
         "add_item": "Add Item",
         "no_items": "No items yet",
         "reserved": "Reserved",
-        "view_link": "View"
+        "view_link": "View",
+        "itemActions": "Item actions",
+        "editItem": "Edit",
+        "archiveItem": "Archive",
+        "deleteItem": "Delete",
+        "deleteItemTitle": "Delete this item?",
+        "deleteItemDescription": "This action cannot be undone. The item will be permanently removed from your wishlist.",
+        "deleteItemConfirm": "Delete",
+        "deleteItemCancel": "Cancel",
+        "itemUpdated": "Item updated",
+        "itemDeleted": "Item deleted",
+        "itemArchived": "Item archived",
+        "actionError": "Something went wrong",
+        "progressLabel": "{pledged} / {price} {currency} pledged"
+    },
+    "Reservation": {
+        "reserveButton": "Reserve this gift",
+        "modalTitle": "Reserve \"{name}\"",
+        "modalDescription": "Let others know you're getting this gift. The wishlist owner will never see who reserved it.",
+        "modeContribute": "Contribute an amount",
+        "modeFull": "Reserve the whole gift",
+        "amountLabel": "Amount",
+        "remaining": "{amount} remaining to reach the goal",
+        "amountRequired": "Enter a valid amount",
+        "nameLabel": "Your name (optional)",
+        "namePlaceholder": "Anonymous",
+        "anonymousLabel": "Keep me anonymous",
+        "cancel": "Cancel",
+        "submit": "Reserve",
+        "submitting": "Reserving...",
+        "success": "Reserved! The owner won't be notified who reserved it.",
+        "error": "Could not reserve this item"
     },
     "WishlistFilters": {
         "title": "Filters",
@@ -166,16 +214,15 @@
         "login": "Sign in",
         "my_wishlist": "My Wishlist"
     },
-    "CreateWishlist": {
-        "trigger": "Create wishlist",
-        "title": "Create new list",
-        "label": "List name",
-        "placeholder": "Example: Birthday 2025",
-        "submitting": "Creating...",
-        "submit": "Create",
-        "success": "Wishlist created!",
-        "error_unauthorized": "Unauthorized",
-        "error_too_short": "Title must be at least 3 characters long",
-        "error_generic": "Failed to create wishlist"
+    "Theme": {
+        "toggle": "Toggle theme",
+        "system": "System",
+        "light": "Light",
+        "dark": "Dark"
+    },
+    "NotFound": {
+        "title": "Page not found",
+        "description": "The page you're looking for doesn't exist or may have been moved.",
+        "homeButton": "Go home"
     }
 }

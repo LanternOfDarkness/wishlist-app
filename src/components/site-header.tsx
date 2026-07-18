@@ -3,6 +3,7 @@ import { Link } from "@/i18n/routing";
 import { UserNav } from "@/components/user-nav";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { SignInButton } from "@/components/sign-in-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export async function SiteHeader() {
     const session = await auth();
@@ -17,6 +18,7 @@ export async function SiteHeader() {
                 </Link>
 
                 <div className="flex items-center gap-4">
+                    <ThemeToggle />
                     <LanguageSwitcher />
                     {session?.user ? <UserNav user={session.user} /> : <SignInButton />}
                 </div>

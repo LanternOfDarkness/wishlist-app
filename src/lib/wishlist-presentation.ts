@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 import {
   resolveWishlistAppearance,
   ALLOWED_FONT_CLASSES,
@@ -6,53 +8,34 @@ import {
   type WishlistAppearance,
   type WishlistFontClass,
 } from "./wishlist-appearance";
-import { getRepository } from "./repository";
-import type {
-  ViewerPageUser,
-} from "./repository";
+import { prisma } from "./prisma";
 import {
+  buildWishlistItemOrderBy,
+  buildWishlistItemWhere,
   hasActiveWishlistFilters,
   type WishlistSearchParams,
 } from "./wishlist-filter-state";
 
-type ViewerRelationshipUser = {
-  id: string;
-  followers: Array<{ followerId: string }>;
-  following: Array<{ followingId: string }>;
+export {
+  buildWishlistItemOrderBy,
+  buildWishlistItemWhere,
+  hasActiveWishlistFilters,
+  type WishlistSearchParams,
 };
 
-export function getViewerRelationship(
-  user: ViewerRelationshipUser,
-  viewerUserId?: string,
-) {
-  const isOwner = viewerUserId === user.id;
-  const isFollowing = viewerUserId
-    ? user.followers.some((follow) => follow.followerId === viewerUserId)
-    : false;
-  const userFollowsViewer = viewerUserId
-    ? user.following.some((follow) => follow.followingId === viewerUserId)
-    : false;
-  const isMutualFollower = isFollowing && userFollowsViewer;
+// ── Appearance presentation helpers ──────────────────────────────────────
+// These live here (not in wishlist-appearance.ts) to match main's deepen
+// architecture; audit's branch imported them from wishlist-appearance, so we
+// define them locally and re-export by declaration.
 
-  return {
-    isOwner,
-    isFollowing,
-    isMutualFollower,
-    canViewPrivateItems: isOwner || isMutualFollower,
-  };
-}
-
-export function getMaxWishlistItemPrice(items: Array<{ price: number | null }>) {
-  const prices = items
-    .map((item) => item.price)
-    .filter((price): price is number => price !== null);
-
-  if (prices.length === 0) {
-    return 10000;
+export function getWishlistAppearanceRecord(
+  appearance: unknown,
+): WishlistAppearance {
+  if (!appearance || typeof appearance !== "object" || Array.isArray(appearance)) {
+    return {};
   }
 
-  const maxPrice = Math.max(...prices);
-  return maxPrice > 0 ? maxPrice : 10000;
+  return appearance as WishlistAppearance;
 }
 
 function getAppearanceString(
@@ -129,111 +112,201 @@ export function getWishlistWidgetPresentation(
   };
 }
 
-export interface WishlistPresentationInput {
-  viewerUser: ViewerPageUser;
-  wishlistResult: {
-    wishlist: { id: string; title: string; slug: string; appearance: Record<string, unknown> };
-    items: Array<{
-      id: string; name: string; url: string | null; imageUrl: string | null;
-      price: number | null; currency: string; priority: number;
-      isReserved: boolean; isPrivate: boolean; showInWidget: boolean;
-      category: { id: string; name: string } | null;
-    }>;
-    maxPrice: number;
-  };
-  relationship: ReturnType<typeof getViewerRelationship>;
-  searchParams: WishlistSearchParams;
-}
+type ViewerRelationshipUser = {
+  id: string;
+  followers: Array<{ followerId: string }>;
+  following: Array<{ followingId: string }>;
+};
 
-export function buildWishlistPresentation(input: WishlistPresentationInput) {
-  const appearance = (input.wishlistResult.wishlist.appearance as WishlistAppearance) || {};
-  const appearancePresentation = getWishlistAppearancePresentation(appearance);
+export function getViewerRelationship(
+  user: ViewerRelationshipUser,
+  viewerUserId?: string,
+) {
+  const isOwner = viewerUserId === user.id;
+  const isFollowing = viewerUserId
+    ? user.followers.some((follow) => follow.followerId === viewerUserId)
+    : false;
+  const userFollowsViewer = viewerUserId
+    ? user.following.some((follow) => follow.followingId === viewerUserId)
+    : false;
+  const isMutualFollower = isFollowing && userFollowsViewer;
 
   return {
-    user: input.viewerUser,
-    wishlist: {
-      id: input.wishlistResult.wishlist.id,
-      title: input.wishlistResult.wishlist.title,
-      slug: input.wishlistResult.wishlist.slug,
-      items: input.wishlistResult.items,
-    },
-    relationship: input.relationship,
-    hasActiveFilters: hasActiveWishlistFilters(input.searchParams),
-    maxPriceOverall: getMaxWishlistItemPrice(input.wishlistResult.items),
-    appearance: appearancePresentation,
+    isOwner,
+    isFollowing,
+    isMutualFollower,
+    canViewPrivateItems: isOwner || isMutualFollower,
   };
+}
+
+/**
+ * Constant-time comparison of a viewer-supplied share key against the stored
+ * token. Returns false for missing values or length mismatches without leaking
+ * timing information about how much of the token matched.
+ */
+export function matchesShareToken(
+  provided: string | undefined | null,
+  actual: string | null,
+): boolean {
+  if (!provided || !actual) {
+    return false;
+  }
+
+  const providedBuffer = Buffer.from(provided);
+  const actualBuffer = Buffer.from(actual);
+
+  if (providedBuffer.length !== actualBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(providedBuffer, actualBuffer);
+}
+
+type ItemWithPledges = {
+  price: number | null;
+  isReserved: boolean;
+  pledges: Array<{ amount: number | null }>;
+};
+
+/**
+ * Splits a raw item (with its private `pledges` relation loaded) into the
+ * public-facing shape for a viewer. For the owner this deliberately OMITS
+ * `isReserved`, `pledgedTotal`, and `progressRatio` entirely — surprise
+ * preservation means the owner must not learn whether their item has been
+ * reserved, not just have it hidden in the UI. For everyone else it strips
+ * the raw `pledges` rows (guest names/messages are never surfaced by the
+ * current UI) and replaces them with an aggregate total + progress ratio.
+ */
+function sanitizeReservationFields<T extends ItemWithPledges>(
+  item: T,
+  isOwner: boolean,
+): Omit<T, "pledges" | "isReserved"> & {
+  isReserved?: boolean;
+  pledgedTotal?: number;
+  progressRatio?: number | null;
+} {
+  const { pledges, isReserved, ...rest } = item;
+
+  if (isOwner) {
+    return rest as Omit<T, "pledges" | "isReserved">;
+  }
+
+  const pledgedTotal = pledges.reduce(
+    (sum, pledge) => sum + (pledge.amount ?? 0),
+    0,
+  );
+  const progressRatio =
+    rest.price && rest.price > 0
+      ? Math.min(pledgedTotal / rest.price, 1)
+      : null;
+
+  return { ...rest, isReserved, pledgedTotal, progressRatio } as Omit<
+    T,
+    "pledges" | "isReserved"
+  > & { isReserved: boolean; pledgedTotal: number; progressRatio: number | null };
+}
+
+function omitIsReserved<T extends { isReserved: boolean }>(
+  item: T,
+): Omit<T, "isReserved"> {
+  const rest: Record<string, unknown> = { ...item };
+  delete rest.isReserved;
+  return rest as Omit<T, "isReserved">;
+}
+
+export function getMaxWishlistItemPrice(items: Array<{ price: number | null }>) {
+  const prices = items
+    .map((item) => item.price)
+    .filter((price): price is number => price !== null);
+
+  if (prices.length === 0) {
+    return 10000;
+  }
+
+  const maxPrice = Math.max(...prices);
+  return maxPrice > 0 ? maxPrice : 10000;
 }
 
 export async function getWishlistPresentation({
   username,
   viewerUserId,
   searchParams,
+  shareKey,
 }: {
   username: string;
   viewerUserId?: string;
   searchParams: WishlistSearchParams;
+  shareKey?: string;
 }) {
-  const repo = getRepository();
-  const viewerUser = await repo.load({ type: "viewer-page-user", username });
-
-  if (!viewerUser) {
-    return null;
-  }
-
-  const relationship = getViewerRelationship(viewerUser, viewerUserId);
-
-  const wishlistResult = await repo.load({
-    type: "wishlist-presentation",
-    userId: viewerUser.id,
-    canViewPrivate: relationship.canViewPrivateItems,
-    categories: searchParams.category ? [searchParams.category].flat() : undefined,
-    currency: searchParams.currency || undefined,
-    minPrice: searchParams.minPrice ? parseFloat(searchParams.minPrice) : undefined,
-    maxPrice: searchParams.maxPrice ? parseFloat(searchParams.maxPrice) : undefined,
-    sort: searchParams.sort || undefined,
+  const user = await prisma.user.findUnique({
+    where: { username },
+    include: {
+      categories: true,
+      followers: { select: { followerId: true } },
+      following: { select: { followingId: true } },
+    },
   });
 
-  if (!wishlistResult) {
+  if (!user) {
     return null;
   }
 
-  return buildWishlistPresentation({
-    viewerUser,
-    wishlistResult,
-    relationship,
+  const relationship = getViewerRelationship(user, viewerUserId);
+  const itemWhere = buildWishlistItemWhere(
     searchParams,
-  });
-}
-
-export interface EmbedPresentationInput {
-  embedData: {
-    user: { id: string; name: string | null; image: string | null; username: string | null };
-    wishlist: { appearance: Record<string, unknown> };
-    items: Array<{
-      id: string; name: string; price: number | null; currency: string;
-      url: string | null; imageUrl: string | null; showInWidget: boolean;
-    }>;
-  };
-  locale: string;
-  username: string;
-}
-
-export function buildEmbedWishlistPresentation(input: EmbedPresentationInput) {
-  const appearance = (input.embedData.wishlist.appearance as WishlistAppearance) || {};
-  const selectedWidgetItems = input.embedData.items.filter(
-    (item) => item.showInWidget,
+    relationship.canViewPrivateItems,
   );
-  const displayItems =
-    selectedWidgetItems.length > 0
-      ? selectedWidgetItems.slice(0, 5)
-      : input.embedData.items.slice(0, 5);
+  const orderBy = buildWishlistItemOrderBy(searchParams.sort);
+
+  const wishlist = await prisma.wishlist.findUnique({
+    where: { userId: user.id },
+    include: {
+      items: {
+        where: itemWhere,
+        orderBy,
+        include: {
+          category: true,
+          // Only partial-pledge amounts are needed for the progress bar;
+          // guest names/messages are never fetched here at all.
+          pledges: { where: { mode: "partial" }, select: { amount: true } },
+        },
+      },
+    },
+  });
+
+  if (!wishlist) {
+    return null;
+  }
+
+  // Visibility gate: a private wishlist is only viewable by its owner, mutual
+  // followers, or someone holding the secret share link. A share-link viewer is
+  // not an owner/mutual-follower, so `canViewPrivateItems` stays false and the
+  // per-item `isPrivate` filter above still hides private items — the link
+  // exposes the list, not its private entries.
+  const canView =
+    wishlist.isPublic ||
+    relationship.canViewPrivateItems ||
+    matchesShareToken(shareKey, wishlist.shareToken);
+
+  if (!canView) {
+    return null;
+  }
+
+  const appearance = getWishlistAppearanceRecord(wishlist.appearance);
+  const appearancePresentation = getWishlistAppearancePresentation(appearance);
+
+  const items = wishlist.items.map((item) =>
+    sanitizeReservationFields(item, relationship.isOwner),
+  );
 
   return {
-    user: input.embedData.user,
-    displayItems,
-    profileUrl: `/${input.locale}/${input.username}`,
-    appearance: getWishlistAppearancePresentation(appearance),
-    widget: getWishlistWidgetPresentation(appearance),
+    user,
+    wishlist: { ...wishlist, items },
+    relationship,
+    itemWhere,
+    hasActiveFilters: hasActiveWishlistFilters(searchParams),
+    maxPriceOverall: getMaxWishlistItemPrice(items),
+    appearance: appearancePresentation,
   };
 }
 
@@ -244,12 +317,48 @@ export async function getEmbedWishlistPresentation({
   locale: string;
   username: string;
 }) {
-  const repo = getRepository();
-  const embedData = await repo.load({ type: "embed-presentation", username });
+  const user = await prisma.user.findUnique({
+    where: { username },
+    include: {
+      wishlist: {
+        include: {
+          items: {
+            where: { isPrivate: false, isArchived: false },
+            orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+          },
+        },
+      },
+    },
+  });
 
-  if (!embedData) {
+  if (!user?.wishlist) {
     return null;
   }
 
-  return buildEmbedWishlistPresentation({ embedData, locale, username });
+  // Embeds carry no viewer identity, so a private wishlist can never be
+  // embedded (this also closes the private-item leak via the widget).
+  if (!user.wishlist.isPublic) {
+    return null;
+  }
+
+  const appearance = getWishlistAppearanceRecord(user.wishlist.appearance);
+  const selectedWidgetItems = user.wishlist.items.filter(
+    (item) => item.showInWidget,
+  );
+  // Embeds carry no viewer identity, so we can never tell whether the owner
+  // is the one viewing (e.g. previewing their own widget in Settings).
+  // Reservation state is therefore never exposed here, for anyone.
+  const displayItems = (
+    selectedWidgetItems.length > 0
+      ? selectedWidgetItems.slice(0, 5)
+      : user.wishlist.items.slice(0, 5)
+  ).map(omitIsReserved);
+
+  return {
+    user,
+    displayItems,
+    profileUrl: `/${locale}/${username}`,
+    appearance: getWishlistAppearancePresentation(appearance),
+    widget: getWishlistWidgetPresentation(appearance),
+  };
 }
