@@ -7,7 +7,7 @@ export function useUpdateWidgetItems() {
   const execute = (itemId: string, showInWidget: boolean, callbacks?: { onError?: (error: string) => void }) => {
     startTransition(async () => {
       const result = await updateWidgetItems(itemId, showInWidget);
-      if (!result.success) {
+      if (!result.success && result.error) {
         callbacks?.onError?.(result.error);
       }
     });

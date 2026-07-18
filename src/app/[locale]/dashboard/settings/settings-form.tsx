@@ -1,13 +1,17 @@
 "use client";
 
+import { updateProfile } from "@/actions/update-profile";
+import {
+  regenerateShareToken,
+  revokeShareToken,
+} from "@/actions/wishlist-visibility";
 import { Button } from "@/components/ui/button";
-import { useUpdateProfile } from "@/lib/hooks/use-update-profile";
-import { useTheme, applyTheme } from "@/lib/hooks/use-theme";
+import { CopyLinkButton } from "@/components/copy-link-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useCallback, useState } from "react";
-import type { DashboardSettingsUser } from "@/lib/dashboard-settings-intake";
+import { User, Wishlist } from "@prisma/client";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { AVAILABLE_CURRENCIES } from "@/lib/currencies";
 import { APPEARANCE_PRESETS } from "@/lib/wishlist-appearance";
@@ -22,8 +26,10 @@ import {
   type ColorPreset,
 } from "@/lib/wishlist-settings-state";
 
+type UserWithWishlist = User & { wishlist: Wishlist | null };
+
 interface SettingsFormProps {
-  user: DashboardSettingsUser;
+  user: UserWithWishlist;
 }
 
 export function SettingsForm({
@@ -31,16 +37,11 @@ export function SettingsForm({
   tab = "general",
 }: SettingsFormProps & { tab?: "general" | "appearance" }) {
   const t = useTranslations("Settings");
-  const { execute: saveProfile, isPending: isLoading } = useUpdateProfile();
+  const [isLoading, setIsLoading] = useState(false);
   const settings = getWishlistSettingsState(user.wishlist?.appearance);
-  const [themeMode, setFormTheme] = useState<string>(
+  const [themeMode, setThemeMode] = useState(
     settings.themeMode,
   );
-  const { setThemeMode: persistTheme } = useTheme();
-  const setThemeMode = useCallback((mode: string) => {
-    setFormTheme(mode);
-    persistTheme(mode);
-  }, [setFormTheme, persistTheme]);
   const [colorPreset, setColorPreset] = useState<ColorPreset>(
     settings.colorPreset,
   );
@@ -58,20 +59,66 @@ export function SettingsForm({
   );
   const [bannerDisplayMode, setBannerDisplayMode] =
     useState<BannerDisplayMode>(settings.bannerDisplayMode);
+  const [isPublic, setIsPublic] = useState(user.wishlist?.isPublic ?? true);
+  const [shareToken, setShareToken] = useState<string | null>(
+    user.wishlist?.shareToken ?? null,
+  );
+  const [shareBusy, setShareBusy] = useState(false);
+  const shareUrl =
+    user.username && shareToken
+      ? `/${user.username}?k=${shareToken}`
+      : null;
 
-  useTheme();
+  async function handleRegenerateShareToken() {
+    setShareBusy(true);
+    const result = await regenerateShareToken();
+    setShareBusy(false);
 
-  function handleSubmit(formData: FormData) {
-    saveProfile(formData, {
-      onSuccess: () => {
-        toast.success(t("saveSuccessTitle"), {
-          description: t("saveSuccessDesc"),
-        });
-      },
-      onError: (error) => {
-        toast.error("Error", { description: error });
-      },
-    });
+    if (result.success) {
+      setShareToken(result.shareToken);
+      toast.success(t("shareLinkUpdated"));
+    } else {
+      toast.error(t("shareLinkError"));
+    }
+  }
+
+  async function handleRevokeShareToken() {
+    setShareBusy(true);
+    const result = await revokeShareToken();
+    setShareBusy(false);
+
+    if (result.success) {
+      setShareToken(null);
+      toast.success(t("shareLinkRevoked"));
+    } else {
+      toast.error(t("shareLinkError"));
+    }
+  }
+
+  // Note: `themeMode` here is the wishlist's own stored appearance
+  // preference (still just submitted via the hidden input below), not the
+  // app-chrome dark/light mode — that's now handled independently by
+  // next-themes (see ThemeProvider/ThemeToggle). This used to also toggle
+  // the global `.dark` class as a "live preview", but that class now
+  // belongs exclusively to next-themes, and the wishlist's own colors are
+  // resolved from `appearance` server-side regardless of it anyway.
+
+  async function handleSubmit(formData: FormData) {
+    setIsLoading(true);
+
+    const result = await updateProfile(formData);
+
+    setIsLoading(false);
+
+    if (result?.error) {
+      toast.error("Error", {
+        description: result.error,
+      });
+    } else {
+      toast.success(t("saveSuccessTitle"), {
+        description: t("saveSuccessDesc"),
+      });
+    }
   }
 
   return (
@@ -109,6 +156,69 @@ export function SettingsForm({
           <p className="text-xs text-muted-foreground">
             {t("usernameHelp")}
           </p>
+        </div>
+
+        <div className="space-y-3 rounded-md border border-input p-4">
+          <div className="space-y-1">
+            <Label>{t("visibilityLabel")}</Label>
+            <p className="text-xs text-muted-foreground">
+              {t("visibilityHelp")}
+            </p>
+          </div>
+          <input type="hidden" name="isPublic" value={isPublic ? "true" : "false"} />
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant={isPublic ? "default" : "outline"}
+              onClick={() => setIsPublic(true)}
+            >
+              {t("visibilityPublic")}
+            </Button>
+            <Button
+              type="button"
+              variant={!isPublic ? "default" : "outline"}
+              onClick={() => setIsPublic(false)}
+            >
+              {t("visibilityPrivate")}
+            </Button>
+          </div>
+
+          {!isPublic ? (
+            <div className="space-y-2 border-t pt-3">
+              <Label>{t("shareLinkLabel")}</Label>
+              <p className="text-xs text-muted-foreground">
+                {t("shareLinkHelp")}
+              </p>
+              {shareUrl ? (
+                <div className="flex items-center gap-2">
+                  <Input readOnly value={shareUrl} className="text-xs" />
+                  <CopyLinkButton url={shareUrl} />
+                </div>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={shareBusy}
+                  onClick={handleRegenerateShareToken}
+                >
+                  {shareToken ? t("resetShareLink") : t("generateShareLink")}
+                </Button>
+                {shareToken ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={shareBusy}
+                    onClick={handleRevokeShareToken}
+                  >
+                    {t("revokeShareLink")}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 

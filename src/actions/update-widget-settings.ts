@@ -1,13 +1,14 @@
 "use server";
 
-import { requireAuthenticatedUserId } from "@/lib/wishlist-command-context";
-import { getRepository } from "@/lib/repository";
+import {
+  requireAuthenticatedUserId,
+  requireOwnedWishlistAppearance,
+} from "@/lib/wishlist-command-context";
+import { prisma } from "@/lib/prisma";
 import {
   normalizeWidgetItemSize,
   type WidgetLayout,
 } from "@/lib/wishlist-settings-state";
-import { success, type ActionResult } from "@/lib/action-result";
-import { REVALIDATION_PATHS } from "@/lib/revalidate-paths";
 import { revalidatePath } from "next/cache";
 
 interface WidgetSettingsInput {
@@ -15,26 +16,32 @@ interface WidgetSettingsInput {
   itemSize?: number;
 }
 
-export async function updateWidgetSettings(settings: WidgetSettingsInput): Promise<ActionResult> {
+export async function updateWidgetSettings(settings: WidgetSettingsInput) {
   const userId = await requireAuthenticatedUserId();
-  const wishlist = await getRepository().require({ type: "wishlist-appearance", userId });
+  const wishlist = await requireOwnedWishlistAppearance(userId);
 
-  const currentAppearance = wishlist.appearance;
+  const currentAppearance =
+    wishlist.appearance &&
+    typeof wishlist.appearance === "object" &&
+    !Array.isArray(wishlist.appearance)
+      ? wishlist.appearance
+      : {};
 
-  await getRepository().execute({
-    type: "update-widget-settings",
-    wishlistId: wishlist.id,
-    appearance: {
-      ...currentAppearance,
-      ...(settings.layout ? { widgetLayout: settings.layout } : {}),
-      ...(settings.itemSize
-        ? { widgetItemSize: normalizeWidgetItemSize(settings.itemSize) }
-        : {}),
+  await prisma.wishlist.update({
+    where: { id: wishlist.id },
+    data: {
+      appearance: {
+        ...currentAppearance,
+        ...(settings.layout ? { widgetLayout: settings.layout } : {}),
+        ...(settings.itemSize
+          ? { widgetItemSize: normalizeWidgetItemSize(settings.itemSize) }
+          : {}),
+      },
     },
   });
 
-  revalidatePath(REVALIDATION_PATHS.dashboardSettings.path, REVALIDATION_PATHS.dashboardSettings.type);
-  revalidatePath(REVALIDATION_PATHS.embedPage.path, REVALIDATION_PATHS.embedPage.type);
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/[locale]/embed/[username]", "page");
 
-  return success();
+  return { success: true };
 }

@@ -42,6 +42,18 @@
         "namePlaceholder": "Ваше ім'я",
         "usernameLabel": "Ім'я користувача (slug)",
         "usernameHelp": "Це URL вашого вішліста. Використовуйте літери, цифри та дефіси.",
+        "visibilityLabel": "Видимість",
+        "visibilityHelp": "Публічні вішлісти бачать усі. Приватні вішлісти бачите лише ви, взаємні підписники та власники секретного посилання.",
+        "visibilityPublic": "Публічний",
+        "visibilityPrivate": "Приватний",
+        "shareLinkLabel": "Посилання для доступу",
+        "shareLinkHelp": "Будь-хто з цим посиланням може переглянути ваш приватний вішліст. Скиньте його, щоб забрати доступ.",
+        "generateShareLink": "Створити посилання",
+        "resetShareLink": "Скинути посилання",
+        "revokeShareLink": "Вимкнути посилання",
+        "shareLinkUpdated": "Посилання оновлено",
+        "shareLinkRevoked": "Посилання вимкнено",
+        "shareLinkError": "Не вдалося оновити посилання",
         "appearanceTitle": "Вигляд",
         "themeLabel": "Тема",
         "themeSystem": "Системна",
@@ -124,17 +136,53 @@
         "priority_label": "Пріоритет",
         "submit": "Додати",
         "cancel": "Скасувати",
-        "metadata_success": "Дані успішно завантажено!",
-        "error_name_required": "Назва обов'язкова",
+        "editTitle": "Редагувати бажання",
+        "editDescription": "Оновіть дані про товар",
+        "saveEdit": "Зберегти",
+        "name_required": "Назва обов'язкова",
+        "fetch_success": "Дані успішно завантажено!",
         "add_success": "Бажання додано!",
-        "error_add": "Помилка додавання"
+        "add_error": "Помилка додавання",
+        "edit_success": "Бажання оновлено!",
+        "edit_error": "Помилка оновлення"
     },
     "Wishlist": {
+        "itemActions": "Дії з бажанням",
+        "editItem": "Редагувати",
+        "archiveItem": "Архівувати",
+        "deleteItem": "Видалити",
+        "deleteItemTitle": "Видалити цей товар?",
+        "deleteItemDescription": "Цю дію неможливо скасувати. Товар буде остаточно видалено з вашого вішліста.",
+        "deleteItemConfirm": "Видалити",
+        "deleteItemCancel": "Скасувати",
+        "itemUpdated": "Товар оновлено",
+        "itemDeleted": "Товар видалено",
+        "itemArchived": "Товар заархівовано",
+        "actionError": "Щось пішло не так",
         "wishlist_title": "Вішліст користувача {name}",
         "add_item": "Додати бажання",
         "no_items": "Поки що немає бажань",
         "reserved": "Зарезервовано",
-        "view_link": "Переглянути"
+        "view_link": "Переглянути",
+        "progressLabel": "Зібрано {pledged} / {price} {currency}"
+    },
+    "Reservation": {
+        "reserveButton": "Забронювати подарунок",
+        "modalTitle": "Забронювати «{name}»",
+        "modalDescription": "Дайте знати іншим, що ви подаруєте цей подарунок. Власник вішліста ніколи не побачить, хто забронював.",
+        "modeContribute": "Внести суму",
+        "modeFull": "Забронювати повністю",
+        "amountLabel": "Сума",
+        "remaining": "Залишилось {amount} до мети",
+        "amountRequired": "Введіть коректну суму",
+        "nameLabel": "Ваше ім'я (необов'язково)",
+        "namePlaceholder": "Анонім",
+        "anonymousLabel": "Залишитися анонімним",
+        "cancel": "Скасувати",
+        "submit": "Забронювати",
+        "submitting": "Бронювання...",
+        "success": "Заброньовано! Власник не дізнається, хто це зробив.",
+        "error": "Не вдалося забронювати цей товар"
     },
     "WishlistFilters": {
         "title": "Фільтри",
@@ -166,16 +214,15 @@
         "login": "Увійти",
         "my_wishlist": "Мій Вішліст"
     },
-    "CreateWishlist": {
-        "trigger": "Створити вішліст",
-        "title": "Створити новий список",
-        "label": "Назва списку",
-        "placeholder": "Наприклад: День народження 2025",
-        "submitting": "Створення...",
-        "submit": "Створити",
-        "success": "Вішліст створено!",
-        "error_unauthorized": "Не авторизований",
-        "error_too_short": "Назва має бути довшою за 3 символи",
-        "error_generic": "Не вдалося створити вішліст"
+    "Theme": {
+        "toggle": "Змінити тему",
+        "system": "Системна",
+        "light": "Світла",
+        "dark": "Темна"
+    },
+    "NotFound": {
+        "title": "Сторінку не знайдено",
+        "description": "Сторінка, яку ви шукаєте, не існує або могла бути переміщена.",
+        "homeButton": "На головну"
     }
 }

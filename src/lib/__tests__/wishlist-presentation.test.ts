@@ -1,18 +1,73 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
-import { hasActiveWishlistFilters } from "../wishlist-filter-state";
+vi.mock("../prisma", () => ({
+  prisma: {
+    user: { findUnique: vi.fn() },
+    wishlist: { findUnique: vi.fn() },
+  },
+}));
+
 import {
+  buildWishlistItemOrderBy,
+  buildWishlistItemWhere,
+  getEmbedWishlistPresentation,
   getMaxWishlistItemPrice,
   getViewerRelationship,
   getWishlistAppearancePresentation,
+  getWishlistPresentation,
   getWishlistWidgetPresentation,
-  buildWishlistPresentation,
-  buildEmbedWishlistPresentation,
-  type WishlistPresentationInput,
-  type EmbedPresentationInput,
+  hasActiveWishlistFilters,
+  matchesShareToken,
 } from "../wishlist-presentation";
+import { prisma } from "../prisma";
+
+const mockUserFind = prisma.user.findUnique as unknown as Mock;
+const mockWishlistFind = prisma.wishlist.findUnique as unknown as Mock;
 
 describe("wishlist presentation helpers", () => {
+  it("builds item filters from search params and hides private items", () => {
+    expect(
+      buildWishlistItemWhere(
+        {
+          category: ["cat-1", "cat-2"],
+          currency: "UAH",
+          minPrice: "10",
+          maxPrice: "200",
+        },
+        false,
+      ),
+    ).toEqual({
+      categoryId: { in: ["cat-1", "cat-2"] },
+      currency: "UAH",
+      price: { gte: 10, lte: 200 },
+      isPrivate: false,
+      isArchived: false,
+    });
+  });
+
+  it("omits private filter for viewers who can see private items", () => {
+    expect(buildWishlistItemWhere({}, true)).toEqual({ isArchived: false });
+  });
+
+  it("always excludes archived items, even for the owner", () => {
+    expect(buildWishlistItemWhere({}, true)).toMatchObject({
+      isArchived: false,
+    });
+    expect(buildWishlistItemWhere({}, false)).toMatchObject({
+      isArchived: false,
+    });
+  });
+
+  it("builds item order from supported sort modes", () => {
+    expect(buildWishlistItemOrderBy("price_asc")).toEqual([{ price: "asc" }]);
+    expect(buildWishlistItemOrderBy("price_desc")).toEqual([{ price: "desc" }]);
+    expect(buildWishlistItemOrderBy("newest")).toEqual([{ createdAt: "desc" }]);
+    expect(buildWishlistItemOrderBy("unknown")).toEqual([
+      { priority: "desc" },
+      { createdAt: "desc" },
+    ]);
+  });
+
   it("resolves viewer relationship for owner, follower, and mutual follower", () => {
     const user = {
       id: "owner",
@@ -86,175 +141,287 @@ describe("wishlist presentation helpers", () => {
   });
 });
 
-describe("buildWishlistPresentation", () => {
-  const viewerUser = {
-    id: "user-1",
-    name: "Test User",
-    image: null,
-    username: "testuser",
-    createdAt: new Date("2025-01-01"),
-    categories: [{ id: "cat-1", name: "Books", userId: "user-1", createdAt: new Date() }],
-    followers: [{ followerId: "follower-1" }],
-    following: [{ followingId: "other-1" }],
-  };
-
-  const items = [
-    {
-      id: "item-1", name: "Book A", url: null, imageUrl: null,
-      price: 25, currency: "USD", priority: 3,
-      isReserved: false, isPrivate: false, showInWidget: true,
-      category: { id: "cat-1", name: "Books" },
-    },
-    {
-      id: "item-2", name: "Book B", url: null, imageUrl: null,
-      price: 15, currency: "USD", priority: 1,
-      isReserved: false, isPrivate: true, showInWidget: false,
-      category: { id: "cat-1", name: "Books" },
-    },
-  ];
-
-  const wishlistResult = {
-    wishlist: { id: "w-1", title: "My Wishlist", slug: "my-wishlist", appearance: { font: "font-serif" } },
-    items: items as any,
-    maxPrice: 25,
-  };
-
-  it("builds presentation with active filters", () => {
-    const relationship = getViewerRelationship(viewerUser, "viewer");
-    const result = buildWishlistPresentation({
-      viewerUser,
-      wishlistResult: wishlistResult as WishlistPresentationInput["wishlistResult"],
-      relationship,
-      searchParams: { category: "cat-1" },
-    });
-
-    expect(result.user.username).toBe("testuser");
-    expect(result.wishlist.id).toBe("w-1");
-    expect(result.wishlist.items).toHaveLength(2);
-    expect(result.relationship.canViewPrivateItems).toBe(false);
-    expect(result.hasActiveFilters).toBe(true);
-    expect(result.maxPriceOverall).toBe(25);
-    expect(result.appearance.fontClass).toBe("font-serif");
+describe("matchesShareToken", () => {
+  it("returns false for missing values", () => {
+    expect(matchesShareToken(undefined, "token")).toBe(false);
+    expect(matchesShareToken("token", null)).toBe(false);
+    expect(matchesShareToken("", "")).toBe(false);
   });
 
-  it("builds presentation with owner relationship showing private items", () => {
-    const relationship = getViewerRelationship(viewerUser, "user-1");
-    const result = buildWishlistPresentation({
-      viewerUser,
-      wishlistResult: wishlistResult as WishlistPresentationInput["wishlistResult"],
-      relationship,
-      searchParams: {},
-    });
-
-    expect(result.relationship.isOwner).toBe(true);
-    expect(result.relationship.canViewPrivateItems).toBe(true);
-    expect(result.hasActiveFilters).toBe(false);
+  it("returns false for a length mismatch without throwing", () => {
+    expect(matchesShareToken("short", "a-much-longer-token")).toBe(false);
   });
 
-  it("computes maxPriceOverall from item prices", () => {
-    const relationship = getViewerRelationship(viewerUser, "viewer");
-    const result = buildWishlistPresentation({
-      viewerUser,
-      wishlistResult: {
-        ...wishlistResult,
-        maxPrice: 25,
-      } as WishlistPresentationInput["wishlistResult"],
-      relationship,
-      searchParams: {},
-    });
-
-    expect(result.maxPriceOverall).toBe(25);
-  });
-
-  it("falls back to 10000 for max price when no items have prices", () => {
-    const relationship = getViewerRelationship(viewerUser, "viewer");
-    const result = buildWishlistPresentation({
-      viewerUser,
-      wishlistResult: {
-        wishlist: wishlistResult.wishlist,
-        items: [],
-        maxPrice: 10000,
-      },
-      relationship,
-      searchParams: {},
-    });
-
-    expect(result.maxPriceOverall).toBe(10000);
-  });
-
-  it("passes appearance fields through", () => {
-    const relationship = getViewerRelationship(viewerUser, "viewer");
-    const result = buildWishlistPresentation({
-      viewerUser,
-      wishlistResult: {
-        ...wishlistResult,
-        wishlist: { ...wishlistResult.wishlist, appearance: { font: "font-comic", welcomeMessage: "Hello!" } },
-      } as WishlistPresentationInput["wishlistResult"],
-      relationship,
-      searchParams: {},
-    });
-
-    expect(result.appearance.fontClass).toBe("font-comic");
-    expect(result.appearance.welcomeMessage).toBe("Hello!");
+  it("returns true only for an exact match", () => {
+    expect(matchesShareToken("secret-token", "secret-token")).toBe(true);
+    expect(matchesShareToken("secret-token", "secret-tokeX")).toBe(false);
   });
 });
 
-describe("buildEmbedWishlistPresentation", () => {
-  it("selects widget items when showInWidget is set", () => {
-    const result = buildEmbedWishlistPresentation({
-      embedData: {
-        user: { id: "u-1", name: "User", image: null, username: "user" },
-        wishlist: { appearance: {} },
-        items: [
-          { id: "i-1", name: "A", price: 10, currency: "USD", url: null, imageUrl: null, showInWidget: true },
-          { id: "i-2", name: "B", price: 20, currency: "USD", url: null, imageUrl: null, showInWidget: false },
-          { id: "i-3", name: "C", price: 30, currency: "USD", url: null, imageUrl: null, showInWidget: true },
-        ],
-      },
-      locale: "en",
-      username: "user",
-    });
+describe("getWishlistPresentation visibility gate", () => {
+  const OWNER = {
+    id: "owner",
+    username: "owner",
+    categories: [],
+    followers: [] as Array<{ followerId: string }>,
+    following: [] as Array<{ followingId: string }>,
+  };
 
-    expect(result.displayItems).toHaveLength(2);
-    expect(result.displayItems[0].name).toBe("A");
-    expect(result.displayItems[1].name).toBe("C");
-    expect(result.profileUrl).toBe("/en/user");
-    expect(result.widget.widgetLayout).toBe("grid");
+  function mockWishlist(overrides: Record<string, unknown> = {}) {
+    mockWishlistFind.mockResolvedValue({
+      id: "wishlist-1",
+      userId: "owner",
+      isPublic: false,
+      shareToken: "secret-token",
+      appearance: null,
+      items: [],
+      ...overrides,
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUserFind.mockResolvedValue({ ...OWNER });
   });
 
-  it("falls back to first 5 items when none are widget-selected", () => {
-    const result = buildEmbedWishlistPresentation({
-      embedData: {
-        user: { id: "u-1", name: "User", image: null, username: "user" },
-        wishlist: { appearance: {} },
-        items: [
-          { id: "i-1", name: "A", price: 10, currency: "USD", url: null, imageUrl: null, showInWidget: false },
-          { id: "i-2", name: "B", price: 20, currency: "USD", url: null, imageUrl: null, showInWidget: false },
-        ],
-      },
-      locale: "en",
-      username: "user",
+  async function present(args: {
+    viewerUserId?: string;
+    shareKey?: string;
+  }) {
+    return getWishlistPresentation({
+      username: "owner",
+      searchParams: {},
+      ...args,
     });
+  }
 
-    expect(result.displayItems).toHaveLength(2);
+  it("shows a public wishlist to an anonymous viewer", async () => {
+    mockWishlist({ isPublic: true, shareToken: null });
+    expect(await present({})).not.toBeNull();
   });
 
-  it("caps display items at 5", () => {
-    const items = Array.from({ length: 10 }, (_, i) => ({
-      id: `i-${i}`, name: `Item ${i}`, price: i, currency: "USD",
-      url: null, imageUrl: null, showInWidget: true,
-    }));
+  it("hides a private wishlist from an anonymous or non-follower viewer", async () => {
+    mockWishlist();
+    expect(await present({})).toBeNull();
+    expect(await present({ viewerUserId: "stranger" })).toBeNull();
+  });
 
-    const result = buildEmbedWishlistPresentation({
-      embedData: {
-        user: { id: "u-1", name: "User", image: null, username: "user" },
-        wishlist: { appearance: {} },
-        items,
-      },
-      locale: "en",
-      username: "user",
+  it("shows a private wishlist to the owner", async () => {
+    mockWishlist();
+    expect(await present({ viewerUserId: "owner" })).not.toBeNull();
+  });
+
+  it("shows a private wishlist to a mutual follower", async () => {
+    mockUserFind.mockResolvedValue({
+      ...OWNER,
+      followers: [{ followerId: "friend" }],
+      following: [{ followingId: "friend" }],
+    });
+    mockWishlist();
+    expect(await present({ viewerUserId: "friend" })).not.toBeNull();
+  });
+
+  it("shows a private wishlist to anyone with the correct share key", async () => {
+    mockWishlist();
+    expect(await present({ shareKey: "secret-token" })).not.toBeNull();
+    expect(await present({ shareKey: "wrong-token" })).toBeNull();
+    expect(await present({})).toBeNull();
+  });
+
+  it("still hides private items from a share-link viewer", async () => {
+    mockWishlist();
+    const result = await present({ shareKey: "secret-token" });
+    expect(result?.itemWhere).toMatchObject({ isPrivate: false });
+  });
+});
+
+describe("getWishlistPresentation reservation surprise-preservation", () => {
+  const RESERVED_ITEM_BASE = {
+    id: "item-1",
+    name: "Bike",
+    price: 100,
+    currency: "UAH",
+    isReserved: true,
+    category: null,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUserFind.mockResolvedValue({
+      id: "owner",
+      username: "owner",
+      categories: [],
+      followers: [],
+      following: [],
+    });
+  });
+
+  it("omits reservation and pledge fields entirely from the owner's payload", async () => {
+    mockWishlistFind.mockResolvedValue({
+      id: "wishlist-1",
+      userId: "owner",
+      isPublic: true,
+      shareToken: null,
+      appearance: null,
+      items: [
+        {
+          ...RESERVED_ITEM_BASE,
+          pledges: [{ amount: 40 }, { amount: 60 }],
+        },
+      ],
     });
 
-    expect(result.displayItems).toHaveLength(5);
+    const result = await getWishlistPresentation({
+      username: "owner",
+      viewerUserId: "owner",
+      searchParams: {},
+    });
+
+    const item = result?.wishlist.items[0];
+    expect(item).not.toHaveProperty("isReserved");
+    expect(item).not.toHaveProperty("pledgedTotal");
+    expect(item).not.toHaveProperty("progressRatio");
+    expect(item).not.toHaveProperty("pledges");
+  });
+
+  it("computes an aggregate pledged total and progress ratio for a non-owner viewer", async () => {
+    mockWishlistFind.mockResolvedValue({
+      id: "wishlist-1",
+      userId: "owner",
+      isPublic: true,
+      shareToken: null,
+      appearance: null,
+      items: [
+        {
+          ...RESERVED_ITEM_BASE,
+          isReserved: false,
+          pledges: [{ amount: 40 }, { amount: 20 }],
+        },
+      ],
+    });
+
+    const result = await getWishlistPresentation({
+      username: "owner",
+      viewerUserId: "stranger",
+      searchParams: {},
+    });
+
+    const item = result?.wishlist.items[0];
+    expect(item).toMatchObject({
+      isReserved: false,
+      pledgedTotal: 60,
+      progressRatio: 0.6,
+    });
+    expect(item).not.toHaveProperty("pledges");
+  });
+
+  it("never exposes individual pledge rows (guest names/messages) to any viewer", async () => {
+    mockWishlistFind.mockResolvedValue({
+      id: "wishlist-1",
+      userId: "owner",
+      isPublic: true,
+      shareToken: null,
+      appearance: null,
+      items: [
+        {
+          ...RESERVED_ITEM_BASE,
+          pledges: [{ amount: 40 }],
+        },
+      ],
+    });
+
+    const ownerResult = await getWishlistPresentation({
+      username: "owner",
+      viewerUserId: "owner",
+      searchParams: {},
+    });
+    const viewerResult = await getWishlistPresentation({
+      username: "owner",
+      viewerUserId: "stranger",
+      searchParams: {},
+    });
+
+    expect(ownerResult?.wishlist.items[0]).not.toHaveProperty("pledges");
+    expect(viewerResult?.wishlist.items[0]).not.toHaveProperty("pledges");
+  });
+});
+
+describe("getEmbedWishlistPresentation visibility gate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns null for a private wishlist", async () => {
+    mockUserFind.mockResolvedValue({
+      id: "owner",
+      username: "owner",
+      wishlist: { isPublic: false, appearance: null, items: [] },
+    });
+    expect(
+      await getEmbedWishlistPresentation({ locale: "en", username: "owner" }),
+    ).toBeNull();
+  });
+
+  it("returns a presentation for a public wishlist", async () => {
+    mockUserFind.mockResolvedValue({
+      id: "owner",
+      username: "owner",
+      wishlist: { isPublic: true, appearance: null, items: [] },
+    });
+    expect(
+      await getEmbedWishlistPresentation({ locale: "en", username: "owner" }),
+    ).not.toBeNull();
+  });
+
+  it("queries items excluding both private and archived (regression: archived items were leaking into the embed)", async () => {
+    mockUserFind.mockResolvedValue({
+      id: "owner",
+      username: "owner",
+      wishlist: { isPublic: true, appearance: null, items: [] },
+    });
+
+    await getEmbedWishlistPresentation({ locale: "en", username: "owner" });
+
+    expect(mockUserFind).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          wishlist: expect.objectContaining({
+            include: expect.objectContaining({
+              items: expect.objectContaining({
+                where: { isPrivate: false, isArchived: false },
+              }),
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("never exposes isReserved, even on a public wishlist (embeds have no viewer identity)", async () => {
+    mockUserFind.mockResolvedValue({
+      id: "owner",
+      username: "owner",
+      wishlist: {
+        isPublic: true,
+        appearance: null,
+        items: [
+          {
+            id: "item-1",
+            name: "Bike",
+            price: 100,
+            currency: "UAH",
+            isReserved: true,
+            showInWidget: false,
+          },
+        ],
+      },
+    });
+
+    const result = await getEmbedWishlistPresentation({
+      locale: "en",
+      username: "owner",
+    });
+
+    expect(result?.displayItems[0]).not.toHaveProperty("isReserved");
   });
 });

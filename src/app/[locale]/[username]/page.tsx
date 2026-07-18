@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { User as UserIcon, ExternalLink, Gift, Lock, Star } from "lucide-react";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { AddItemModal } from "@/components/add-item-modal";
+import { ItemActionsMenu } from "@/components/item-actions-menu";
+import { PledgeProgressBar } from "@/components/pledge-progress-bar";
+import { ReserveItemModal } from "@/components/reserve-item-modal";
 import { WishlistFilters } from "@/components/wishlist-filters";
 import { FollowButton } from "@/components/follow-button";
 import { getTranslations } from "next-intl/server";
@@ -17,7 +20,7 @@ interface WishlistPageProps {
     locale: string;
     username: string;
   }>;
-  searchParams: Promise<WishlistSearchParams>;
+  searchParams: Promise<WishlistSearchParams & { k?: string }>;
 }
 
 export default async function WishlistPage({
@@ -33,6 +36,7 @@ export default async function WishlistPage({
     username,
     viewerUserId: session?.user?.id,
     searchParams: resolvedSearchParams,
+    shareKey: resolvedSearchParams.k,
   });
 
   if (!presentation) {
@@ -166,6 +170,16 @@ export default async function WishlistPage({
                         : undefined,
                     }}
                   >
+                    {relationship.isOwner && (
+                      <div className="absolute right-2 top-2 z-10">
+                        <ItemActionsMenu
+                          item={item}
+                          wishlistId={wishlist.id}
+                          categories={user.categories}
+                        />
+                      </div>
+                    )}
+
                     {/* Image */}
                     <div className="relative aspect-square overflow-hidden bg-muted">
                       {item.imageUrl && isSafeUrl(item.imageUrl) ? (
@@ -228,13 +242,31 @@ export default async function WishlistPage({
                         </p>
                       )}
 
-                      {item.isReserved && (
+                      {/* Reservation state is only ever rendered for non-owner
+                          viewers — for the owner, sanitizeReservationFields
+                          already omits isReserved/pledgedTotal/progressRatio
+                          entirely, so these blocks naturally can't render for
+                          them regardless of this explicit check. */}
+                      {!relationship.isOwner && item.isReserved && (
                         <div className="mt-2 inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                           {t("reserved")}
                         </div>
                       )}
 
-                      <div className="mt-auto pt-4">
+                      {!relationship.isOwner &&
+                        !item.isReserved &&
+                        item.progressRatio != null && (
+                          <PledgeProgressBar
+                            ratio={item.progressRatio}
+                            label={t("progressLabel", {
+                              pledged: (item.pledgedTotal ?? 0).toFixed(2),
+                              price: (item.price ?? 0).toFixed(2),
+                              currency: item.currency,
+                            })}
+                          />
+                        )}
+
+                      <div className="mt-auto pt-4 space-y-2">
                         {item.url && isSafeUrl(item.url) && (
                           <Button
                             asChild
@@ -255,6 +287,17 @@ export default async function WishlistPage({
                               {t("view_link")}
                             </a>
                           </Button>
+                        )}
+
+                        {!relationship.isOwner && !item.isReserved && (
+                          <ReserveItemModal
+                            itemId={item.id}
+                            itemName={item.name}
+                            price={item.price}
+                            currency={item.currency}
+                            pledgedTotal={item.pledgedTotal ?? 0}
+                            shareKey={resolvedSearchParams.k}
+                          />
                         )}
                       </div>
                     </div>

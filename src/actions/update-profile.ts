@@ -1,42 +1,73 @@
 "use server";
 
+import type { Prisma } from "@prisma/client";
 import { buildWishlistAppearanceFromFormData } from "@/lib/wishlist-appearance-form";
-import { requireAuthenticatedUserId } from "@/lib/wishlist-command-context";
-import { getRepository } from "@/lib/repository";
-import { failure, success, type ActionResult } from "@/lib/action-result";
-import { REVALIDATION_PATHS } from "@/lib/revalidate-paths";
+import { prisma } from "@/lib/prisma";
+import {
+    requireAuthenticatedUserId,
+    getOwnedWishlistAppearance,
+} from "@/lib/wishlist-command-context";
+import { isValidUsernameFormat, isReservedUsername } from "@/lib/username";
 import { revalidatePath } from "next/cache";
 
-export async function updateProfile(formData: FormData): Promise<ActionResult> {
-    const userId = await requireAuthenticatedUserId();
+export async function updateProfile(formData: FormData) {
+    const userId = await requireAuthenticatedUserId("Не авторизований");
 
     const name = formData.get("name") as string;
     const username = formData.get("username") as string;
+    const isPublicRaw = formData.get("isPublic");
+    const isPublic =
+        isPublicRaw === null ? undefined : isPublicRaw === "true";
     if (username) {
-        const existingUser = await getRepository().load({ type: "user-by-username", username });
+        if (!isValidUsernameFormat(username)) {
+            return {
+                error:
+                    "Неприпустимий нікнейм. Дозволені літери, цифри та дефіси (3-30 символів).",
+            };
+        }
+
+        if (isReservedUsername(username)) {
+            return { error: "Цей нікнейм зарезервовано системою" };
+        }
+
+        const existingUser = await prisma.user.findUnique({
+            where: { username },
+        });
+
         if (existingUser && existingUser.id !== userId) {
-            return failure("Username already taken");
+            return { error: "Цей нікнейм вже зайнятий" };
         }
     }
 
-    const wishlist = await getRepository().require({ type: "wishlist-appearance", userId });
-    const currentAppearance = wishlist.appearance;
+    const wishlist = await getOwnedWishlistAppearance(userId);
+    const currentAppearance =
+        wishlist?.appearance &&
+        typeof wishlist.appearance === "object" &&
+        !Array.isArray(wishlist.appearance)
+            ? (wishlist.appearance as Prisma.JsonObject)
+            : ({} as Prisma.JsonObject);
 
     const appearance = buildWishlistAppearanceFromFormData(
       currentAppearance,
       formData,
     );
 
-    await getRepository().execute({
-        type: "update-user-profile",
-        userId,
-        name,
-        username,
-        appearance,
+    await prisma.user.update({
+        where: { id: userId },
+        data: {
+            name,
+            username,
+            wishlist: {
+                update: {
+                    appearance: appearance as Prisma.InputJsonObject,
+                    ...(isPublic === undefined ? {} : { isPublic }),
+                }
+            }
+        },
     });
 
-    revalidatePath(REVALIDATION_PATHS.dashboard.path, REVALIDATION_PATHS.dashboard.type);
-    revalidatePath(REVALIDATION_PATHS.wishlistPage.path, REVALIDATION_PATHS.wishlistPage.type);
-    revalidatePath(REVALIDATION_PATHS.embedPage.path, REVALIDATION_PATHS.embedPage.type);
-    return success();
+    revalidatePath("/dashboard");
+    revalidatePath("/[locale]/[username]", "page");
+    revalidatePath("/[locale]/embed/[username]", "page");
+    return { success: true };
 }
