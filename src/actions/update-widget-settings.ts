@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import {
   normalizeWidgetItemSize,
   type WidgetLayout,
-} from "@/lib/wishlist-settings-state";
+} from "@/lib/wishlist-appearance";
 import { revalidatePath } from "next/cache";
 
 interface WidgetSettingsInput {

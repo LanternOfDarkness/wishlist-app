@@ -1,10 +1,6 @@
 import {
   resolveWishlistAppearance,
-  ALLOWED_FONT_CLASSES,
-  ALLOWED_ITEM_BORDER_CLASSES,
-  LEGACY_BORDER_DEFAULTS,
   type WishlistAppearance,
-  type WishlistFontClass,
 } from "./wishlist-appearance";
 import { prisma } from "./prisma";
 import {
@@ -65,20 +61,10 @@ function getAppearanceNumber(
   return typeof value === "number" ? value : fallback;
 }
 
-export function normalizeWishlistFontClass(value: string): WishlistFontClass {
-  return ALLOWED_FONT_CLASSES.includes(value as WishlistFontClass)
-    ? (value as WishlistFontClass)
-    : "font-sans";
-}
-
-export function normalizeWishlistItemBorderClass(value: string) {
-  const normalizedValue = LEGACY_BORDER_DEFAULTS[value] || value;
-
-  return ALLOWED_ITEM_BORDER_CLASSES.includes(normalizedValue)
-    ? normalizedValue
-    : "rounded-lg border-solid";
-}
-
+// `font` and `itemBorder` are allow-list validated on write by
+// `parseWishlistAppearance` (wishlist-appearance.ts), so a stored value is
+// already safe by construction — this just reads it back with a default for
+// records written before that field existed.
 export function getWishlistAppearancePresentation(
   appearance: WishlistAppearance,
 ) {
@@ -88,11 +74,11 @@ export function getWishlistAppearancePresentation(
     raw: appearance,
     resolved: resolvedAppearance,
     primaryColor: resolvedAppearance.primaryColor,
-    fontClass: normalizeWishlistFontClass(
-      getAppearanceString(appearance, "font", "font-sans"),
-    ),
-    itemBorderClass: normalizeWishlistItemBorderClass(
-      getAppearanceString(appearance, "itemBorder", "rounded-lg"),
+    fontClass: getAppearanceString(appearance, "font", "font-sans"),
+    itemBorderClass: getAppearanceString(
+      appearance,
+      "itemBorder",
+      "rounded-lg border-solid",
     ),
     welcomeMessage: getAppearanceString(appearance, "welcomeMessage"),
     favoriteCurrencies: Array.isArray(appearance.favoriteCurrencies)

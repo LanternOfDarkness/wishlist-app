@@ -91,6 +91,8 @@ export type WishlistAppearance = Record<string, unknown> & {
   bgImage?: unknown;
 };
 
+export type WidgetLayout = "grid" | "list";
+
 type ThemePreset = {
   primaryColor: string;
   labelKey: string;
@@ -467,4 +469,152 @@ function pickReadableForeground(primary: string) {
   const blackContrast = getContrastRatio("#000000", primary);
 
   return whiteContrast >= blackContrast ? "#ffffff" : "#000000";
+}
+
+function normalizeColorInputValue(value: string, fallback: string) {
+  return normalizeHexColor(value) ?? fallback;
+}
+
+function getStringArray(
+  appearance: WishlistAppearance,
+  key: string,
+  fallback: string[] = [],
+): string[] {
+  const value = appearance[key];
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+  return value.filter((entry): entry is string => typeof entry === "string");
+}
+
+function toAppearanceRecord(appearance: unknown): WishlistAppearance {
+  if (!appearance || typeof appearance !== "object" || Array.isArray(appearance)) {
+    return {};
+  }
+
+  return appearance as WishlistAppearance;
+}
+
+export function normalizeWishlistFontClass(value: string): WishlistFontClass {
+  return ALLOWED_FONT_CLASSES.includes(value as WishlistFontClass)
+    ? (value as WishlistFontClass)
+    : "font-sans";
+}
+
+export function normalizeWishlistItemBorderClass(value: string) {
+  const normalizedValue = LEGACY_BORDER_DEFAULTS[value] || value;
+
+  return ALLOWED_ITEM_BORDER_CLASSES.includes(normalizedValue)
+    ? normalizedValue
+    : "rounded-lg border-solid";
+}
+
+/**
+ * Strips the legacy top-level `primaryColor`/`bgColor`/`textColor` keys,
+ * superseded by the `advanced*` color fields but possibly still present in
+ * appearance JSON written before that migration.
+ */
+export function migrateLegacyAppearanceColors(
+  appearance: Record<string, unknown>,
+): Record<string, unknown> {
+  const migrated: Record<string, unknown> = { ...appearance };
+  delete migrated.primaryColor;
+  delete migrated.bgColor;
+  delete migrated.textColor;
+  return migrated;
+}
+
+/**
+ * The single validated write entry point for appearance data. Allow-lists
+ * every known field (including `font` and `itemBorder`, which nothing
+ * validated on write before this) while spreading through unknown keys
+ * unchanged — that preservation is load-bearing, it's the only reason this
+ * doesn't clobber `widgetLayout`/`widgetItemSize` written by a separate
+ * action. Callers are responsible for submitting every field they own on
+ * every write: a field absent from `input` is normalized to its default here,
+ * not left at its previously stored value.
+ */
+export function parseWishlistAppearance(input: unknown): WishlistAppearance {
+  const source = toAppearanceRecord(input);
+  const favoriteCurrencies = getStringArray(source, "favoriteCurrencies");
+
+  return {
+    ...source,
+    colorPreset: selectPresetName(getString(source, "colorPreset")),
+    bannerDisplayMode: selectBannerDisplayMode(source),
+    advancedColorsEnabled: readBoolean(source, "advancedColorsEnabled"),
+    advancedPrimaryColor: getString(source, "advancedPrimaryColor") || "",
+    advancedBackgroundColor: getString(source, "advancedBackgroundColor") || "",
+    advancedTextColor: getString(source, "advancedTextColor") || "",
+    bgImage: getString(source, "bgImage") || "",
+    bannerImage: getString(source, "bannerImage") || "",
+    welcomeMessage: getString(source, "welcomeMessage") || "",
+    itemBorder: normalizeWishlistItemBorderClass(
+      getString(source, "itemBorder") || "rounded-lg",
+    ),
+    font: normalizeWishlistFontClass(getString(source, "font") || "font-sans"),
+    favoriteCurrencies:
+      favoriteCurrencies.length > 0 ? favoriteCurrencies : ["UAH"],
+  };
+}
+
+/**
+ * Read-side state for the settings form: normalizes every stored appearance
+ * field to a safe default, including legacy fallbacks for the pre-"advanced
+ * colors" fields (`primaryColor`/`bgColor`/`textColor`).
+ */
+export function getWishlistSettingsState(appearance: unknown) {
+  const record = toAppearanceRecord(appearance);
+  const colorPreset = selectPresetName(getString(record, "colorPreset"));
+  const presetTheme = APPEARANCE_PRESETS[colorPreset];
+
+  return {
+    favoriteCurrencies: getStringArray(record, "favoriteCurrencies", ["UAH"]),
+    welcomeMessage: getString(record, "welcomeMessage") || "",
+    backgroundImage: getString(record, "bgImage") || "",
+    bannerImage: getString(record, "bannerImage") || "",
+    font: normalizeWishlistFontClass(getString(record, "font") || "font-sans"),
+    itemBorder: normalizeWishlistItemBorderClass(
+      getString(record, "itemBorder") || "rounded-lg",
+    ),
+    colorPreset,
+    advancedColorsEnabled: readBoolean(record, "advancedColorsEnabled"),
+    advancedPrimaryColor: normalizeColorInputValue(
+      getString(record, "advancedPrimaryColor") ||
+        getString(record, "primaryColor") ||
+        presetTheme.primaryColor,
+      presetTheme.primaryColor,
+    ),
+    advancedBackgroundColor: normalizeColorInputValue(
+      getString(record, "advancedBackgroundColor") ||
+        getString(record, "bgColor") ||
+        presetTheme.tokens.background,
+      presetTheme.tokens.background,
+    ),
+    advancedTextColor: normalizeColorInputValue(
+      getString(record, "advancedTextColor") ||
+        getString(record, "textColor") ||
+        presetTheme.tokens.foreground,
+      presetTheme.tokens.foreground,
+    ),
+    bannerDisplayMode: selectBannerDisplayMode(record),
+  };
+}
+
+export function getWishlistWidgetSettingsState(appearance: unknown) {
+  const record = toAppearanceRecord(appearance);
+
+  return {
+    layout: record.widgetLayout === "list" ? "list" : "grid",
+    itemSize: normalizeWidgetItemSize(record.widgetItemSize),
+  } satisfies {
+    layout: WidgetLayout;
+    itemSize: number;
+  };
+}
+
+export function normalizeWidgetItemSize(value: unknown) {
+  return typeof value === "number"
+    ? Math.min(Math.max(Math.round(value), 70), 160)
+    : 100;
 }

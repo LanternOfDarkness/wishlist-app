@@ -1,7 +1,10 @@
 "use server";
 
 import type { Prisma } from "@prisma/client";
-import { buildWishlistAppearanceFromFormData } from "@/lib/wishlist-appearance-form";
+import {
+    migrateLegacyAppearanceColors,
+    parseWishlistAppearance,
+} from "@/lib/wishlist-appearance";
 import { prisma } from "@/lib/prisma";
 import {
     requireAuthenticatedUserId,
@@ -9,6 +12,28 @@ import {
 } from "@/lib/wishlist-command-context";
 import { isValidUsernameFormat, isReservedUsername } from "@/lib/username";
 import { revalidatePath } from "next/cache";
+
+// Every appearance field below must be present on every submit (via
+// settings-form.tsx's always-present hidden inputs) or it's normalized back
+// to its default here — none of these fall back to the previously stored
+// value. Only widgetLayout/widgetItemSize (written by a different action)
+// survive untouched, via parseWishlistAppearance's unknown-key preservation.
+function extractAppearanceFormFields(formData: FormData) {
+    return {
+        colorPreset: formData.get("colorPreset"),
+        bannerDisplayMode: formData.get("bannerDisplayMode"),
+        advancedColorsEnabled: formData.get("advancedColorsEnabled"),
+        advancedPrimaryColor: formData.get("advancedPrimaryColor"),
+        advancedBackgroundColor: formData.get("advancedBackgroundColor"),
+        advancedTextColor: formData.get("advancedTextColor"),
+        bgImage: formData.get("bgImage"),
+        bannerImage: formData.get("bannerImage"),
+        welcomeMessage: formData.get("welcomeMessage"),
+        itemBorder: formData.get("itemBorder"),
+        font: formData.get("font"),
+        favoriteCurrencies: formData.getAll("favoriteCurrencies"),
+    };
+}
 
 export async function updateProfile(formData: FormData) {
     const userId = await requireAuthenticatedUserId("Не авторизований");
@@ -47,10 +72,10 @@ export async function updateProfile(formData: FormData) {
             ? (wishlist.appearance as Prisma.JsonObject)
             : ({} as Prisma.JsonObject);
 
-    const appearance = buildWishlistAppearanceFromFormData(
-      currentAppearance,
-      formData,
-    );
+    const appearance = parseWishlistAppearance({
+      ...migrateLegacyAppearanceColors(currentAppearance),
+      ...extractAppearanceFormFields(formData),
+    });
 
     await prisma.user.update({
         where: { id: userId },

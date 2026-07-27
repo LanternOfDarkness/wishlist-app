@@ -12,7 +12,7 @@ import type { JsonValue } from "@prisma/client/runtime/library";
 import {
   getWishlistWidgetSettingsState,
   type WidgetLayout,
-} from "@/lib/wishlist-settings-state";
+} from "@/lib/wishlist-appearance";
 import type { DashboardSettingsUser } from "@/lib/dashboard-settings-intake";
 
 type DashboardSettingsItem = NonNullable<

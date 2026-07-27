@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   APPEARANCE_PRESETS,
   getContrastRatio,
+  getWishlistSettingsState,
+  getWishlistWidgetSettingsState,
+  migrateLegacyAppearanceColors,
+  normalizeWidgetItemSize,
+  parseWishlistAppearance,
   resolveWishlistAppearance,
   type AppearanceTokens,
 } from "../wishlist-appearance";
@@ -234,5 +239,185 @@ describe("resolveWishlistAppearance", () => {
       minHeight: "100vh",
     });
     expect(resolved.layout.overlapBanner).toBe(false);
+  });
+});
+
+describe("migrateLegacyAppearanceColors", () => {
+  it("strips the legacy top-level color keys", () => {
+    expect(
+      migrateLegacyAppearanceColors({
+        primaryColor: "#111111",
+        bgColor: "#f5f5f5",
+        textColor: "#222222",
+        widgetLayout: "list",
+      }),
+    ).toEqual({ widgetLayout: "list" });
+  });
+
+  it("is a no-op when no legacy keys are present", () => {
+    expect(
+      migrateLegacyAppearanceColors({ widgetLayout: "grid" }),
+    ).toEqual({ widgetLayout: "grid" });
+  });
+});
+
+describe("parseWishlistAppearance", () => {
+  it("allow-lists every known field, including font and itemBorder (unvalidated on write before this)", () => {
+    const appearance = parseWishlistAppearance({
+      colorPreset: "rose",
+      bannerDisplayMode: "banner-only",
+      advancedColorsEnabled: "true",
+      advancedPrimaryColor: "#112233",
+      advancedBackgroundColor: "#fefefe",
+      advancedTextColor: "#111111",
+      bgImage: "https://example.com/bg.jpg",
+      bannerImage: "https://example.com/banner.jpg",
+      welcomeMessage: "Hi",
+      itemBorder: "rounded-2xl border-solid",
+      font: "font-serif",
+      favoriteCurrencies: ["USD", "EUR"],
+    });
+
+    expect(appearance).toMatchObject({
+      colorPreset: "rose",
+      bannerDisplayMode: "banner-only",
+      advancedColorsEnabled: true,
+      advancedPrimaryColor: "#112233",
+      advancedBackgroundColor: "#fefefe",
+      advancedTextColor: "#111111",
+      bgImage: "https://example.com/bg.jpg",
+      bannerImage: "https://example.com/banner.jpg",
+      welcomeMessage: "Hi",
+      itemBorder: "rounded-2xl border-solid",
+      font: "font-serif",
+      favoriteCurrencies: ["USD", "EUR"],
+    });
+  });
+
+  it("normalizes an invalid font and itemBorder to safe defaults on write", () => {
+    const appearance = parseWishlistAppearance({
+      font: "font-made-up",
+      itemBorder: "not-a-real-border",
+    });
+
+    expect(appearance.font).toBe("font-sans");
+    expect(appearance.itemBorder).toBe("rounded-lg border-solid");
+  });
+
+  it("maps a legacy itemBorder shorthand to its full form on write", () => {
+    expect(parseWishlistAppearance({ itemBorder: "rounded-md" }).itemBorder).toBe(
+      "rounded-md border-solid",
+    );
+  });
+
+  it("normalizes unknown preset and display mode to safe defaults", () => {
+    const appearance = parseWishlistAppearance({
+      colorPreset: "neon",
+      bannerDisplayMode: "fullscreen",
+    });
+
+    expect(appearance.colorPreset).toBe("light");
+    expect(appearance.bannerDisplayMode).toBe("banner-and-page");
+  });
+
+  it("accepts 'on' for a boolean field, unifying the readBoolean divergence", () => {
+    expect(
+      parseWishlistAppearance({ advancedColorsEnabled: "on" }).advancedColorsEnabled,
+    ).toBe(true);
+  });
+
+  it("defaults favorite currencies to UAH when none are submitted", () => {
+    expect(parseWishlistAppearance({}).favoriteCurrencies).toEqual(["UAH"]);
+  });
+
+  it("preserves unknown keys written by other actions (e.g. widgetLayout, widgetItemSize)", () => {
+    const appearance = parseWishlistAppearance({
+      widgetLayout: "list",
+      widgetItemSize: 144,
+      font: "font-mono",
+    });
+
+    expect(appearance).toMatchObject({
+      widgetLayout: "list",
+      widgetItemSize: 144,
+      font: "font-mono",
+    });
+  });
+
+  it("treats non-object input as empty", () => {
+    expect(parseWishlistAppearance(null).favoriteCurrencies).toEqual(["UAH"]);
+    expect(parseWishlistAppearance("nonsense").colorPreset).toBe("light");
+  });
+});
+
+describe("getWishlistSettingsState", () => {
+  it("normalizes appearance defaults for settings adapters", () => {
+    expect(getWishlistSettingsState(undefined)).toMatchObject({
+      favoriteCurrencies: ["UAH"],
+      font: "font-sans",
+      itemBorder: "rounded-lg border-solid",
+      colorPreset: "light",
+      advancedColorsEnabled: false,
+      bannerDisplayMode: "banner-and-page",
+    });
+  });
+
+  it("does not return a themeMode or rawAppearance field (both dead)", () => {
+    const state = getWishlistSettingsState({ themeMode: "dark" });
+    expect(state).not.toHaveProperty("themeMode");
+    expect(state).not.toHaveProperty("rawAppearance");
+  });
+
+  it("normalizes legacy and invalid appearance values", () => {
+    expect(
+      getWishlistSettingsState({
+        favoriteCurrencies: ["USD", 123, "EUR"],
+        font: "unknown",
+        itemBorder: "rounded-md",
+        colorPreset: "green",
+        advancedColorsEnabled: "true",
+        advancedPrimaryColor: "16A34A",
+        advancedBackgroundColor: "invalid",
+        advancedTextColor: "#111827",
+        bannerDisplayMode: "banner-only",
+      }),
+    ).toMatchObject({
+      favoriteCurrencies: ["USD", "EUR"],
+      font: "font-sans",
+      itemBorder: "rounded-md border-solid",
+      colorPreset: "green",
+      advancedColorsEnabled: true,
+      advancedPrimaryColor: "#16a34a",
+      advancedBackgroundColor: "#ffffff",
+      advancedTextColor: "#111827",
+      bannerDisplayMode: "banner-only",
+    });
+  });
+
+  it("accepts 'on' for advancedColorsEnabled (previously only wishlist-appearance.ts's copy did)", () => {
+    expect(
+      getWishlistSettingsState({ advancedColorsEnabled: "on" }).advancedColorsEnabled,
+    ).toBe(true);
+  });
+});
+
+describe("getWishlistWidgetSettingsState", () => {
+  it("normalizes widget layout and item size", () => {
+    expect(
+      getWishlistWidgetSettingsState({ widgetLayout: "list", widgetItemSize: 42 }),
+    ).toEqual({ layout: "list", itemSize: 70 });
+
+    expect(
+      getWishlistWidgetSettingsState({ widgetLayout: "unknown", widgetItemSize: 500 }),
+    ).toEqual({ layout: "grid", itemSize: 160 });
+  });
+});
+
+describe("normalizeWidgetItemSize", () => {
+  it("clamps to the 70-160 range and defaults to 100", () => {
+    expect(normalizeWidgetItemSize(40)).toBe(70);
+    expect(normalizeWidgetItemSize(500)).toBe(160);
+    expect(normalizeWidgetItemSize(undefined)).toBe(100);
+    expect(normalizeWidgetItemSize("not-a-number")).toBe(100);
   });
 });

@@ -11,10 +11,6 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-vi.mock("@/lib/wishlist-appearance-form", () => ({
-  buildWishlistAppearanceFromFormData: vi.fn(() => ({})),
-}));
-
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));

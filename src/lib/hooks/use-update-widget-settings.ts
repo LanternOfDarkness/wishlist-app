@@ -1,6 +1,6 @@
 import { useTransition } from "react";
 import { updateWidgetSettings } from "@/actions/update-widget-settings";
-import type { WidgetLayout } from "@/lib/wishlist-settings-state";
+import type { WidgetLayout } from "@/lib/wishlist-appearance";
 
 export function useUpdateWidgetSettings() {
   const [isPending, startTransition] = useTransition();

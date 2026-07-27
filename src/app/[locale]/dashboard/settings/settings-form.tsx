@@ -14,8 +14,8 @@ import { User, Wishlist } from "@prisma/client";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { AVAILABLE_CURRENCIES } from "@/lib/currencies";
-import { APPEARANCE_PRESETS } from "@/lib/wishlist-appearance";
 import {
+  APPEARANCE_PRESETS,
   BANNER_DISPLAY_MODE_OPTIONS,
   BANNER_MODE_LABELS,
   COLOR_PRESET_OPTIONS,
@@ -24,7 +24,7 @@ import {
   getWishlistSettingsState,
   type BannerDisplayMode,
   type ColorPreset,
-} from "@/lib/wishlist-settings-state";
+} from "@/lib/wishlist-appearance";
 
 type UserWithWishlist = User & { wishlist: Wishlist | null };
 
@@ -39,9 +39,6 @@ export function SettingsForm({
   const t = useTranslations("Settings");
   const [isLoading, setIsLoading] = useState(false);
   const settings = getWishlistSettingsState(user.wishlist?.appearance);
-  const [themeMode, setThemeMode] = useState(
-    settings.themeMode,
-  );
   const [colorPreset, setColorPreset] = useState<ColorPreset>(
     settings.colorPreset,
   );
@@ -94,14 +91,6 @@ export function SettingsForm({
       toast.error(t("shareLinkError"));
     }
   }
-
-  // Note: `themeMode` here is the wishlist's own stored appearance
-  // preference (still just submitted via the hidden input below), not the
-  // app-chrome dark/light mode — that's now handled independently by
-  // next-themes (see ThemeProvider/ThemeToggle). This used to also toggle
-  // the global `.dark` class as a "live preview", but that class now
-  // belongs exclusively to next-themes, and the wishlist's own colors are
-  // resolved from `appearance` server-side regardless of it anyway.
 
   async function handleSubmit(formData: FormData) {
     setIsLoading(true);
@@ -229,37 +218,6 @@ export function SettingsForm({
         <h3 className="text-lg font-medium border-b pb-2">
           {t("appearanceTitle")}
         </h3>
-
-        <div className="space-y-2">
-          <Label>{t("themeLabel")}</Label>
-          <input type="hidden" name="themeMode" value={themeMode} />
-          <div className="grid grid-cols-3 gap-2">
-            <Button
-              type="button"
-              variant={themeMode === "system" ? "default" : "outline"}
-              onClick={() => setThemeMode("system")}
-            >
-              {t("themeSystem")}
-            </Button>
-            <Button
-              type="button"
-              variant={themeMode === "light" ? "default" : "outline"}
-              onClick={() => setThemeMode("light")}
-            >
-              {t("themeLight")}
-            </Button>
-            <Button
-              type="button"
-              variant={themeMode === "dark" ? "default" : "outline"}
-              onClick={() => setThemeMode("dark")}
-            >
-              {t("themeDark")}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {t("themeHelp")}
-          </p>
-        </div>
 
         <div className="space-y-2">
           <Label htmlFor="welcomeMessage">{t("welcomeMessageLabel")}</Label>
