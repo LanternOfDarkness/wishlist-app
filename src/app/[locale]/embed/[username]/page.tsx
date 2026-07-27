@@ -2,7 +2,11 @@ import { isSafeUrl } from "@/lib/utils";
 import { getEmbedWishlistPresentation } from "@/lib/wishlist-presentation";
 import { notFound } from "next/navigation";
 import { Gift } from "lucide-react";
-import Image from "next/image";
+import { WishlistBanner } from "@/components/wishlist/wishlist-banner";
+import { WishlistAvatar } from "@/components/wishlist/wishlist-avatar";
+import { WishlistItemImage } from "@/components/wishlist/wishlist-item-image";
+import { WishlistItemPrice } from "@/components/wishlist/wishlist-item-price";
+import { borderColorWithAlpha } from "@/components/wishlist/style-utils";
 import type { CSSProperties } from "react";
 
 interface EmbedPageProps {
@@ -52,14 +56,11 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
     >
       <style>{`header { display: none !important; }`}</style>
 
-      {resolvedAppearance.banner.visible ? (
-        <div
-          className="relative h-28 w-full border-b"
-          style={resolvedAppearance.banner.style}
-        >
-          <div className="absolute inset-0 bg-black/10" />
-        </div>
-      ) : null}
+      <WishlistBanner
+        visible={resolvedAppearance.banner.visible}
+        style={resolvedAppearance.banner.style}
+        heightClassName="h-28"
+      />
 
       <div
         className={`px-4 pb-4 ${
@@ -71,22 +72,13 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
             resolvedAppearance.layout.overlapBanner ? "-mt-12" : ""
           }`}
         >
-          <div className="relative h-24 w-24 overflow-hidden rounded-full border-4 border-background bg-background shadow-md">
-            {user.image && isSafeUrl(user.image) ? (
-              <Image
-                src={user.image}
-                alt={user.name || user.username || "User"}
-                fill
-                sizes="96px"
-                unoptimized
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <Gift className="h-8 w-8 text-muted-foreground" />
-              </div>
-            )}
-          </div>
+          <WishlistAvatar
+            image={user.image}
+            alt={user.name || user.username || "User"}
+            sizePx={96}
+            className="h-24 w-24"
+            fallback={<Gift className="h-8 w-8 text-muted-foreground" />}
+          />
 
           <a
             href={profileUrl}
@@ -128,42 +120,29 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
               target="_blank"
               rel="noopener noreferrer"
               className={itemClassName}
-              style={{ borderColor: `${primaryColor}30` }}
+              style={{ borderColor: borderColorWithAlpha(primaryColor, "30") }}
             >
-              <div
-                className={`relative aspect-square w-full shrink-0 overflow-hidden bg-muted ${appearance.itemBorderClass}`}
-              >
-                {item.imageUrl && isSafeUrl(item.imageUrl) ? (
-                  <Image
-                    src={item.imageUrl}
-                    alt={item.name}
-                    fill
-                    sizes={
-                      widget.widgetLayout === "list"
-                        ? "72px"
-                        : `${widget.widgetItemSize}px`
-                    }
-                    unoptimized
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-muted-foreground">
-                    <Gift className="w-6 h-6" />
-                  </div>
-                )}
-              </div>
+              <WishlistItemImage
+                imageUrl={item.imageUrl}
+                alt={item.name}
+                sizes={
+                  widget.widgetLayout === "list"
+                    ? "72px"
+                    : `${widget.widgetItemSize}px`
+                }
+                className={`w-full shrink-0 ${appearance.itemBorderClass}`}
+                fallbackIconClassName="w-6 h-6"
+              />
               <div className="flex flex-col justify-center min-w-0">
                 <h3 className="text-sm font-semibold line-clamp-2 leading-tight mb-1">
                   {item.name}
                 </h3>
-                {item.price != null && (
-                  <p
-                    className="text-xs font-bold"
-                    style={{ color: primaryColor }}
-                  >
-                    {item.price.toFixed(2)} {item.currency}
-                  </p>
-                )}
+                <WishlistItemPrice
+                  price={item.price}
+                  currency={item.currency}
+                  primaryColor={primaryColor}
+                  className="text-xs font-bold"
+                />
               </div>
             </a>
           );

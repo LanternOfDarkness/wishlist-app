@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getWishlistFilterUrlState,
+  hasActiveWishlistFilters,
   writeWishlistFilterParam,
 } from "../wishlist-filter-state";
 
@@ -22,5 +23,13 @@ describe("wishlist filter state", () => {
 
     expect(source.toString()).toBe("sort=newest&category=old");
     expect(next.getAll("category")).toEqual(["a", "b"]);
+  });
+});
+
+describe("hasActiveWishlistFilters", () => {
+  it("reports active filters from search params", () => {
+    expect(hasActiveWishlistFilters({})).toBe(false);
+    expect(hasActiveWishlistFilters({ category: "cat-1" })).toBe(true);
+    expect(hasActiveWishlistFilters({ minPrice: "0" })).toBe(true);
   });
 });

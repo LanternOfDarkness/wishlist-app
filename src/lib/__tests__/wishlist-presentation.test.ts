@@ -2,11 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   getEmbedWishlistPresentation,
-  getMaxWishlistItemPrice,
-  getWishlistAppearancePresentation,
   getWishlistPresentation,
-  getWishlistWidgetPresentation,
-  hasActiveWishlistFilters,
 } from "../wishlist-presentation";
 import { setTestRepository } from "../repository";
 import { InMemoryWishlistRepository } from "../repository/in-memory-adapter";
@@ -68,55 +64,6 @@ function makeItem(overrides: Partial<ItemData> = {}): ItemData {
 beforeEach(() => {
   repo = new InMemoryWishlistRepository();
   setTestRepository(repo);
-});
-
-describe("wishlist presentation helpers", () => {
-  it("reports active filters from search params", () => {
-    expect(hasActiveWishlistFilters({})).toBe(false);
-    expect(hasActiveWishlistFilters({ category: "cat-1" })).toBe(true);
-    expect(hasActiveWishlistFilters({ minPrice: "0" })).toBe(true);
-  });
-
-  it("calculates a stable max price fallback", () => {
-    expect(getMaxWishlistItemPrice([])).toBe(10000);
-    expect(getMaxWishlistItemPrice([{ price: null }, { price: 0 }])).toBe(10000);
-    expect(getMaxWishlistItemPrice([{ price: 20 }, { price: 150 }])).toBe(150);
-  });
-
-  it("normalizes appearance presentation values for both route adapters", () => {
-    const presentation = getWishlistAppearancePresentation({
-      font: "font-comic",
-      itemBorder: "rounded-lg border-dashed",
-      welcomeMessage: "Hello",
-      favoriteCurrencies: ["UAH", 123, "EUR"],
-    });
-
-    expect(presentation.fontClass).toBe("font-comic");
-    expect(presentation.itemBorderClass).toBe("rounded-lg border-dashed");
-    expect(presentation.welcomeMessage).toBe("Hello");
-    expect(presentation.favoriteCurrencies).toEqual(["UAH", "EUR"]);
-  });
-
-  it("normalizes widget presentation values", () => {
-    expect(
-      getWishlistWidgetPresentation({
-        widgetLayout: "list",
-        widgetItemSize: 40,
-      }),
-    ).toEqual({
-      widgetLayout: "list",
-      widgetItemSize: 70,
-    });
-    expect(
-      getWishlistWidgetPresentation({
-        widgetLayout: "unknown",
-        widgetItemSize: 500,
-      }),
-    ).toEqual({
-      widgetLayout: "grid",
-      widgetItemSize: 160,
-    });
-  });
 });
 
 describe("getWishlistPresentation visibility gate", () => {

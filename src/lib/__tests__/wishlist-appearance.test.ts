@@ -4,7 +4,9 @@ import {
   MIN_CONTRAST_RATIO,
   getAdvancedColorSeedForPreset,
   getContrastRatio,
+  getWishlistAppearancePresentation,
   getWishlistSettingsState,
+  getWishlistWidgetPresentation,
   getWishlistWidgetSettingsState,
   hasSufficientContrast,
   migrateLegacyAppearanceColors,
@@ -452,5 +454,44 @@ describe("getAdvancedColorSeedForPreset", () => {
     const rose = getAdvancedColorSeedForPreset("rose");
     const dark = getAdvancedColorSeedForPreset("dark");
     expect(rose).not.toEqual(dark);
+  });
+});
+
+describe("getWishlistAppearancePresentation", () => {
+  it("normalizes appearance presentation values for both route adapters", () => {
+    const presentation = getWishlistAppearancePresentation({
+      font: "font-comic",
+      itemBorder: "rounded-lg border-dashed",
+      welcomeMessage: "Hello",
+      favoriteCurrencies: ["UAH", 123, "EUR"],
+    });
+
+    expect(presentation.fontClass).toBe("font-comic");
+    expect(presentation.itemBorderClass).toBe("rounded-lg border-dashed");
+    expect(presentation.welcomeMessage).toBe("Hello");
+    expect(presentation.favoriteCurrencies).toEqual(["UAH", "EUR"]);
+  });
+});
+
+describe("getWishlistWidgetPresentation", () => {
+  it("normalizes widget presentation values", () => {
+    expect(
+      getWishlistWidgetPresentation({
+        widgetLayout: "list",
+        widgetItemSize: 40,
+      }),
+    ).toEqual({
+      widgetLayout: "list",
+      widgetItemSize: 70,
+    });
+    expect(
+      getWishlistWidgetPresentation({
+        widgetLayout: "unknown",
+        widgetItemSize: 500,
+      }),
+    ).toEqual({
+      widgetLayout: "grid",
+      widgetItemSize: 160,
+    });
   });
 });

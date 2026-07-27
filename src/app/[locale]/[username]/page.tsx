@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { User as UserIcon, ExternalLink, Gift, Lock, Star } from "lucide-react";
+import { User as UserIcon, ExternalLink, Lock, Star } from "lucide-react";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { AddItemModal } from "@/components/add-item-modal";
 import { ItemActionsMenu } from "@/components/item-actions-menu";
@@ -9,11 +9,15 @@ import { PledgeProgressBar } from "@/components/pledge-progress-bar";
 import { ReserveItemModal } from "@/components/reserve-item-modal";
 import { WishlistFilters } from "@/components/wishlist-filters";
 import { FollowButton } from "@/components/follow-button";
+import { WishlistBanner } from "@/components/wishlist/wishlist-banner";
+import { WishlistAvatar } from "@/components/wishlist/wishlist-avatar";
+import { WishlistItemImage } from "@/components/wishlist/wishlist-item-image";
+import { WishlistItemPrice } from "@/components/wishlist/wishlist-item-price";
+import { borderColorWithAlpha } from "@/components/wishlist/style-utils";
 import { getTranslations } from "next-intl/server";
 import { isSafeUrl } from "@/lib/utils";
 import { getWishlistPresentation } from "@/lib/wishlist-presentation";
 import type { WishlistSearchParams } from "@/lib/wishlist-filter-state";
-import Image from "next/image";
 
 interface WishlistPageProps {
   params: Promise<{
@@ -64,15 +68,11 @@ export default async function WishlistPage({
       }}
       className={`flex flex-col ${appearance.fontClass}`}
     >
-      {/* Banner Area */}
-      {resolvedAppearance.banner.visible ? (
-        <div
-          className="h-48 md:h-64 w-full relative border-b"
-          style={resolvedAppearance.banner.style}
-        >
-          <div className="absolute inset-0 bg-black/10"></div>
-        </div>
-      ) : null}
+      <WishlistBanner
+        visible={resolvedAppearance.banner.visible}
+        style={resolvedAppearance.banner.style}
+        heightClassName="h-48 md:h-64"
+      />
 
       <div
         className={`container mx-auto relative z-10 bg-background/80 backdrop-blur-sm rounded-xl shadow-lg px-4 py-10 ${
@@ -82,20 +82,13 @@ export default async function WishlistPage({
         }`}
       >
         <div className="flex flex-col items-center text-center mb-8 space-y-4">
-          <div className="relative w-32 h-32 bg-background rounded-full flex items-center justify-center text-5xl mb-2 overflow-hidden border-4 border-background shadow-md">
-            {user.image && isSafeUrl(user.image) ? (
-              <Image
-                src={user.image}
-                alt={user.name || "User"}
-                fill
-                sizes="128px"
-                unoptimized
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <UserIcon className="w-12 h-12 text-slate-400" />
-            )}
-          </div>
+          <WishlistAvatar
+            image={user.image}
+            alt={user.name || "User"}
+            sizePx={128}
+            className="w-32 h-32 mb-2"
+            fallback={<UserIcon className="w-12 h-12 text-slate-400" />}
+          />
 
           <div className="flex flex-col items-center gap-2">
             <h1 className="text-4xl font-bold">
@@ -165,9 +158,7 @@ export default async function WishlistPage({
                     key={item.id}
                     className={`group relative overflow-hidden border bg-card transition-shadow hover:shadow-lg flex flex-col ${appearance.itemBorderClass}`}
                     style={{
-                      borderColor: primaryColor
-                        ? `${primaryColor}30`
-                        : undefined,
+                      borderColor: borderColorWithAlpha(primaryColor, "30"),
                     }}
                   >
                     {relationship.isOwner && (
@@ -180,23 +171,12 @@ export default async function WishlistPage({
                       </div>
                     )}
 
-                    {/* Image */}
-                    <div className="relative aspect-square overflow-hidden bg-muted">
-                      {item.imageUrl && isSafeUrl(item.imageUrl) ? (
-                        <Image
-                          src={item.imageUrl}
-                          alt={item.name}
-                          fill
-                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                          unoptimized
-                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-muted-foreground">
-                          <Gift className="w-12 h-12" />
-                        </div>
-                      )}
-                    </div>
+                    <WishlistItemImage
+                      imageUrl={item.imageUrl}
+                      alt={item.name}
+                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      imageClassName="transition-transform group-hover:scale-105"
+                    />
 
                     <div className="p-4 flex flex-col flex-grow">
                       <div className="flex justify-between items-start gap-2 mb-2">
@@ -231,16 +211,12 @@ export default async function WishlistPage({
                         </span>
                       )}
 
-                      {item.price && (
-                        <p
-                          className="mt-2 text-lg font-bold"
-                          style={{
-                            color: primaryColor || "var(--primary)",
-                          }}
-                        >
-                          {item.price.toFixed(2)} {item.currency}
-                        </p>
-                      )}
+                      <WishlistItemPrice
+                        price={item.price}
+                        currency={item.currency}
+                        primaryColor={primaryColor}
+                        className="mt-2 text-lg font-bold"
+                      />
 
                       {/* Reservation state is only ever rendered for non-owner
                           viewers — for the owner, sanitizeReservationFields

@@ -1,6 +1,7 @@
 import {
-  resolveWishlistAppearance,
-  type WishlistAppearance,
+  getWishlistAppearancePresentation,
+  getWishlistWidgetPresentation,
+  toAppearanceRecord,
 } from "./wishlist-appearance";
 import { getRepository } from "./repository";
 import {
@@ -12,87 +13,6 @@ import {
   itemVisibilityFor,
   resolveWishlistAccess,
 } from "./wishlist-visibility";
-
-export { hasActiveWishlistFilters, type WishlistSearchParams };
-
-// ── Appearance presentation helpers ──────────────────────────────────────
-// These live here (not in wishlist-appearance.ts) to match main's deepen
-// architecture; audit's branch imported them from wishlist-appearance, so we
-// define them locally and re-export by declaration.
-
-export function getWishlistAppearanceRecord(
-  appearance: unknown,
-): WishlistAppearance {
-  if (!appearance || typeof appearance !== "object" || Array.isArray(appearance)) {
-    return {};
-  }
-
-  return appearance as WishlistAppearance;
-}
-
-function getAppearanceString(
-  appearance: WishlistAppearance,
-  key: string,
-  fallback = "",
-) {
-  const value = appearance[key];
-  return typeof value === "string" ? value : fallback;
-}
-
-function getAppearanceNumber(
-  appearance: WishlistAppearance,
-  key: string,
-  fallback: number,
-) {
-  const value = appearance[key];
-  return typeof value === "number" ? value : fallback;
-}
-
-// `font` and `itemBorder` are allow-list validated on write by
-// `parseWishlistAppearance` (wishlist-appearance.ts), so a stored value is
-// already safe by construction — this just reads it back with a default for
-// records written before that field existed.
-export function getWishlistAppearancePresentation(
-  appearance: WishlistAppearance,
-) {
-  const resolvedAppearance = resolveWishlistAppearance(appearance);
-
-  return {
-    raw: appearance,
-    resolved: resolvedAppearance,
-    primaryColor: resolvedAppearance.primaryColor,
-    fontClass: getAppearanceString(appearance, "font", "font-sans"),
-    itemBorderClass: getAppearanceString(
-      appearance,
-      "itemBorder",
-      "rounded-lg border-solid",
-    ),
-    welcomeMessage: getAppearanceString(appearance, "welcomeMessage"),
-    favoriteCurrencies: Array.isArray(appearance.favoriteCurrencies)
-      ? appearance.favoriteCurrencies.filter(
-          (currency): currency is string => typeof currency === "string",
-        )
-      : [],
-  };
-}
-
-export function getWishlistWidgetPresentation(
-  appearance: WishlistAppearance,
-) {
-  const widgetLayout =
-    getAppearanceString(appearance, "widgetLayout", "grid") === "list"
-      ? "list"
-      : "grid";
-  const widgetItemSize = Math.min(
-    Math.max(Math.round(getAppearanceNumber(appearance, "widgetItemSize", 100)), 70),
-    160,
-  );
-
-  return {
-    widgetLayout,
-    widgetItemSize,
-  };
-}
 
 type ItemWithPledges = {
   price: number | null;
@@ -144,19 +64,6 @@ function omitIsReserved<T extends { isReserved: boolean }>(
   const rest: Record<string, unknown> = { ...item };
   delete rest.isReserved;
   return rest as Omit<T, "isReserved">;
-}
-
-export function getMaxWishlistItemPrice(items: Array<{ price: number | null }>) {
-  const prices = items
-    .map((item) => item.price)
-    .filter((price): price is number => price !== null);
-
-  if (prices.length === 0) {
-    return 10000;
-  }
-
-  const maxPrice = Math.max(...prices);
-  return maxPrice > 0 ? maxPrice : 10000;
 }
 
 export async function getWishlistPresentation({
@@ -221,7 +128,7 @@ export async function getWishlistPresentation({
     return null;
   }
 
-  const appearance = getWishlistAppearanceRecord(presentation.wishlist.appearance);
+  const appearance = toAppearanceRecord(presentation.wishlist.appearance);
   const appearancePresentation = getWishlistAppearancePresentation(appearance);
 
   const items = presentation.items.map((item) =>
@@ -257,7 +164,7 @@ export async function getEmbedWishlistPresentation({
     return null;
   }
 
-  const appearance = getWishlistAppearanceRecord(presentation.wishlist.appearance);
+  const appearance = toAppearanceRecord(presentation.wishlist.appearance);
   const selectedWidgetItems = presentation.items.filter((item) => item.showInWidget);
   // Embeds carry no viewer identity, so we can never tell whether the owner
   // is the one viewing (e.g. previewing their own widget in Settings).
