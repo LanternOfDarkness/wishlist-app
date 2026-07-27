@@ -1,5 +1,3 @@
-import { timingSafeEqual } from "node:crypto";
-
 import {
   resolveWishlistAppearance,
   ALLOWED_FONT_CLASSES,
@@ -15,6 +13,12 @@ import {
   hasActiveWishlistFilters,
   type WishlistSearchParams,
 } from "./wishlist-filter-state";
+import {
+  getViewerRelationship,
+  itemVisibilityFor,
+  matchesShareToken,
+  resolveWishlistAccess,
+} from "./wishlist-visibility";
 
 export {
   buildWishlistItemOrderBy,
@@ -22,6 +26,11 @@ export {
   hasActiveWishlistFilters,
   type WishlistSearchParams,
 };
+
+// Re-exported from wishlist-visibility.ts (the single owner of the rule) for
+// one phase to keep this diff small. Drop this re-export once the last
+// import of these two from this module (the test file) is repointed.
+export { getViewerRelationship, matchesShareToken };
 
 // ── Appearance presentation helpers ──────────────────────────────────────
 // These live here (not in wishlist-appearance.ts) to match main's deepen
@@ -110,56 +119,6 @@ export function getWishlistWidgetPresentation(
     widgetLayout,
     widgetItemSize,
   };
-}
-
-type ViewerRelationshipUser = {
-  id: string;
-  followers: Array<{ followerId: string }>;
-  following: Array<{ followingId: string }>;
-};
-
-export function getViewerRelationship(
-  user: ViewerRelationshipUser,
-  viewerUserId?: string,
-) {
-  const isOwner = viewerUserId === user.id;
-  const isFollowing = viewerUserId
-    ? user.followers.some((follow) => follow.followerId === viewerUserId)
-    : false;
-  const userFollowsViewer = viewerUserId
-    ? user.following.some((follow) => follow.followingId === viewerUserId)
-    : false;
-  const isMutualFollower = isFollowing && userFollowsViewer;
-
-  return {
-    isOwner,
-    isFollowing,
-    isMutualFollower,
-    canViewPrivateItems: isOwner || isMutualFollower,
-  };
-}
-
-/**
- * Constant-time comparison of a viewer-supplied share key against the stored
- * token. Returns false for missing values or length mismatches without leaking
- * timing information about how much of the token matched.
- */
-export function matchesShareToken(
-  provided: string | undefined | null,
-  actual: string | null,
-): boolean {
-  if (!provided || !actual) {
-    return false;
-  }
-
-  const providedBuffer = Buffer.from(provided);
-  const actualBuffer = Buffer.from(actual);
-
-  if (providedBuffer.length !== actualBuffer.length) {
-    return false;
-  }
-
-  return timingSafeEqual(providedBuffer, actualBuffer);
 }
 
 type ItemWithPledges = {
@@ -252,10 +211,15 @@ export async function getWishlistPresentation({
   }
 
   const relationship = getViewerRelationship(user, viewerUserId);
-  const itemWhere = buildWishlistItemWhere(
-    searchParams,
-    relationship.canViewPrivateItems,
-  );
+  // The item filter only depends on the viewer's relationship to the owner,
+  // not on the wishlist's own isPublic/shareToken fields (fetched below in
+  // the same query), so `canViewWishlist` here is a placeholder — nothing in
+  // `itemVisibilityFor("wishlist-page", …)` reads it.
+  const itemVisibility = itemVisibilityFor("wishlist-page", {
+    canViewWishlist: true,
+    canViewPrivateItems: relationship.canViewPrivateItems,
+  });
+  const itemWhere = buildWishlistItemWhere(searchParams, itemVisibility);
   const orderBy = buildWishlistItemOrderBy(searchParams.sort);
 
   const wishlist = await prisma.wishlist.findUnique({
@@ -278,17 +242,9 @@ export async function getWishlistPresentation({
     return null;
   }
 
-  // Visibility gate: a private wishlist is only viewable by its owner, mutual
-  // followers, or someone holding the secret share link. A share-link viewer is
-  // not an owner/mutual-follower, so `canViewPrivateItems` stays false and the
-  // per-item `isPrivate` filter above still hides private items — the link
-  // exposes the list, not its private entries.
-  const canView =
-    wishlist.isPublic ||
-    relationship.canViewPrivateItems ||
-    matchesShareToken(shareKey, wishlist.shareToken);
+  const access = resolveWishlistAccess({ wishlist, relationship, shareKey });
 
-  if (!canView) {
+  if (!access.canViewWishlist) {
     return null;
   }
 
@@ -317,13 +273,20 @@ export async function getEmbedWishlistPresentation({
   locale: string;
   username: string;
 }) {
+  // Embeds carry no viewer identity, so `canViewPrivateItems` is always
+  // false — `itemVisibilityFor("embed", …)` ignores it either way.
+  const itemWhere = buildWishlistItemWhere(
+    {},
+    itemVisibilityFor("embed", { canViewWishlist: true, canViewPrivateItems: false }),
+  );
+
   const user = await prisma.user.findUnique({
     where: { username },
     include: {
       wishlist: {
         include: {
           items: {
-            where: { isPrivate: false, isArchived: false },
+            where: itemWhere,
             orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
           },
         },

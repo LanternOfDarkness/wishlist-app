@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { getViewerRelationship, matchesShareToken } from "./wishlist-presentation";
+import { getViewerRelationship, resolveWishlistAccess } from "./wishlist-visibility";
 
 export type ReservationMode = "full" | "partial";
 
@@ -28,10 +28,11 @@ function normalizeOptionalString(value: string | undefined, maxLength: number) {
 
 /**
  * Creates a reservation or a partial pledge for an item. Authorization here
- * mirrors `getWishlistPresentation`'s visibility gate (public wishlist, owner,
- * mutual follower, or a valid share key) so a raw item id can't be used to
- * reserve an item on a wishlist the caller has no access to. The owner is
- * never allowed to reserve their own item.
+ * goes through the same `resolveWishlistAccess` call as
+ * `getWishlistPresentation`'s visibility gate (public wishlist, owner, mutual
+ * follower, or a valid share key), so a raw item id can't be used to reserve
+ * an item on a wishlist the caller has no access to. The owner is never
+ * allowed to reserve their own item.
  */
 export async function createReservation(
   input: ReservationInput,
@@ -72,16 +73,17 @@ export async function createReservation(
     item.wishlist.user,
     userId ?? undefined,
   );
-  const canView =
-    item.wishlist.isPublic ||
-    relationship.canViewPrivateItems ||
-    matchesShareToken(input.shareKey, item.wishlist.shareToken);
+  const access = resolveWishlistAccess({
+    wishlist: item.wishlist,
+    relationship,
+    shareKey: input.shareKey,
+  });
 
-  if (!canView) {
+  if (!access.canViewWishlist) {
     return { success: false, error: "Item not found" };
   }
 
-  if (item.isPrivate && !relationship.canViewPrivateItems) {
+  if (item.isPrivate && !access.canViewPrivateItems) {
     return { success: false, error: "Item not found" };
   }
 

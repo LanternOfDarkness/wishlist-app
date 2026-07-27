@@ -2,6 +2,8 @@ import type { Prisma } from "@prisma/client";
 
 import { getAuthenticatedUserId } from "./wishlist-command-context";
 import { prisma } from "./prisma";
+import { buildWishlistItemWhere } from "./wishlist-filter-state";
+import { itemVisibilityFor } from "./wishlist-visibility";
 
 // The Settings page is rendered for the wishlist's own owner, so items are
 // fetched without `isReserved` (and without any pledge data) — same
@@ -30,6 +32,7 @@ export type DashboardSettingsUser = Prisma.UserGetPayload<{
       include: {
         items: {
           select: typeof DASHBOARD_SETTINGS_ITEM_SELECT;
+          where: Prisma.ItemWhereInput;
           orderBy: {
             createdAt: "desc";
           };
@@ -46,6 +49,14 @@ export async function getDashboardSettingsIntake() {
     return null;
   }
 
+  // The dashboard is always the owner's own view, so it always sees its own
+  // private items — but never archived ones (they belong to the archive
+  // view, not the widget picker at embed-widget.tsx:215).
+  const itemWhere = buildWishlistItemWhere(
+    {},
+    itemVisibilityFor("dashboard", { canViewWishlist: true, canViewPrivateItems: true }),
+  );
+
   return prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -53,6 +64,7 @@ export async function getDashboardSettingsIntake() {
         include: {
           items: {
             select: DASHBOARD_SETTINGS_ITEM_SELECT,
+            where: itemWhere,
             orderBy: { createdAt: "desc" },
           },
         },

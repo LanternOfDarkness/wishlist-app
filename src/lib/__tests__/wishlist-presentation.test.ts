@@ -19,12 +19,24 @@ import {
   hasActiveWishlistFilters,
   matchesShareToken,
 } from "../wishlist-presentation";
+import type { ItemVisibility } from "../wishlist-visibility";
 import { prisma } from "../prisma";
 
 const mockUserFind = prisma.user.findUnique as unknown as Mock;
 const mockWishlistFind = prisma.wishlist.findUnique as unknown as Mock;
 
 describe("wishlist presentation helpers", () => {
+  const CANNOT_VIEW_PRIVATE: ItemVisibility = {
+    includeArchived: false,
+    includePrivate: false,
+    widgetOnly: false,
+  };
+  const CAN_VIEW_PRIVATE: ItemVisibility = {
+    includeArchived: false,
+    includePrivate: true,
+    widgetOnly: false,
+  };
+
   it("builds item filters from search params and hides private items", () => {
     expect(
       buildWishlistItemWhere(
@@ -34,7 +46,7 @@ describe("wishlist presentation helpers", () => {
           minPrice: "10",
           maxPrice: "200",
         },
-        false,
+        CANNOT_VIEW_PRIVATE,
       ),
     ).toEqual({
       categoryId: { in: ["cat-1", "cat-2"] },
@@ -46,16 +58,27 @@ describe("wishlist presentation helpers", () => {
   });
 
   it("omits private filter for viewers who can see private items", () => {
-    expect(buildWishlistItemWhere({}, true)).toEqual({ isArchived: false });
+    expect(buildWishlistItemWhere({}, CAN_VIEW_PRIVATE)).toEqual({
+      isArchived: false,
+    });
   });
 
   it("always excludes archived items, even for the owner", () => {
-    expect(buildWishlistItemWhere({}, true)).toMatchObject({
+    expect(buildWishlistItemWhere({}, CAN_VIEW_PRIVATE)).toMatchObject({
       isArchived: false,
     });
-    expect(buildWishlistItemWhere({}, false)).toMatchObject({
+    expect(buildWishlistItemWhere({}, CANNOT_VIEW_PRIVATE)).toMatchObject({
       isArchived: false,
     });
+  });
+
+  it("includes archived items only when visibility explicitly allows it", () => {
+    expect(
+      buildWishlistItemWhere(
+        {},
+        { includeArchived: true, includePrivate: true, widgetOnly: false },
+      ),
+    ).toEqual({});
   });
 
   it("builds item order from supported sort modes", () => {

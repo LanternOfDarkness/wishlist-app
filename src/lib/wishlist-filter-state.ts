@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
+import type { ItemVisibility } from "./wishlist-visibility";
+
 export type WishlistSort = "priority" | "price_asc" | "price_desc" | "newest";
 
 export type WishlistSearchParams = {
@@ -57,9 +59,13 @@ export function writeWishlistFilterParam(
 
 export function buildWishlistItemWhere(
   searchParams: WishlistSearchParams,
-  canViewPrivateItems: boolean,
+  visibility: ItemVisibility,
 ): Prisma.ItemWhereInput {
-  const where: Prisma.ItemWhereInput = { isArchived: false };
+  const where: Prisma.ItemWhereInput = {};
+
+  if (!visibility.includeArchived) {
+    where.isArchived = false;
+  }
 
   if (searchParams.currency) {
     where.currency = searchParams.currency;
@@ -81,7 +87,7 @@ export function buildWishlistItemWhere(
     };
   }
 
-  if (!canViewPrivateItems) {
+  if (!visibility.includePrivate) {
     where.isPrivate = false;
   }
 
