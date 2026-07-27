@@ -197,6 +197,13 @@ export const APPEARANCE_PRESETS: Record<ColorPreset, ThemePreset> = {
   },
 };
 
+/** WCAG AA minimum contrast ratio for normal-sized text. */
+export const MIN_CONTRAST_RATIO = 4.5;
+
+export function hasSufficientContrast(foreground: string, background: string) {
+  return getContrastRatio(foreground, background) >= MIN_CONTRAST_RATIO;
+}
+
 export function getContrastRatio(foreground: string, background: string) {
   const fg = normalizeHexColor(foreground);
   const bg = normalizeHexColor(background);
@@ -331,7 +338,7 @@ function resolveAdvancedColors(appearance: WishlistAppearance) {
     return null;
   }
 
-  if (getContrastRatio(text, background) < 4.5) {
+  if (!hasSufficientContrast(text, background)) {
     return null;
   }
 
@@ -348,7 +355,7 @@ function resolveLegacyColors(appearance: WishlistAppearance) {
   const background = normalizeHexColor(getString(appearance, "bgColor"));
   const text = normalizeHexColor(getString(appearance, "textColor"));
 
-  if (primary && background && text && getContrastRatio(text, background) >= 4.5) {
+  if (primary && background && text && hasSufficientContrast(text, background)) {
     return {
       primaryColor: primary,
       backgroundColor: background,
@@ -598,6 +605,22 @@ export function getWishlistSettingsState(appearance: unknown) {
       presetTheme.tokens.foreground,
     ),
     bannerDisplayMode: selectBannerDisplayMode(record),
+  };
+}
+
+/**
+ * Starting point for the advanced color pickers when a preset is (re-)selected.
+ * Call this on every preset change — not just at initial mount — or the
+ * pickers keep showing whichever preset's colors happened to be seeded
+ * first, silently stale against the currently selected preset.
+ */
+export function getAdvancedColorSeedForPreset(preset: ColorPreset) {
+  const theme = APPEARANCE_PRESETS[preset];
+
+  return {
+    primaryColor: theme.primaryColor,
+    backgroundColor: theme.tokens.background,
+    textColor: theme.tokens.foreground,
   };
 }
 

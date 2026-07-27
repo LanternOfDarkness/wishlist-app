@@ -10,8 +10,10 @@ interface SettingsTabsProps {
     user: DashboardSettingsUser;
 }
 
+type SettingsTab = "general" | "appearance" | "widget";
+
 export function SettingsTabs({ user }: SettingsTabsProps) {
-    const [activeTab, setActiveTab] = useState("general");
+    const [activeTab, setActiveTab] = useState<SettingsTab>("general");
     const t = useTranslations("Settings");
 
     return (
@@ -40,11 +42,15 @@ export function SettingsTabs({ user }: SettingsTabsProps) {
             </div>
 
             <div className="mt-6">
-                {activeTab === "general" && (
-                    <SettingsForm user={user} tab="general" />
-                )}
-                {activeTab === "appearance" && (
-                    <SettingsForm user={user} tab="appearance" />
+                {/* One persistent instance for general/appearance — SettingsForm
+                    already toggles its own sections via the `tab` prop with CSS
+                    display, not conditional mounting. Splitting this into two
+                    `activeTab === "..." &&` branches (as before) put each form
+                    at a different position in the tree, so switching tabs
+                    unmounted one and mounted a fresh other, silently resetting
+                    every field's state. */}
+                {(activeTab === "general" || activeTab === "appearance") && (
+                    <SettingsForm user={user} tab={activeTab} />
                 )}
 
                 {activeTab === "widget" && user.username && (

@@ -72,6 +72,7 @@
         "colorPresetMinimal": "Мінімальна",
         "advancedColorsLabel": "Ручні кольори",
         "advancedColorsHelp": "Перевизначте пресет власними кольорами акценту, фону та тексту.",
+        "advancedColorsContrastError": "Колір тексту й фону мають недостатній контраст для читабельності. Оберіть кольори з більшим контрастом.",
         "advancedPrimaryColorLabel": "Основний колір",
         "advancedBackgroundColorLabel": "Колір фону",
         "advancedTextColorLabel": "Колір тексту",

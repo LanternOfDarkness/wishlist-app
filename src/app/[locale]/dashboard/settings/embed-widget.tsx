@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useUpdateWidgetSettings } from "@/lib/hooks/use-update-widget-settings";
 import { Label } from "@/components/ui/label";
 import { Copy, Check, Grid2X2, List } from "lucide-react";
+import { toast } from "sonner";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
@@ -60,12 +61,13 @@ export function EmbedWidget({
     );
 
     toggleWidgetItem(itemId, nextStatus, {
-      onError: () => {
+      onError: (error) => {
         setLocalItems((currentItems) =>
           currentItems.map((item) =>
             item.id === itemId ? { ...item, showInWidget: currentStatus } : item,
           ),
         );
+        toast.error(error);
       },
     });
 
@@ -73,13 +75,33 @@ export function EmbedWidget({
   };
 
   const handleLayoutChange = (layout: WidgetLayout) => {
+    const previousLayout = widgetLayout;
     setWidgetLayout(layout);
-    updateWidgetConfig({ layout }, { onSuccess: refreshPreview });
+    updateWidgetConfig(
+      { layout },
+      {
+        onSuccess: refreshPreview,
+        onError: (error) => {
+          setWidgetLayout(previousLayout);
+          toast.error(error);
+        },
+      },
+    );
   };
 
   const handleItemSizeChange = (size: number) => {
+    const previousSize = widgetItemSize;
     setWidgetItemSize(size);
-    updateWidgetConfig({ itemSize: size }, { onSuccess: refreshPreview });
+    updateWidgetConfig(
+      { itemSize: size },
+      {
+        onSuccess: refreshPreview,
+        onError: (error) => {
+          setWidgetItemSize(previousSize);
+          toast.error(error);
+        },
+      },
+    );
   };
 
   const [copied, setCopied] = useState(false);

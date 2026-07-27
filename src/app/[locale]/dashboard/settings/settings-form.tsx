@@ -20,7 +20,9 @@ import {
   COLOR_PRESET_OPTIONS,
   FONT_OPTIONS,
   ITEM_BORDER_OPTIONS,
+  getAdvancedColorSeedForPreset,
   getWishlistSettingsState,
+  hasSufficientContrast,
   type BannerDisplayMode,
   type ColorPreset,
 } from "@/lib/wishlist-appearance";
@@ -90,7 +92,31 @@ export function SettingsForm({
     }
   }
 
+  // Re-seeding on preset change (rather than only at mount) is what keeps
+  // the advanced color pickers from silently showing a previous preset's
+  // colors after switching — see getAdvancedColorSeedForPreset's docstring.
+  function handleColorPresetChange(preset: ColorPreset) {
+    setColorPreset(preset);
+    const seed = getAdvancedColorSeedForPreset(preset);
+    setAdvancedPrimaryColor(seed.primaryColor);
+    setAdvancedBackgroundColor(seed.backgroundColor);
+    setAdvancedTextColor(seed.textColor);
+  }
+
   async function handleSubmit(formData: FormData) {
+    // parseWishlistAppearance (the write-side validator) stores advanced
+    // colors as submitted; only the *read* side re-checks contrast and
+    // silently falls back to the preset if it's insufficient. Without this
+    // check the form would report success while the chosen colors quietly
+    // never take effect.
+    if (
+      advancedColorsEnabled &&
+      !hasSufficientContrast(advancedTextColor, advancedBackgroundColor)
+    ) {
+      toast.error(t("advancedColorsContrastError"));
+      return;
+    }
+
     setIsLoading(true);
 
     const result = await updateProfile(formData);
@@ -259,7 +285,7 @@ export function SettingsForm({
                 <button
                   key={preset}
                   type="button"
-                  onClick={() => setColorPreset(preset)}
+                  onClick={() => handleColorPresetChange(preset)}
                   className={`rounded-md border p-3 text-left transition-colors ${
                     isSelected
                       ? "border-primary ring-2 ring-primary/20"

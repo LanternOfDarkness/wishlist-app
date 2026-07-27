@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   APPEARANCE_PRESETS,
+  MIN_CONTRAST_RATIO,
+  getAdvancedColorSeedForPreset,
   getContrastRatio,
   getWishlistSettingsState,
   getWishlistWidgetSettingsState,
+  hasSufficientContrast,
   migrateLegacyAppearanceColors,
   normalizeWidgetItemSize,
   parseWishlistAppearance,
@@ -419,5 +422,35 @@ describe("normalizeWidgetItemSize", () => {
     expect(normalizeWidgetItemSize(500)).toBe(160);
     expect(normalizeWidgetItemSize(undefined)).toBe(100);
     expect(normalizeWidgetItemSize("not-a-number")).toBe(100);
+  });
+});
+
+describe("hasSufficientContrast", () => {
+  it("matches the same 4.5 WCAG AA threshold resolveWishlistAppearance enforces", () => {
+    expect(hasSufficientContrast("#ffffff", "#111827")).toBe(true);
+    expect(hasSufficientContrast("#374151", "#111827")).toBe(false);
+  });
+
+  it("uses the exported MIN_CONTRAST_RATIO as its threshold", () => {
+    expect(MIN_CONTRAST_RATIO).toBe(4.5);
+    expect(getContrastRatio("#ffffff", "#111827")).toBeGreaterThanOrEqual(
+      MIN_CONTRAST_RATIO,
+    );
+  });
+});
+
+describe("getAdvancedColorSeedForPreset", () => {
+  it("seeds the advanced color pickers from the preset's own tokens", () => {
+    expect(getAdvancedColorSeedForPreset("rose")).toEqual({
+      primaryColor: APPEARANCE_PRESETS.rose.primaryColor,
+      backgroundColor: APPEARANCE_PRESETS.rose.tokens.background,
+      textColor: APPEARANCE_PRESETS.rose.tokens.foreground,
+    });
+  });
+
+  it("returns a different seed for each preset (regression: preset switches silently kept stale colors)", () => {
+    const rose = getAdvancedColorSeedForPreset("rose");
+    const dark = getAdvancedColorSeedForPreset("dark");
+    expect(rose).not.toEqual(dark);
   });
 });

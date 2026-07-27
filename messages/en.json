@@ -72,6 +72,7 @@
         "colorPresetMinimal": "Minimal",
         "advancedColorsLabel": "Manual colors",
         "advancedColorsHelp": "Override the preset with your own primary, background, and text colors.",
+        "advancedColorsContrastError": "Text and background colors don't have enough contrast to be readable. Please choose colors with more contrast.",
         "advancedPrimaryColorLabel": "Primary color",
         "advancedBackgroundColorLabel": "Background color",
         "advancedTextColorLabel": "Text color",

@@ -13,6 +13,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Isolated agent worktrees (each a full checkout, own node_modules)
+    // live under here — without this they get linted as if they were
+    // part of the project.
+    ".claude/**",
   ]),
 ]);
 

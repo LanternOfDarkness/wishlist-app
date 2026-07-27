@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 export default defineConfig({
   resolve: {
@@ -9,6 +9,10 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // Isolated agent worktrees live under .claude/worktrees/ inside this
+    // repo; without this they get scanned as if they were part of the
+    // project, silently doubling (or worse, destabilizing) test runs.
+    exclude: [...configDefaults.exclude, '.claude/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
