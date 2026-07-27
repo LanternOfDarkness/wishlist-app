@@ -5,7 +5,7 @@ import { fetchMetadata } from '../fetch-metadata';
 global.fetch = vi.fn();
 
 // Mock auth so tests control whether the caller is authenticated.
-vi.mock('@/lib/wishlist-command-context', () => ({
+vi.mock('@/lib/wishlist-command', () => ({
     getAuthenticatedUserId: vi.fn(),
 }));
 
@@ -18,7 +18,7 @@ vi.mock('node:dns', () => {
     };
 });
 
-import { getAuthenticatedUserId } from '@/lib/wishlist-command-context';
+import { getAuthenticatedUserId } from '@/lib/wishlist-command';
 import dns from 'node:dns';
 
 const mockedLookup = dns.promises.lookup as unknown as Mock;

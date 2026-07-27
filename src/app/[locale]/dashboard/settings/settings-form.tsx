@@ -71,8 +71,8 @@ export function SettingsForm({
     const result = await regenerateShareToken();
     setShareBusy(false);
 
-    if (result.success) {
-      setShareToken(result.shareToken);
+    if (result.success && result.data) {
+      setShareToken(result.data.shareToken);
       toast.success(t("shareLinkUpdated"));
     } else {
       toast.error(t("shareLinkError"));
@@ -99,7 +99,7 @@ export function SettingsForm({
 
     setIsLoading(false);
 
-    if (result?.error) {
+    if (!result.success) {
       toast.error("Error", {
         description: result.error,
       });

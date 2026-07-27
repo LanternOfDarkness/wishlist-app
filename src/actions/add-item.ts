@@ -1,49 +1,37 @@
 "use server";
 
+import { getRepository } from "@/lib/repository";
 import {
-    getAuthenticatedUserId,
-} from "@/lib/wishlist-command-context";
+  normalizeWishlistItemIntake,
+  type WishlistItemIntakeInput,
+} from "@/lib/wishlist-item-intake";
 import {
-    createWishlistItemFromIntake,
-} from "@/lib/wishlist-item-intake-command";
-import type { WishlistItemIntakeInput } from "@/lib/wishlist-item-intake";
-import { revalidatePath } from "next/cache";
+  requireAuthenticatedUserId,
+  requireOwned,
+  wishlistCommand,
+} from "@/lib/wishlist-command";
 
 export type AddItemData = WishlistItemIntakeInput;
 
-// Domain errors thrown by the intake/command layer that are safe to surface
-// verbatim to the client (validation feedback, ownership denial). Anything
-// else (DB/infra failures) stays behind a generic message so internal
-// details are never leaked — but is still distinguishable from these in logs.
-const KNOWN_ERROR_MESSAGES = new Set([
-    'Item name is required',
-    'Wishlist not found or access denied',
-]);
+export const addItem = wishlistCommand(
+  async (data: AddItemData) => {
+    const userId = await requireAuthenticatedUserId();
+    const intake = normalizeWishlistItemIntake(data);
 
-export async function addItem(data: AddItemData) {
-    const userId = await getAuthenticatedUserId();
-    if (!userId) {
-        return { success: false, error: 'Unauthorized' };
-    }
+    await requireOwned(
+      getRepository().require({
+        type: "owned-wishlist",
+        wishlistId: intake.wishlistId,
+        userId,
+        message: "Wishlist not found or access denied",
+      }),
+    );
 
-    try {
-        const item = await createWishlistItemFromIntake(data, userId);
-
-        revalidatePath('/[locale]/[username]', 'page');
-
-        return { success: true, item };
-    } catch (error) {
-        const isKnownError =
-            error instanceof Error && KNOWN_ERROR_MESSAGES.has(error.message);
-
-        console.error(
-            isKnownError ? 'Rejected adding item:' : 'Error adding item:',
-            error,
-        );
-
-        return {
-            success: false,
-            error: isKnownError ? (error as Error).message : 'Failed to add item',
-        };
-    }
-}
+    return getRepository().execute({
+      type: "add-item",
+      userId,
+      item: intake,
+    });
+  },
+  { revalidate: ["wishlistPage"], genericErrorMessage: "Failed to add item" },
+);

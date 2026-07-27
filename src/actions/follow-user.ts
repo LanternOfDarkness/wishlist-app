@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuthenticatedUserId } from "@/lib/wishlist-command-context";
+import { requireAuthenticatedUserId } from "@/lib/wishlist-command";
 import { getRepository } from "@/lib/repository";
 import { success, type ActionResult } from "@/lib/action-result";
 import { revalidatePath } from "next/cache";

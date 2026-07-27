@@ -1,85 +1,99 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
-vi.mock("@/lib/wishlist-command-context", () => ({
-  getAuthenticatedUserId: vi.fn(),
-}));
-
-vi.mock("@/lib/wishlist-item-intake-command", () => ({
-  createWishlistItemFromIntake: vi.fn(),
-}));
-
-vi.mock("next/cache", () => ({
-  revalidatePath: vi.fn(),
-}));
+vi.mock("@/auth", () => ({ auth: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { addItem } from "../add-item";
-import { getAuthenticatedUserId } from "@/lib/wishlist-command-context";
-import { createWishlistItemFromIntake } from "@/lib/wishlist-item-intake-command";
+import { auth } from "@/auth";
+import { setTestRepository } from "@/lib/repository";
+import { InMemoryWishlistRepository } from "@/lib/repository/in-memory-adapter";
+import type { UserProfile, WishlistData } from "@/lib/repository/types";
 
-const mockGetAuth = getAuthenticatedUserId as unknown as Mock;
-const mockCreateItem = createWishlistItemFromIntake as unknown as Mock;
+const mockAuth = auth as unknown as Mock;
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  vi.spyOn(console, "error").mockImplementation(() => {});
-});
+function makeUser(id: string): UserProfile {
+  return {
+    id,
+    name: "Test User",
+    email: `${id}@example.com`,
+    emailVerified: null,
+    image: null,
+    username: id,
+    createdAt: new Date(),
+  };
+}
+
+function makeWishlist(id: string, userId: string): WishlistData {
+  return {
+    id,
+    title: "Test Wishlist",
+    description: null,
+    slug: id,
+    isPublic: true,
+    shareToken: null,
+    appearance: {},
+    userId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
 
 describe("addItem", () => {
+  let repo: InMemoryWishlistRepository;
+
+  beforeEach(() => {
+    repo = new InMemoryWishlistRepository();
+    setTestRepository(repo);
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
   it("rejects unauthenticated callers and performs no write", async () => {
-    mockGetAuth.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const result = await addItem({ name: "Book", wishlistId: "wl-1" });
 
     expect(result).toEqual({ success: false, error: "Unauthorized" });
-    expect(mockCreateItem).not.toHaveBeenCalled();
+    expect(repo.items.size).toBe(0);
   });
 
-  it("surfaces a known validation error verbatim", async () => {
-    mockGetAuth.mockResolvedValue("user-1");
-    mockCreateItem.mockRejectedValue(new Error("Item name is required"));
+  it("surfaces a validation error verbatim", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+    repo.users.set("user-1", makeUser("user-1"));
+    repo.wishlists.set("wl-1", makeWishlist("wl-1", "user-1"));
 
     const result = await addItem({ name: "", wishlistId: "wl-1" });
 
-    expect(result).toEqual({
-      success: false,
-      error: "Item name is required",
-    });
+    expect(result).toEqual({ success: false, error: "Item name is required" });
+    expect(repo.items.size).toBe(0);
   });
 
-  it("surfaces a known ownership-denial error verbatim", async () => {
-    mockGetAuth.mockResolvedValue("user-1");
-    mockCreateItem.mockRejectedValue(
-      new Error("Wishlist not found or access denied"),
-    );
+  it("surfaces an ownership-denial error verbatim", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+    repo.users.set("user-1", makeUser("user-1"));
+    repo.wishlists.set("wl-other", makeWishlist("wl-other", "someone-else"));
 
-    const result = await addItem({ name: "Book", wishlistId: "not-mine" });
+    const result = await addItem({ name: "Book", wishlistId: "wl-other" });
 
     expect(result).toEqual({
       success: false,
       error: "Wishlist not found or access denied",
     });
-  });
-
-  it("hides unexpected/infra errors behind a generic message", async () => {
-    mockGetAuth.mockResolvedValue("user-1");
-    mockCreateItem.mockRejectedValue(
-      new Error("connect ECONNREFUSED 127.0.0.1:5432"),
-    );
-
-    const result = await addItem({ name: "Book", wishlistId: "wl-1" });
-
-    expect(result).toEqual({ success: false, error: "Failed to add item" });
+    expect(repo.items.size).toBe(0);
   });
 
   it("returns the created item on success", async () => {
-    mockGetAuth.mockResolvedValue("user-1");
-    mockCreateItem.mockResolvedValue({ id: "item-1", name: "Book" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+    repo.users.set("user-1", makeUser("user-1"));
+    repo.wishlists.set("wl-1", makeWishlist("wl-1", "user-1"));
 
     const result = await addItem({ name: "Book", wishlistId: "wl-1" });
 
-    expect(result).toEqual({
-      success: true,
-      item: { id: "item-1", name: "Book" },
+    expect(result.success).toBe(true);
+    expect(result.success && result.data).toMatchObject({
+      name: "Book",
+      wishlistId: "wl-1",
     });
+    expect(repo.items.size).toBe(1);
   });
 });

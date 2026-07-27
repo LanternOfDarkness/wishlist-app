@@ -1,27 +1,20 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getRepository } from "@/lib/repository";
 import {
-    requireAuthenticatedUserId,
-    requireOwnedWishlistItem,
-} from "@/lib/wishlist-command-context";
-import { revalidatePath } from "next/cache";
+  requireAuthenticatedUserId,
+  requireOwned,
+  wishlistCommand,
+} from "@/lib/wishlist-command";
 
-export async function setItemArchived(itemId: string, archived: boolean) {
-    try {
-        const userId = await requireAuthenticatedUserId();
-        await requireOwnedWishlistItem(itemId, userId);
+export const setItemArchived = wishlistCommand(
+  async (itemId: string, archived: boolean) => {
+    const userId = await requireAuthenticatedUserId();
+    await requireOwned(
+      getRepository().require({ type: "owned-item", itemId, userId, message: "Item not found" }),
+    );
 
-        const item = await prisma.item.update({
-            where: { id: itemId },
-            data: { isArchived: archived },
-        });
-
-        revalidatePath('/[locale]/[username]', 'page');
-
-        return { success: true, item };
-    } catch (error) {
-        console.error('Error archiving item:', error);
-        return { success: false, error: 'Failed to update item' };
-    }
-}
+    return getRepository().execute({ type: "set-item-archived", itemId, archived });
+  },
+  { revalidate: ["wishlistPage"], genericErrorMessage: "Failed to update item" },
+);

@@ -1,3 +1,5 @@
+import { ValidationError } from "./action-result";
+
 export interface WishlistItemMetadata {
   title?: string;
   image?: string;
@@ -81,7 +83,7 @@ export function normalizeWishlistItemIntake(
   const name = input.name.trim();
 
   if (!name) {
-    throw new Error("Item name is required");
+    throw new ValidationError("Item name is required");
   }
 
   const categoryId = normalizeOptionalString(input.categoryId);

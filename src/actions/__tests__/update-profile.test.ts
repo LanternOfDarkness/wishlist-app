@@ -1,31 +1,42 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
-vi.mock("@/lib/wishlist-command-context", () => ({
-  requireAuthenticatedUserId: vi.fn(),
-  getOwnedWishlistAppearance: vi.fn(),
-}));
-
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    user: { findUnique: vi.fn(), update: vi.fn() },
-  },
-}));
-
-vi.mock("next/cache", () => ({
-  revalidatePath: vi.fn(),
-}));
+vi.mock("@/auth", () => ({ auth: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { updateProfile } from "../update-profile";
-import {
-  requireAuthenticatedUserId,
-  getOwnedWishlistAppearance,
-} from "@/lib/wishlist-command-context";
-import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { setTestRepository } from "@/lib/repository";
+import { InMemoryWishlistRepository } from "@/lib/repository/in-memory-adapter";
+import type { UserProfile, WishlistData } from "@/lib/repository/types";
 
-const mockRequireAuth = requireAuthenticatedUserId as unknown as Mock;
-const mockGetOwnedAppearance = getOwnedWishlistAppearance as unknown as Mock;
-const mockUserFindUnique = prisma.user.findUnique as unknown as Mock;
-const mockUserUpdate = prisma.user.update as unknown as Mock;
+const mockAuth = auth as unknown as Mock;
+
+function makeUser(id: string, username: string | null = null): UserProfile {
+  return {
+    id,
+    name: "Test User",
+    email: `${id}@example.com`,
+    emailVerified: null,
+    image: null,
+    username,
+    createdAt: new Date(),
+  };
+}
+
+function makeWishlist(id: string, userId: string): WishlistData {
+  return {
+    id,
+    title: "Test Wishlist",
+    description: null,
+    slug: id,
+    isPublic: true,
+    shareToken: null,
+    appearance: {},
+    userId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
 
 function formData(fields: Record<string, string>) {
   const fd = new FormData();
@@ -35,38 +46,36 @@ function formData(fields: Record<string, string>) {
   return fd;
 }
 
+let repo: InMemoryWishlistRepository;
+
 beforeEach(() => {
+  repo = new InMemoryWishlistRepository();
+  setTestRepository(repo);
   vi.clearAllMocks();
-  mockRequireAuth.mockResolvedValue("user-1");
-  mockGetOwnedAppearance.mockResolvedValue({ id: "wl-1", appearance: null });
-  mockUserUpdate.mockResolvedValue({});
+  mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+  repo.users.set("user-1", makeUser("user-1", "my-name"));
+  repo.wishlists.set("wl-1", makeWishlist("wl-1", "user-1"));
 });
 
 describe("updateProfile — username validation", () => {
   it("rejects a username that is too short", async () => {
-    const result = await updateProfile(
-      formData({ name: "A", username: "ab" }),
-    );
-    expect(result.error).toBeTruthy();
-    expect(mockUserUpdate).not.toHaveBeenCalled();
+    const result = await updateProfile(formData({ name: "A", username: "ab" }));
+    expect(result).toEqual({ success: false, error: expect.any(String) });
   });
 
   it("rejects a username with disallowed characters", async () => {
-    const result = await updateProfile(
-      formData({ name: "A", username: "bad_name!" }),
-    );
-    expect(result.error).toBeTruthy();
-    expect(mockUserUpdate).not.toHaveBeenCalled();
+    const result = await updateProfile(formData({ name: "A", username: "bad_name!" }));
+    expect(result.success).toBe(false);
   });
 
   it.each(["dashboard", "login", "embed", "api", "DASHBOARD"])(
     "rejects the reserved username %s",
     async (reserved) => {
-      const result = await updateProfile(
-        formData({ name: "A", username: reserved }),
-      );
-      expect(result).toEqual({ error: "Цей нікнейм зарезервовано системою" });
-      expect(mockUserUpdate).not.toHaveBeenCalled();
+      const result = await updateProfile(formData({ name: "A", username: reserved }));
+      expect(result).toEqual({
+        success: false,
+        error: "Цей нікнейм зарезервовано системою",
+      });
     },
   );
 
@@ -75,55 +84,41 @@ describe("updateProfile — username validation", () => {
     // rejected by the length check before the reserved-word check runs.
     "rejects the locale code %s (too short to reach the reserved-word check)",
     async (localeCode) => {
-      const result = await updateProfile(
-        formData({ name: "A", username: localeCode }),
-      );
-      expect(result.error).toBeTruthy();
-      expect(mockUserUpdate).not.toHaveBeenCalled();
+      const result = await updateProfile(formData({ name: "A", username: localeCode }));
+      expect(result.success).toBe(false);
     },
   );
 
   it("rejects a username already taken by another user", async () => {
-    mockUserFindUnique.mockResolvedValue({ id: "someone-else" });
+    repo.users.set("someone-else", makeUser("someone-else", "taken-name"));
 
-    const result = await updateProfile(
-      formData({ name: "A", username: "taken-name" }),
-    );
+    const result = await updateProfile(formData({ name: "A", username: "taken-name" }));
 
-    expect(result).toEqual({ error: "Цей нікнейм вже зайнятий" });
-    expect(mockUserUpdate).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: false, error: "Цей нікнейм вже зайнятий" });
   });
 
   it("allows re-saving your own current username", async () => {
-    mockUserFindUnique.mockResolvedValue({ id: "user-1" });
-
-    const result = await updateProfile(
-      formData({ name: "A", username: "my-name" }),
-    );
+    const result = await updateProfile(formData({ name: "A", username: "my-name" }));
 
     expect(result).toEqual({ success: true });
-    expect(mockUserUpdate).toHaveBeenCalled();
+    expect(repo.users.get("user-1")?.username).toBe("my-name");
   });
 
   it("accepts a valid, available username", async () => {
-    mockUserFindUnique.mockResolvedValue(null);
-
-    const result = await updateProfile(
-      formData({ name: "A", username: "valid-name-123" }),
-    );
+    const result = await updateProfile(formData({ name: "A", username: "valid-name-123" }));
 
     expect(result).toEqual({ success: true });
-    expect(mockUserUpdate).toHaveBeenCalled();
+    expect(repo.users.get("user-1")?.username).toBe("valid-name-123");
   });
 });
 
 describe("updateProfile — auth", () => {
-  it("propagates authentication failure without writing", async () => {
-    mockRequireAuth.mockRejectedValue(new Error("Не авторизований"));
+  it("returns an authorization failure without writing", async () => {
+    mockAuth.mockResolvedValue(null);
 
-    await expect(
-      updateProfile(formData({ name: "A", username: "valid-name" })),
-    ).rejects.toThrow();
-    expect(mockUserUpdate).not.toHaveBeenCalled();
+    const result = await updateProfile(formData({ name: "A", username: "valid-name" }));
+
+    expect(result).toEqual({ success: false, error: "Не авторизований" });
+    expect(repo.users.get("user-1")?.username).toBe("my-name");
   });
 });

@@ -373,10 +373,16 @@ export class InMemoryWishlistRepository implements IWishlistRepository {
         if (command.name !== undefined) updated.name = command.name;
         if (command.username !== undefined) updated.username = command.username;
         this.users.set(command.userId, updated);
-        if (command.appearance !== undefined) {
+        if (command.appearance !== undefined || command.isPublic !== undefined) {
           const w = [...this.wishlists.values()].find((w) => w.userId === command.userId);
           if (w) {
-            this.wishlists.set(w.id, { ...w, appearance: command.appearance as Record<string, unknown> });
+            this.wishlists.set(w.id, {
+              ...w,
+              ...(command.appearance !== undefined
+                ? { appearance: command.appearance as Record<string, unknown> }
+                : {}),
+              ...(command.isPublic !== undefined ? { isPublic: command.isPublic } : {}),
+            });
           }
         }
         return undefined;

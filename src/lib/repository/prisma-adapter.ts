@@ -421,13 +421,20 @@ export class PrismaWishlistRepository implements IWishlistRepository {
       }
 
       case "update-user-profile": {
+        const wishlistUpdate = {
+          ...(command.appearance !== undefined
+            ? { appearance: command.appearance as Prisma.InputJsonObject }
+            : {}),
+          ...(command.isPublic !== undefined ? { isPublic: command.isPublic } : {}),
+        };
+
         await prisma.user.update({
           where: { id: command.userId },
           data: {
             ...(command.name !== undefined ? { name: command.name } : {}),
             ...(command.username !== undefined ? { username: command.username } : {}),
-            ...(command.appearance !== undefined
-              ? { wishlist: { update: { appearance: command.appearance as Prisma.InputJsonObject } } }
+            ...(Object.keys(wishlistUpdate).length > 0
+              ? { wishlist: { update: wishlistUpdate } }
               : {}),
           },
         });

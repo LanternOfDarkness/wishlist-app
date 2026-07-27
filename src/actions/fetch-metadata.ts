@@ -2,7 +2,7 @@
 
 import * as cheerio from "cheerio";
 
-import { getAuthenticatedUserId } from "@/lib/wishlist-command-context";
+import { getAuthenticatedUserId } from "@/lib/wishlist-command";
 import { safeFetch, UnsafeUrlError } from "@/lib/safe-fetch";
 
 export interface MetadataResult {

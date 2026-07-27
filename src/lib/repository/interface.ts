@@ -62,6 +62,7 @@ export type WriteCommand =
       name?: string;
       username?: string;
       appearance?: Record<string, unknown>;
+      isPublic?: boolean;
     }
   | {
       type: "update-widget-item-visibility";

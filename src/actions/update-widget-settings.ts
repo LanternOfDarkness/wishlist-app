@@ -1,47 +1,40 @@
 "use server";
 
+import { getRepository } from "@/lib/repository";
+import { normalizeWidgetItemSize, type WidgetLayout } from "@/lib/wishlist-appearance";
 import {
   requireAuthenticatedUserId,
-  requireOwnedWishlistAppearance,
-} from "@/lib/wishlist-command-context";
-import { prisma } from "@/lib/prisma";
-import {
-  normalizeWidgetItemSize,
-  type WidgetLayout,
-} from "@/lib/wishlist-appearance";
-import { revalidatePath } from "next/cache";
+  requireOwned,
+  wishlistCommand,
+} from "@/lib/wishlist-command";
 
 interface WidgetSettingsInput {
   layout?: WidgetLayout;
   itemSize?: number;
 }
 
-export async function updateWidgetSettings(settings: WidgetSettingsInput) {
-  const userId = await requireAuthenticatedUserId();
-  const wishlist = await requireOwnedWishlistAppearance(userId);
+export const updateWidgetSettings = wishlistCommand(
+  async (settings: WidgetSettingsInput) => {
+    const userId = await requireAuthenticatedUserId();
+    const wishlist = await requireOwned(
+      getRepository().require({
+        type: "wishlist-appearance",
+        userId,
+        message: "Wishlist not found",
+      }),
+    );
 
-  const currentAppearance =
-    wishlist.appearance &&
-    typeof wishlist.appearance === "object" &&
-    !Array.isArray(wishlist.appearance)
-      ? wishlist.appearance
-      : {};
-
-  await prisma.wishlist.update({
-    where: { id: wishlist.id },
-    data: {
+    await getRepository().execute({
+      type: "update-widget-settings",
+      wishlistId: wishlist.id,
       appearance: {
-        ...currentAppearance,
+        ...wishlist.appearance,
         ...(settings.layout ? { widgetLayout: settings.layout } : {}),
         ...(settings.itemSize
           ? { widgetItemSize: normalizeWidgetItemSize(settings.itemSize) }
           : {}),
       },
-    },
-  });
-
-  revalidatePath("/dashboard/settings");
-  revalidatePath("/[locale]/embed/[username]", "page");
-
-  return { success: true };
-}
+    });
+  },
+  { revalidate: ["dashboardSettings", "embedPage"] },
+);

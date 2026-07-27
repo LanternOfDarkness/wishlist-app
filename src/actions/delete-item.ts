@@ -1,24 +1,20 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getRepository } from "@/lib/repository";
 import {
-    requireAuthenticatedUserId,
-    requireOwnedWishlistItem,
-} from "@/lib/wishlist-command-context";
-import { revalidatePath } from "next/cache";
+  requireAuthenticatedUserId,
+  requireOwned,
+  wishlistCommand,
+} from "@/lib/wishlist-command";
 
-export async function deleteItem(itemId: string) {
-    try {
-        const userId = await requireAuthenticatedUserId();
-        await requireOwnedWishlistItem(itemId, userId);
+export const deleteItem = wishlistCommand(
+  async (itemId: string) => {
+    const userId = await requireAuthenticatedUserId();
+    await requireOwned(
+      getRepository().require({ type: "owned-item", itemId, userId, message: "Item not found" }),
+    );
 
-        await prisma.item.delete({ where: { id: itemId } });
-
-        revalidatePath('/[locale]/[username]', 'page');
-
-        return { success: true };
-    } catch (error) {
-        console.error('Error deleting item:', error);
-        return { success: false, error: 'Failed to delete item' };
-    }
-}
+    await getRepository().execute({ type: "delete-item", itemId });
+  },
+  { revalidate: ["wishlistPage"], genericErrorMessage: "Failed to delete item" },
+);

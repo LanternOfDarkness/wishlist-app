@@ -1,26 +1,40 @@
 "use server";
 
+import { getRepository } from "@/lib/repository";
 import {
-    requireAuthenticatedUserId,
-} from "@/lib/wishlist-command-context";
+  normalizeWishlistItemIntake,
+  type WishlistItemIntakeInput,
+} from "@/lib/wishlist-item-intake";
 import {
-    updateWishlistItemFromIntake,
-} from "@/lib/wishlist-item-intake-command";
-import type { WishlistItemIntakeInput } from "@/lib/wishlist-item-intake";
-import { revalidatePath } from "next/cache";
+  requireAuthenticatedUserId,
+  requireOwned,
+  wishlistCommand,
+} from "@/lib/wishlist-command";
 
 export type UpdateItemData = Omit<WishlistItemIntakeInput, "wishlistId">;
 
-export async function updateItem(itemId: string, data: UpdateItemData) {
-    try {
-        const userId = await requireAuthenticatedUserId();
-        const item = await updateWishlistItemFromIntake(itemId, data, userId);
+export const updateItem = wishlistCommand(
+  async (itemId: string, data: UpdateItemData) => {
+    const userId = await requireAuthenticatedUserId();
+    const existingItem = await requireOwned(
+      getRepository().require({ type: "owned-item", itemId, userId, message: "Item not found" }),
+    );
 
-        revalidatePath('/[locale]/[username]', 'page');
+    // On edit the category field is always submitted, so an empty selection
+    // means "clear the category" rather than "leave unchanged" — normalizing
+    // with the existing item's wishlistId keeps this the same intake rules
+    // add-item uses.
+    const intake = normalizeWishlistItemIntake({
+      ...data,
+      wishlistId: existingItem.wishlistId,
+    });
 
-        return { success: true, item };
-    } catch (error) {
-        console.error('Error updating item:', error);
-        return { success: false, error: 'Failed to update item' };
-    }
-}
+    return getRepository().execute({
+      type: "update-item",
+      itemId,
+      userId,
+      item: intake,
+    });
+  },
+  { revalidate: ["wishlistPage"], genericErrorMessage: "Failed to update item" },
+);

@@ -382,6 +382,30 @@ export function runRepositoryConformanceSuite(
       });
     });
 
+    describe("update-user-profile", () => {
+      it("updates name, username, appearance, and isPublic together", async () => {
+        const h = await harness();
+        const owner = await h.createUser();
+        await h.createWishlist(owner.id, { isPublic: true });
+
+        await h.repo.execute({
+          type: "update-user-profile",
+          userId: owner.id,
+          name: "New Name",
+          appearance: { colorPreset: "rose" },
+          isPublic: false,
+        });
+
+        const reloaded = await h.repo.load({
+          type: "wishlist-presentation",
+          userId: owner.id,
+          itemVisibility: FULL_ACCESS,
+        });
+        expect(reloaded?.wishlist.isPublic).toBe(false);
+        expect(reloaded?.wishlist.appearance).toEqual({ colorPreset: "rose" });
+      });
+    });
+
     describe("item mutations", () => {
       it("update-item changes the stored fields", async () => {
         const h = await harness();

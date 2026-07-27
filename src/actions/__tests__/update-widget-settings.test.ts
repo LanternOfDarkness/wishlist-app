@@ -1,77 +1,83 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
-vi.mock("@/lib/wishlist-command-context", () => ({
-  requireAuthenticatedUserId: vi.fn(),
-  requireOwnedWishlistAppearance: vi.fn(),
-}));
-
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    wishlist: { update: vi.fn() },
-  },
-}));
-
-vi.mock("next/cache", () => ({
-  revalidatePath: vi.fn(),
-}));
+vi.mock("@/auth", () => ({ auth: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { updateWidgetSettings } from "../update-widget-settings";
-import {
-  requireAuthenticatedUserId,
-  requireOwnedWishlistAppearance,
-} from "@/lib/wishlist-command-context";
-import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { setTestRepository } from "@/lib/repository";
+import { InMemoryWishlistRepository } from "@/lib/repository/in-memory-adapter";
+import type { UserProfile, WishlistData } from "@/lib/repository/types";
 
-const mockRequireAuth = requireAuthenticatedUserId as unknown as Mock;
-const mockRequireOwnedAppearance =
-  requireOwnedWishlistAppearance as unknown as Mock;
-const mockWishlistUpdate = prisma.wishlist.update as unknown as Mock;
+const mockAuth = auth as unknown as Mock;
 
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+function makeUser(id: string): UserProfile {
+  return {
+    id,
+    name: "Test User",
+    email: `${id}@example.com`,
+    emailVerified: null,
+    image: null,
+    username: id,
+    createdAt: new Date(),
+  };
+}
+
+function makeWishlist(id: string, userId: string, appearance: Record<string, unknown> = {}): WishlistData {
+  return {
+    id,
+    title: "Test Wishlist",
+    description: null,
+    slug: id,
+    isPublic: true,
+    shareToken: null,
+    appearance,
+    userId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
 
 describe("updateWidgetSettings", () => {
-  it("rejects unauthenticated callers and performs no write", async () => {
-    mockRequireAuth.mockRejectedValue(new Error("Unauthorized"));
+  let repo: InMemoryWishlistRepository;
 
-    await expect(updateWidgetSettings({ layout: "list" })).rejects.toThrow();
-    expect(mockWishlistUpdate).not.toHaveBeenCalled();
+  beforeEach(() => {
+    repo = new InMemoryWishlistRepository();
+    setTestRepository(repo);
+    vi.clearAllMocks();
+  });
+
+  it("rejects unauthenticated callers and performs no write", async () => {
+    mockAuth.mockResolvedValue(null);
+    repo.users.set("user-1", makeUser("user-1"));
+    repo.wishlists.set("wl-1", makeWishlist("wl-1", "user-1"));
+
+    const result = await updateWidgetSettings({ layout: "list" });
+
+    expect(result).toEqual({ success: false, error: "Unauthorized" });
+    expect(repo.wishlists.get("wl-1")?.appearance).toEqual({});
   });
 
   it("rejects when the caller has no owned wishlist", async () => {
-    mockRequireAuth.mockResolvedValue("user-1");
-    mockRequireOwnedAppearance.mockRejectedValue(
-      new Error("Wishlist not found"),
-    );
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
 
-    await expect(updateWidgetSettings({ layout: "list" })).rejects.toThrow();
-    expect(mockWishlistUpdate).not.toHaveBeenCalled();
+    const result = await updateWidgetSettings({ layout: "list" });
+
+    expect(result).toEqual({ success: false, error: "Wishlist not found" });
   });
 
   it("merges layout/itemSize into existing appearance JSON", async () => {
-    mockRequireAuth.mockResolvedValue("user-1");
-    mockRequireOwnedAppearance.mockResolvedValue({
-      id: "wl-1",
-      appearance: { colorPreset: "rose" },
-    });
-    mockWishlistUpdate.mockResolvedValue({});
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+    repo.users.set("user-1", makeUser("user-1"));
+    repo.wishlists.set("wl-1", makeWishlist("wl-1", "user-1", { colorPreset: "rose" }));
 
-    const result = await updateWidgetSettings({
-      layout: "list",
-      itemSize: 40,
-    });
+    const result = await updateWidgetSettings({ layout: "list", itemSize: 40 });
 
-    expect(mockWishlistUpdate).toHaveBeenCalledWith({
-      where: { id: "wl-1" },
-      data: {
-        appearance: {
-          colorPreset: "rose",
-          widgetLayout: "list",
-          widgetItemSize: 70,
-        },
-      },
-    });
     expect(result).toEqual({ success: true });
+    expect(repo.wishlists.get("wl-1")?.appearance).toEqual({
+      colorPreset: "rose",
+      widgetLayout: "list",
+      widgetItemSize: 70,
+    });
   });
 });

@@ -1,17 +1,16 @@
 "use server";
 
-import type { Prisma } from "@prisma/client";
 import {
     migrateLegacyAppearanceColors,
     parseWishlistAppearance,
 } from "@/lib/wishlist-appearance";
-import { prisma } from "@/lib/prisma";
+import { getRepository } from "@/lib/repository";
+import { isValidUsernameFormat, isReservedUsername } from "@/lib/username";
 import {
     requireAuthenticatedUserId,
-    getOwnedWishlistAppearance,
-} from "@/lib/wishlist-command-context";
-import { isValidUsernameFormat, isReservedUsername } from "@/lib/username";
-import { revalidatePath } from "next/cache";
+    wishlistCommand,
+    ValidationError,
+} from "@/lib/wishlist-command";
 
 // Every appearance field below must be present on every submit (via
 // settings-form.tsx's always-present hidden inputs) or it's normalized back
@@ -35,64 +34,58 @@ function extractAppearanceFormFields(formData: FormData) {
     };
 }
 
-export async function updateProfile(formData: FormData) {
-    const userId = await requireAuthenticatedUserId("Не авторизований");
+export const updateProfile = wishlistCommand(
+    async (formData: FormData) => {
+        const userId = await requireAuthenticatedUserId("Не авторизований");
 
-    const name = formData.get("name") as string;
-    const username = formData.get("username") as string;
-    const isPublicRaw = formData.get("isPublic");
-    const isPublic =
-        isPublicRaw === null ? undefined : isPublicRaw === "true";
-    if (username) {
-        if (!isValidUsernameFormat(username)) {
-            return {
-                error:
+        const name = formData.get("name") as string;
+        const username = formData.get("username") as string;
+        const isPublicRaw = formData.get("isPublic");
+        const isPublic = isPublicRaw === null ? undefined : isPublicRaw === "true";
+
+        if (username) {
+            if (!isValidUsernameFormat(username)) {
+                throw new ValidationError(
                     "Неприпустимий нікнейм. Дозволені літери, цифри та дефіси (3-30 символів).",
-            };
+                );
+            }
+
+            if (isReservedUsername(username)) {
+                throw new ValidationError("Цей нікнейм зарезервовано системою");
+            }
+
+            const existingUser = await getRepository().load({
+                type: "user-by-username",
+                username,
+            });
+
+            if (existingUser && existingUser.id !== userId) {
+                throw new ValidationError("Цей нікнейм вже зайнятий");
+            }
         }
 
-        if (isReservedUsername(username)) {
-            return { error: "Цей нікнейм зарезервовано системою" };
-        }
-
-        const existingUser = await prisma.user.findUnique({
-            where: { username },
+        const wishlist = await getRepository().require({
+            type: "wishlist-appearance",
+            userId,
+            message: "Wishlist not found",
         });
 
-        if (existingUser && existingUser.id !== userId) {
-            return { error: "Цей нікнейм вже зайнятий" };
-        }
-    }
+        const appearance = parseWishlistAppearance({
+            ...migrateLegacyAppearanceColors(wishlist.appearance),
+            ...extractAppearanceFormFields(formData),
+        });
 
-    const wishlist = await getOwnedWishlistAppearance(userId);
-    const currentAppearance =
-        wishlist?.appearance &&
-        typeof wishlist.appearance === "object" &&
-        !Array.isArray(wishlist.appearance)
-            ? (wishlist.appearance as Prisma.JsonObject)
-            : ({} as Prisma.JsonObject);
-
-    const appearance = parseWishlistAppearance({
-      ...migrateLegacyAppearanceColors(currentAppearance),
-      ...extractAppearanceFormFields(formData),
-    });
-
-    await prisma.user.update({
-        where: { id: userId },
-        data: {
+        await getRepository().execute({
+            type: "update-user-profile",
+            userId,
             name,
             username,
-            wishlist: {
-                update: {
-                    appearance: appearance as Prisma.InputJsonObject,
-                    ...(isPublic === undefined ? {} : { isPublic }),
-                }
-            }
-        },
-    });
-
-    revalidatePath("/dashboard");
-    revalidatePath("/[locale]/[username]", "page");
-    revalidatePath("/[locale]/embed/[username]", "page");
-    return { success: true };
-}
+            appearance,
+            isPublic,
+        });
+    },
+    {
+        revalidate: ["dashboard", "wishlistPage", "embedPage"],
+        genericErrorMessage: "Failed to update profile",
+    },
+);

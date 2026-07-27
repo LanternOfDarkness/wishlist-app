@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
-vi.mock("@/lib/wishlist-command-context", () => ({
+vi.mock("@/lib/wishlist-command", () => ({
   requireAuthenticatedUserId: vi.fn(),
 }));
 
@@ -19,7 +19,7 @@ vi.mock("next/cache", () => ({
 }));
 
 import { followUser } from "../follow-user";
-import { requireAuthenticatedUserId } from "@/lib/wishlist-command-context";
+import { requireAuthenticatedUserId } from "@/lib/wishlist-command";
 import { prisma } from "@/lib/prisma";
 
 const mockRequireAuth = requireAuthenticatedUserId as unknown as Mock;

@@ -1,164 +1,177 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
-vi.mock("@/lib/wishlist-command-context", () => ({
-  requireAuthenticatedUserId: vi.fn(),
-  requireOwnedWishlistItem: vi.fn(),
-}));
-
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    item: {
-      delete: vi.fn(),
-      update: vi.fn(),
-    },
-  },
-}));
-
-vi.mock("next/cache", () => ({
-  revalidatePath: vi.fn(),
-}));
-
-vi.mock("@/lib/wishlist-item-intake-command", () => ({
-  updateWishlistItemFromIntake: vi.fn(),
-}));
+vi.mock("@/auth", () => ({ auth: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { updateItem } from "../update-item";
 import { deleteItem } from "../delete-item";
 import { setItemArchived } from "../archive-item";
-import {
-  requireAuthenticatedUserId,
-  requireOwnedWishlistItem,
-} from "@/lib/wishlist-command-context";
-import { prisma } from "@/lib/prisma";
-import { updateWishlistItemFromIntake } from "@/lib/wishlist-item-intake-command";
+import { auth } from "@/auth";
+import { setTestRepository } from "@/lib/repository";
+import { InMemoryWishlistRepository } from "@/lib/repository/in-memory-adapter";
+import type { ItemData, UserProfile, WishlistData } from "@/lib/repository/types";
 
-const mockRequireAuth = requireAuthenticatedUserId as unknown as Mock;
-const mockRequireOwned = requireOwnedWishlistItem as unknown as Mock;
-const mockUpdateFromIntake = updateWishlistItemFromIntake as unknown as Mock;
-const mockItemDelete = prisma.item.delete as unknown as Mock;
-const mockItemUpdate = prisma.item.update as unknown as Mock;
+const mockAuth = auth as unknown as Mock;
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  vi.spyOn(console, "error").mockImplementation(() => {});
-});
+function makeUser(id: string): UserProfile {
+  return {
+    id,
+    name: "Test User",
+    email: `${id}@example.com`,
+    emailVerified: null,
+    image: null,
+    username: id,
+    createdAt: new Date(),
+  };
+}
 
-describe("updateItem", () => {
-  it("rejects unauthenticated callers and performs no write", async () => {
-    mockRequireAuth.mockRejectedValue(new Error("Unauthorized"));
+function makeWishlist(id: string, userId: string): WishlistData {
+  return {
+    id,
+    title: "Test Wishlist",
+    description: null,
+    slug: id,
+    isPublic: true,
+    shareToken: null,
+    appearance: {},
+    userId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
 
-    const result = await updateItem("item-1", { name: "New name" });
+function makeItem(id: string, wishlistId: string, overrides: Partial<ItemData> = {}): ItemData {
+  return {
+    id,
+    name: "Old name",
+    url: null,
+    imageUrl: null,
+    price: null,
+    currency: "UAH",
+    priority: 3,
+    isReserved: false,
+    isPrivate: false,
+    isArchived: false,
+    showInWidget: false,
+    wishlistId,
+    categoryId: null,
+    createdAt: new Date(),
+    ...overrides,
+  };
+}
 
-    expect(result).toEqual({ success: false, error: "Failed to update item" });
-    expect(mockUpdateFromIntake).not.toHaveBeenCalled();
+describe("item mutations", () => {
+  let repo: InMemoryWishlistRepository;
+
+  beforeEach(() => {
+    repo = new InMemoryWishlistRepository();
+    setTestRepository(repo);
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    repo.users.set("user-1", makeUser("user-1"));
+    repo.wishlists.set("wl-1", makeWishlist("wl-1", "user-1"));
+    repo.items.set("item-1", makeItem("item-1", "wl-1"));
   });
 
-  it("rejects when the caller does not own the item", async () => {
-    mockRequireAuth.mockResolvedValue("user-1");
-    mockUpdateFromIntake.mockRejectedValue(new Error("Item not found"));
+  describe("updateItem", () => {
+    it("rejects unauthenticated callers and performs no write", async () => {
+      mockAuth.mockResolvedValue(null);
 
-    const result = await updateItem("item-1", { name: "New name" });
+      const result = await updateItem("item-1", { name: "New name" } as never);
 
-    expect(result).toEqual({ success: false, error: "Failed to update item" });
-  });
-
-  it("updates the item when the caller is authorized", async () => {
-    mockRequireAuth.mockResolvedValue("user-1");
-    mockUpdateFromIntake.mockResolvedValue({ id: "item-1", name: "New name" });
-
-    const result = await updateItem("item-1", { name: "New name" });
-
-    expect(result).toEqual({
-      success: true,
-      item: { id: "item-1", name: "New name" },
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
+      expect(repo.items.get("item-1")?.name).toBe("Old name");
     });
-    expect(mockUpdateFromIntake).toHaveBeenCalledWith(
-      "item-1",
-      { name: "New name" },
-      "user-1",
-    );
-  });
-});
 
-describe("deleteItem", () => {
-  it("rejects unauthenticated callers and performs no delete", async () => {
-    mockRequireAuth.mockRejectedValue(new Error("Unauthorized"));
+    it("rejects when the caller does not own the item", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "stranger" } });
 
-    const result = await deleteItem("item-1");
+      const result = await updateItem("item-1", { name: "New name" } as never);
 
-    expect(result).toEqual({ success: false, error: "Failed to delete item" });
-    expect(mockItemDelete).not.toHaveBeenCalled();
-  });
-
-  it("rejects when the caller does not own the item", async () => {
-    mockRequireAuth.mockResolvedValue("user-1");
-    mockRequireOwned.mockRejectedValue(new Error("Item not found"));
-
-    const result = await deleteItem("item-1");
-
-    expect(result).toEqual({ success: false, error: "Failed to delete item" });
-    expect(mockItemDelete).not.toHaveBeenCalled();
-  });
-
-  it("deletes the item when the caller is authorized", async () => {
-    mockRequireAuth.mockResolvedValue("user-1");
-    mockRequireOwned.mockResolvedValue({ id: "item-1", wishlistId: "wl-1" });
-    mockItemDelete.mockResolvedValue({ id: "item-1" });
-
-    const result = await deleteItem("item-1");
-
-    expect(result).toEqual({ success: true });
-    expect(mockItemDelete).toHaveBeenCalledWith({ where: { id: "item-1" } });
-  });
-});
-
-describe("setItemArchived", () => {
-  it("rejects unauthenticated callers and performs no write", async () => {
-    mockRequireAuth.mockRejectedValue(new Error("Unauthorized"));
-
-    const result = await setItemArchived("item-1", true);
-
-    expect(result).toEqual({ success: false, error: "Failed to update item" });
-    expect(mockItemUpdate).not.toHaveBeenCalled();
-  });
-
-  it("rejects when the caller does not own the item", async () => {
-    mockRequireAuth.mockResolvedValue("user-1");
-    mockRequireOwned.mockRejectedValue(new Error("Item not found"));
-
-    const result = await setItemArchived("item-1", true);
-
-    expect(result).toEqual({ success: false, error: "Failed to update item" });
-    expect(mockItemUpdate).not.toHaveBeenCalled();
-  });
-
-  it("archives the item when the caller is authorized", async () => {
-    mockRequireAuth.mockResolvedValue("user-1");
-    mockRequireOwned.mockResolvedValue({ id: "item-1", wishlistId: "wl-1" });
-    mockItemUpdate.mockResolvedValue({ id: "item-1", isArchived: true });
-
-    const result = await setItemArchived("item-1", true);
-
-    expect(result).toEqual({
-      success: true,
-      item: { id: "item-1", isArchived: true },
+      expect(result).toEqual({ success: false, error: "Item not found" });
+      expect(repo.items.get("item-1")?.name).toBe("Old name");
     });
-    expect(mockItemUpdate).toHaveBeenCalledWith({
-      where: { id: "item-1" },
-      data: { isArchived: true },
+
+    it("updates the item when the caller is authorized", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+
+      const result = await updateItem("item-1", {
+        name: "New name",
+        currency: "USD",
+        priority: 2,
+        isPrivate: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(repo.items.get("item-1")?.name).toBe("New name");
     });
   });
 
-  it("unarchives the item when passed false", async () => {
-    mockRequireAuth.mockResolvedValue("user-1");
-    mockRequireOwned.mockResolvedValue({ id: "item-1", wishlistId: "wl-1" });
-    mockItemUpdate.mockResolvedValue({ id: "item-1", isArchived: false });
+  describe("deleteItem", () => {
+    it("rejects unauthenticated callers and performs no delete", async () => {
+      mockAuth.mockResolvedValue(null);
 
-    await setItemArchived("item-1", false);
+      const result = await deleteItem("item-1");
 
-    expect(mockItemUpdate).toHaveBeenCalledWith({
-      where: { id: "item-1" },
-      data: { isArchived: false },
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
+      expect(repo.items.has("item-1")).toBe(true);
+    });
+
+    it("rejects when the caller does not own the item", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "stranger" } });
+
+      const result = await deleteItem("item-1");
+
+      expect(result).toEqual({ success: false, error: "Item not found" });
+      expect(repo.items.has("item-1")).toBe(true);
+    });
+
+    it("deletes the item when the caller is authorized", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+
+      const result = await deleteItem("item-1");
+
+      expect(result).toEqual({ success: true });
+      expect(repo.items.has("item-1")).toBe(false);
+    });
+  });
+
+  describe("setItemArchived", () => {
+    it("rejects unauthenticated callers and performs no write", async () => {
+      mockAuth.mockResolvedValue(null);
+
+      const result = await setItemArchived("item-1", true);
+
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
+      expect(repo.items.get("item-1")?.isArchived).toBe(false);
+    });
+
+    it("rejects when the caller does not own the item", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "stranger" } });
+
+      const result = await setItemArchived("item-1", true);
+
+      expect(result).toEqual({ success: false, error: "Item not found" });
+      expect(repo.items.get("item-1")?.isArchived).toBe(false);
+    });
+
+    it("archives the item when the caller is authorized", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+
+      const result = await setItemArchived("item-1", true);
+
+      expect(result.success).toBe(true);
+      expect(repo.items.get("item-1")?.isArchived).toBe(true);
+    });
+
+    it("unarchives the item when passed false", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+      repo.items.set("item-1", makeItem("item-1", "wl-1", { isArchived: true }));
+
+      await setItemArchived("item-1", false);
+
+      expect(repo.items.get("item-1")?.isArchived).toBe(false);
     });
   });
 });
