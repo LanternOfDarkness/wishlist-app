@@ -14,6 +14,7 @@ export interface WishlistData {
   description: string | null;
   slug: string;
   isPublic: boolean;
+  shareToken: string | null;
   appearance: Record<string, unknown>;
   userId: string;
   createdAt: Date;
@@ -40,6 +41,7 @@ export interface ItemData {
   priority: number;
   isReserved: boolean;
   isPrivate: boolean;
+  isArchived: boolean;
   showInWidget: boolean;
   wishlistId: string;
   categoryId: string | null;
@@ -122,3 +124,65 @@ export interface ItemDraft {
   categoryId?: string;
   newCategoryName?: string;
 }
+
+/** The `wishlist-presentation` load spec's result — named per Phase 3a so
+ *  every sibling in SpecResultMap uses a named type from this file instead
+ *  of an inline shape. */
+export interface WishlistPresentationItem {
+  id: string;
+  name: string;
+  url: string | null;
+  imageUrl: string | null;
+  price: number | null;
+  currency: string;
+  priority: number;
+  isReserved: boolean;
+  isPrivate: boolean;
+  isArchived: boolean;
+  showInWidget: boolean;
+  category: { id: string; name: string } | null;
+  /** Partial-pledge amounts only; guest names/messages are never loaded here. */
+  pledges: Array<{ amount: number | null }>;
+}
+
+export interface WishlistPresentationWishlist {
+  id: string;
+  title: string;
+  slug: string;
+  isPublic: boolean;
+  shareToken: string | null;
+  appearance: Record<string, unknown>;
+}
+
+export interface WishlistPresentationData {
+  wishlist: WishlistPresentationWishlist;
+  items: WishlistPresentationItem[];
+  maxPrice: number;
+}
+
+/** The shape `reservation.ts` needs to run its visibility gate and mutation. */
+export interface ItemForReservation {
+  id: string;
+  price: number | null;
+  isReserved: boolean;
+  isArchived: boolean;
+  isPrivate: boolean;
+  wishlist: {
+    id: string;
+    isPublic: boolean;
+    shareToken: string | null;
+    user: {
+      id: string;
+      followers: Array<{ followerId: string }>;
+      following: Array<{ followingId: string }>;
+    };
+  };
+}
+
+export type CreatePledgeResult =
+  | { success: true; pledgeId: string }
+  | { success: false; error: string };
+
+export type UpdateWidgetItemVisibilityResult =
+  | { success: true }
+  | { success: false; error: "limit-exceeded" | "conflict" };
