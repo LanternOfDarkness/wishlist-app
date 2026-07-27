@@ -487,12 +487,79 @@ function getStringArray(
   return value.filter((entry): entry is string => typeof entry === "string");
 }
 
-function toAppearanceRecord(appearance: unknown): WishlistAppearance {
+export function toAppearanceRecord(appearance: unknown): WishlistAppearance {
   if (!appearance || typeof appearance !== "object" || Array.isArray(appearance)) {
     return {};
   }
 
   return appearance as WishlistAppearance;
+}
+
+// `font` and `itemBorder` are allow-list validated on write by
+// `parseWishlistAppearance` above, so a stored value is already safe by
+// construction — this just reads it back with a default for records written
+// before that field existed.
+function getAppearanceString(
+  appearance: WishlistAppearance,
+  key: string,
+  fallback = "",
+) {
+  const value = appearance[key];
+  return typeof value === "string" ? value : fallback;
+}
+
+function getAppearanceNumber(
+  appearance: WishlistAppearance,
+  key: string,
+  fallback: number,
+) {
+  const value = appearance[key];
+  return typeof value === "number" ? value : fallback;
+}
+
+/** Presentation values shared by the wishlist page and the embed widget:
+ *  resolved theme, font/border classes, welcome message, favorite
+ *  currencies. Both `getWishlistPresentation` and
+ *  `getEmbedWishlistPresentation` (in `wishlist-presentation.ts`) call this
+ *  on an already-normalized appearance record. */
+export function getWishlistAppearancePresentation(appearance: WishlistAppearance) {
+  const resolvedAppearance = resolveWishlistAppearance(appearance);
+
+  return {
+    raw: appearance,
+    resolved: resolvedAppearance,
+    primaryColor: resolvedAppearance.primaryColor,
+    fontClass: getAppearanceString(appearance, "font", "font-sans"),
+    itemBorderClass: getAppearanceString(
+      appearance,
+      "itemBorder",
+      "rounded-lg border-solid",
+    ),
+    welcomeMessage: getAppearanceString(appearance, "welcomeMessage"),
+    favoriteCurrencies: Array.isArray(appearance.favoriteCurrencies)
+      ? appearance.favoriteCurrencies.filter(
+          (currency): currency is string => typeof currency === "string",
+        )
+      : [],
+  };
+}
+
+/** Widget-only presentation values (layout/item size) consumed by the embed
+ *  page. */
+export function getWishlistWidgetPresentation(appearance: WishlistAppearance) {
+  const widgetLayout =
+    getAppearanceString(appearance, "widgetLayout", "grid") === "list"
+      ? "list"
+      : "grid";
+  const widgetItemSize = Math.min(
+    Math.max(Math.round(getAppearanceNumber(appearance, "widgetItemSize", 100)), 70),
+    160,
+  );
+
+  return {
+    widgetLayout,
+    widgetItemSize,
+  };
 }
 
 export function normalizeWishlistFontClass(value: string): WishlistFontClass {

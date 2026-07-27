@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   APPEARANCE_PRESETS,
   getContrastRatio,
+  getWishlistAppearancePresentation,
   getWishlistSettingsState,
+  getWishlistWidgetPresentation,
   getWishlistWidgetSettingsState,
   migrateLegacyAppearanceColors,
   normalizeWidgetItemSize,
@@ -419,5 +421,44 @@ describe("normalizeWidgetItemSize", () => {
     expect(normalizeWidgetItemSize(500)).toBe(160);
     expect(normalizeWidgetItemSize(undefined)).toBe(100);
     expect(normalizeWidgetItemSize("not-a-number")).toBe(100);
+  });
+});
+
+describe("getWishlistAppearancePresentation", () => {
+  it("normalizes appearance presentation values for both route adapters", () => {
+    const presentation = getWishlistAppearancePresentation({
+      font: "font-comic",
+      itemBorder: "rounded-lg border-dashed",
+      welcomeMessage: "Hello",
+      favoriteCurrencies: ["UAH", 123, "EUR"],
+    });
+
+    expect(presentation.fontClass).toBe("font-comic");
+    expect(presentation.itemBorderClass).toBe("rounded-lg border-dashed");
+    expect(presentation.welcomeMessage).toBe("Hello");
+    expect(presentation.favoriteCurrencies).toEqual(["UAH", "EUR"]);
+  });
+});
+
+describe("getWishlistWidgetPresentation", () => {
+  it("normalizes widget presentation values", () => {
+    expect(
+      getWishlistWidgetPresentation({
+        widgetLayout: "list",
+        widgetItemSize: 40,
+      }),
+    ).toEqual({
+      widgetLayout: "list",
+      widgetItemSize: 70,
+    });
+    expect(
+      getWishlistWidgetPresentation({
+        widgetLayout: "unknown",
+        widgetItemSize: 500,
+      }),
+    ).toEqual({
+      widgetLayout: "grid",
+      widgetItemSize: 160,
+    });
   });
 });
