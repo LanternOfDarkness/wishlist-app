@@ -233,6 +233,23 @@ describe("getWishlistPresentation visibility gate", () => {
     const result = await present({ shareKey: "secret-token" });
     expect(result?.itemWhere).toMatchObject({ isPrivate: false });
   });
+
+  it("excludes archived items even for the owner (characterization, pre-Phase-1)", async () => {
+    mockWishlist();
+    const result = await present({ viewerUserId: "owner" });
+    expect(result?.itemWhere).toMatchObject({ isArchived: false });
+  });
+
+  it("excludes archived items for a mutual follower (characterization, pre-Phase-1)", async () => {
+    mockUserFind.mockResolvedValue({
+      ...OWNER,
+      followers: [{ followerId: "friend" }],
+      following: [{ followingId: "friend" }],
+    });
+    mockWishlist();
+    const result = await present({ viewerUserId: "friend" });
+    expect(result?.itemWhere).toMatchObject({ isArchived: false });
+  });
 });
 
 describe("getWishlistPresentation reservation surprise-preservation", () => {

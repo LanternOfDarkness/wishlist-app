@@ -1,5 +1,11 @@
 # Plan: Repository seam for Prisma
 
+> **Superseded** by [`plan-architecture-2026-07.md`](./plan-architecture-2026-07.md) (2026-07-27).
+> This plan stalled at step 2 of 9 on 2026-05-23 and predates the visibility model, share tokens,
+> archiving, and owner-blind pledges added since. Its file tree is still broadly right, but its
+> interface, "files to delete" list, and test strategy are all stale. Do not follow it — follow the
+> new plan instead.
+
 Based on Design A ("Minimal"). One interface with 3 entry points (`load`, `require`, `execute`). All 21 Prisma call sites move behind it.
 
 ## New file tree

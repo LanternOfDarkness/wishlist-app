@@ -208,6 +208,33 @@ describe("createReservation — visibility & ownership guards", () => {
     expect(result).toEqual({ success: false, error: "Item not found" });
   });
 
+  it("allows a mutual follower to reserve a private item (characterization, pre-Phase-1)", async () => {
+    fakeDb.wishlists.set("wishlist-1", {
+      id: "wishlist-1",
+      isPublic: true,
+      shareToken: null,
+      user: {
+        id: OWNER_ID,
+        followers: [{ followerId: "friend" }],
+        following: [{ followingId: "friend" }],
+      },
+    });
+    fakeDb.items.set("item-1", {
+      id: "item-1",
+      price: 100,
+      isReserved: false,
+      isArchived: false,
+      isPrivate: true,
+      wishlistId: "wishlist-1",
+    });
+
+    const result = await createReservation(
+      { itemId: "item-1", mode: "full" },
+      "friend",
+    );
+    expect(result.success).toBe(true);
+  });
+
   it("rejects the owner reserving their own item", async () => {
     seedPublicItem();
 

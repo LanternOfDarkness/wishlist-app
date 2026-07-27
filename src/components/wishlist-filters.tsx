@@ -202,7 +202,9 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                         setLocalMinPrice("0");
                         setLocalMaxPrice(maxPriceOverall.toString());
                         startTransition(() => {
-                            router.push(pathname, { scroll: false });
+                            const shareKey = searchParams.get("k");
+                            const query = shareKey ? `?k=${encodeURIComponent(shareKey)}` : "";
+                            router.push(`${pathname}${query}`, { scroll: false });
                         });
                     }}
                 >
