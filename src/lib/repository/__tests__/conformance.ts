@@ -143,6 +143,49 @@ export function runRepositoryConformanceSuite(
         expect(result).toBeNull();
       });
 
+      it("filters by category, currency, and price range together", async () => {
+        const h = await harness();
+        const owner = await h.createUser();
+        const wishlist = await h.createWishlist(owner.id);
+        const cheap = await h.createItem(wishlist.id, { name: "Cheap", price: 10 });
+        await h.createItem(wishlist.id, { name: "Expensive", price: 500 });
+
+        const result = await h.repo.load({
+          type: "wishlist-presentation",
+          userId: owner.id,
+          itemVisibility: FULL_ACCESS,
+          minPrice: 0,
+          maxPrice: 100,
+        });
+
+        expect(result?.items.map((i) => i.id)).toEqual([cheap.id]);
+      });
+
+      it("sorts by price ascending, price descending, and newest", async () => {
+        const h = await harness();
+        const owner = await h.createUser();
+        const wishlist = await h.createWishlist(owner.id);
+        await h.createItem(wishlist.id, { name: "Mid", price: 50 });
+        await h.createItem(wishlist.id, { name: "Low", price: 10 });
+        await h.createItem(wishlist.id, { name: "High", price: 90 });
+
+        const ascending = await h.repo.load({
+          type: "wishlist-presentation",
+          userId: owner.id,
+          itemVisibility: FULL_ACCESS,
+          sort: "price_asc",
+        });
+        expect(ascending?.items.map((i) => i.name)).toEqual(["Low", "Mid", "High"]);
+
+        const descending = await h.repo.load({
+          type: "wishlist-presentation",
+          userId: owner.id,
+          itemVisibility: FULL_ACCESS,
+          sort: "price_desc",
+        });
+        expect(descending?.items.map((i) => i.name)).toEqual(["High", "Mid", "Low"]);
+      });
+
       it("carries partial-pledge amounts per item for the reservation progress bar", async () => {
         const h = await harness();
         const owner = await h.createUser();
@@ -416,6 +459,7 @@ export function runRepositoryConformanceSuite(
         const updated = await h.repo.execute({
           type: "update-item",
           itemId: item.id,
+          userId: owner.id,
           item: {
             name: "New name",
             currency: "USD",

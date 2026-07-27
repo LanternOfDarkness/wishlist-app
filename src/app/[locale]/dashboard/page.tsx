@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "@/i18n/routing";
-import { prisma } from "@/lib/prisma";
+import { getRepository } from "@/lib/repository";
 import { ensureUserWishlist } from "@/lib/ensure-user-wishlist";
 
 export default async function DashboardPage({
@@ -11,13 +11,13 @@ export default async function DashboardPage({
     const { locale } = await params;
     const session = await auth();
 
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
         redirect({ href: "/", locale });
     }
 
-    const user = await prisma.user.findUnique({
-        where: { email: session!.user.email! },
-        include: { wishlist: true },
+    const user = await getRepository().load({
+        type: "dashboard-user",
+        userId: session!.user.id,
     });
 
     if (!user) redirect({ href: "/", locale });

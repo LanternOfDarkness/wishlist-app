@@ -10,7 +10,6 @@ import { CopyLinkButton } from "@/components/copy-link-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { User, Wishlist } from "@prisma/client";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { AVAILABLE_CURRENCIES } from "@/lib/currencies";
@@ -25,11 +24,10 @@ import {
   type BannerDisplayMode,
   type ColorPreset,
 } from "@/lib/wishlist-appearance";
-
-type UserWithWishlist = User & { wishlist: Wishlist | null };
+import type { DashboardSettingsUser } from "@/lib/dashboard-settings-intake";
 
 interface SettingsFormProps {
-  user: UserWithWishlist;
+  user: DashboardSettingsUser;
 }
 
 export function SettingsForm({

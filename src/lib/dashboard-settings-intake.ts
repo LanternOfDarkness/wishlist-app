@@ -1,74 +1,62 @@
-import type { Prisma } from "@prisma/client";
-
-import { getAuthenticatedUserId } from "./wishlist-command-context";
-import { prisma } from "./prisma";
-import { buildWishlistItemWhere } from "./wishlist-filter-state";
-import { itemVisibilityFor } from "./wishlist-visibility";
+import { getRepository } from "./repository";
+import { getAuthenticatedUserId } from "./wishlist-command";
+import type { ItemData } from "./repository/types";
 
 // The Settings page is rendered for the wishlist's own owner, so items are
 // fetched without `isReserved` (and without any pledge data) — same
 // surprise-preservation rule as the public presentation. This payload flows
 // into client components (SettingsTabs -> EmbedWidget), so anything included
 // here is serialized to the browser regardless of what the UI renders.
-const DASHBOARD_SETTINGS_ITEM_SELECT = {
-  id: true,
-  name: true,
-  url: true,
-  imageUrl: true,
-  price: true,
-  currency: true,
-  priority: true,
-  isPrivate: true,
-  isArchived: true,
-  showInWidget: true,
-  wishlistId: true,
-  categoryId: true,
-  createdAt: true,
-} as const;
+export type DashboardSettingsItem = Omit<ItemData, "isReserved">;
 
-export type DashboardSettingsUser = Prisma.UserGetPayload<{
-  include: {
-    wishlist: {
-      include: {
-        items: {
-          select: typeof DASHBOARD_SETTINGS_ITEM_SELECT;
-          where: Prisma.ItemWhereInput;
-          orderBy: {
-            createdAt: "desc";
-          };
-        };
-      };
-    };
-  };
-}>;
+export interface DashboardSettingsUser {
+  id: string;
+  name: string | null;
+  username: string | null;
+  wishlist: {
+    id: string;
+    isPublic: boolean;
+    shareToken: string | null;
+    appearance: Record<string, unknown>;
+    items: DashboardSettingsItem[];
+  } | null;
+}
 
-export async function getDashboardSettingsIntake() {
+function omitIsReserved(item: ItemData): DashboardSettingsItem {
+  const rest: Record<string, unknown> = { ...item };
+  delete rest.isReserved;
+  return rest as DashboardSettingsItem;
+}
+
+export async function getDashboardSettingsIntake(): Promise<DashboardSettingsUser | null> {
   const userId = await getAuthenticatedUserId();
 
   if (!userId) {
     return null;
   }
 
-  // The dashboard is always the owner's own view, so it always sees its own
-  // private items — but never archived ones (they belong to the archive
+  // The "dashboard-user" load spec already excludes archived items (the
+  // dashboard is always the owner's own view, so it always sees its own
+  // private items — but never archived ones; they belong to the archive
   // view, not the widget picker at embed-widget.tsx:215).
-  const itemWhere = buildWishlistItemWhere(
-    {},
-    itemVisibilityFor("dashboard", { canViewWishlist: true, canViewPrivateItems: true }),
-  );
+  const user = await getRepository().load({ type: "dashboard-user", userId });
 
-  return prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      wishlist: {
-        include: {
-          items: {
-            select: DASHBOARD_SETTINGS_ITEM_SELECT,
-            where: itemWhere,
-            orderBy: { createdAt: "desc" },
-          },
-        },
-      },
-    },
-  });
+  if (!user) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    username: user.username,
+    wishlist: user.wishlist
+      ? {
+          id: user.wishlist.id,
+          isPublic: user.wishlist.isPublic,
+          shareToken: user.wishlist.shareToken,
+          appearance: user.wishlist.appearance,
+          items: user.wishlist.items.map(omitIsReserved),
+        }
+      : null,
+  };
 }

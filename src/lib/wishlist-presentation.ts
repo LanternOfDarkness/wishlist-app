@@ -2,31 +2,18 @@ import {
   resolveWishlistAppearance,
   type WishlistAppearance,
 } from "./wishlist-appearance";
-import { prisma } from "./prisma";
+import { getRepository } from "./repository";
 import {
-  buildWishlistItemOrderBy,
-  buildWishlistItemWhere,
   hasActiveWishlistFilters,
   type WishlistSearchParams,
 } from "./wishlist-filter-state";
 import {
   getViewerRelationship,
   itemVisibilityFor,
-  matchesShareToken,
   resolveWishlistAccess,
 } from "./wishlist-visibility";
 
-export {
-  buildWishlistItemOrderBy,
-  buildWishlistItemWhere,
-  hasActiveWishlistFilters,
-  type WishlistSearchParams,
-};
-
-// Re-exported from wishlist-visibility.ts (the single owner of the rule) for
-// one phase to keep this diff small. Drop this re-export once the last
-// import of these two from this module (the test file) is repointed.
-export { getViewerRelationship, matchesShareToken };
+export { hasActiveWishlistFilters, type WishlistSearchParams };
 
 // ── Appearance presentation helpers ──────────────────────────────────────
 // These live here (not in wishlist-appearance.ts) to match main's deepen
@@ -183,14 +170,7 @@ export async function getWishlistPresentation({
   searchParams: WishlistSearchParams;
   shareKey?: string;
 }) {
-  const user = await prisma.user.findUnique({
-    where: { username },
-    include: {
-      categories: true,
-      followers: { select: { followerId: true } },
-      following: { select: { followingId: true } },
-    },
-  });
+  const user = await getRepository().load({ type: "viewer-page-user", username });
 
   if (!user) {
     return null;
@@ -205,49 +185,55 @@ export async function getWishlistPresentation({
     canViewWishlist: true,
     canViewPrivateItems: relationship.canViewPrivateItems,
   });
-  const itemWhere = buildWishlistItemWhere(searchParams, itemVisibility);
-  const orderBy = buildWishlistItemOrderBy(searchParams.sort);
 
-  const wishlist = await prisma.wishlist.findUnique({
-    where: { userId: user.id },
-    include: {
-      items: {
-        where: itemWhere,
-        orderBy,
-        include: {
-          category: true,
-          // Only partial-pledge amounts are needed for the progress bar;
-          // guest names/messages are never fetched here at all.
-          pledges: { where: { mode: "partial" }, select: { amount: true } },
-        },
-      },
-    },
+  const categories = Array.isArray(searchParams.category)
+    ? searchParams.category
+    : searchParams.category
+      ? [searchParams.category]
+      : undefined;
+  const minPrice =
+    searchParams.minPrice !== undefined ? Number.parseFloat(searchParams.minPrice) : undefined;
+  const maxPrice =
+    searchParams.maxPrice !== undefined ? Number.parseFloat(searchParams.maxPrice) : undefined;
+
+  const presentation = await getRepository().load({
+    type: "wishlist-presentation",
+    userId: user.id,
+    itemVisibility,
+    categories,
+    currency: searchParams.currency,
+    minPrice: minPrice !== undefined && !Number.isNaN(minPrice) ? minPrice : undefined,
+    maxPrice: maxPrice !== undefined && !Number.isNaN(maxPrice) ? maxPrice : undefined,
+    sort: searchParams.sort,
   });
 
-  if (!wishlist) {
+  if (!presentation) {
     return null;
   }
 
-  const access = resolveWishlistAccess({ wishlist, relationship, shareKey });
+  const access = resolveWishlistAccess({
+    wishlist: presentation.wishlist,
+    relationship,
+    shareKey,
+  });
 
   if (!access.canViewWishlist) {
     return null;
   }
 
-  const appearance = getWishlistAppearanceRecord(wishlist.appearance);
+  const appearance = getWishlistAppearanceRecord(presentation.wishlist.appearance);
   const appearancePresentation = getWishlistAppearancePresentation(appearance);
 
-  const items = wishlist.items.map((item) =>
+  const items = presentation.items.map((item) =>
     sanitizeReservationFields(item, relationship.isOwner),
   );
 
   return {
     user,
-    wishlist: { ...wishlist, items },
+    wishlist: { ...presentation.wishlist, items },
     relationship,
-    itemWhere,
     hasActiveFilters: hasActiveWishlistFilters(searchParams),
-    maxPriceOverall: getMaxWishlistItemPrice(items),
+    maxPriceOverall: presentation.maxPrice,
     appearance: appearancePresentation,
   };
 }
@@ -259,52 +245,31 @@ export async function getEmbedWishlistPresentation({
   locale: string;
   username: string;
 }) {
-  // Embeds carry no viewer identity, so `canViewPrivateItems` is always
-  // false — `itemVisibilityFor("embed", …)` ignores it either way.
-  const itemWhere = buildWishlistItemWhere(
-    {},
-    itemVisibilityFor("embed", { canViewWishlist: true, canViewPrivateItems: false }),
-  );
+  const presentation = await getRepository().load({ type: "embed-presentation", username });
 
-  const user = await prisma.user.findUnique({
-    where: { username },
-    include: {
-      wishlist: {
-        include: {
-          items: {
-            where: itemWhere,
-            orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
-          },
-        },
-      },
-    },
-  });
-
-  if (!user?.wishlist) {
+  if (!presentation) {
     return null;
   }
 
   // Embeds carry no viewer identity, so a private wishlist can never be
   // embedded (this also closes the private-item leak via the widget).
-  if (!user.wishlist.isPublic) {
+  if (!presentation.wishlist.isPublic) {
     return null;
   }
 
-  const appearance = getWishlistAppearanceRecord(user.wishlist.appearance);
-  const selectedWidgetItems = user.wishlist.items.filter(
-    (item) => item.showInWidget,
-  );
+  const appearance = getWishlistAppearanceRecord(presentation.wishlist.appearance);
+  const selectedWidgetItems = presentation.items.filter((item) => item.showInWidget);
   // Embeds carry no viewer identity, so we can never tell whether the owner
   // is the one viewing (e.g. previewing their own widget in Settings).
   // Reservation state is therefore never exposed here, for anyone.
   const displayItems = (
     selectedWidgetItems.length > 0
       ? selectedWidgetItems.slice(0, 5)
-      : user.wishlist.items.slice(0, 5)
+      : presentation.items.slice(0, 5)
   ).map(omitIsReserved);
 
   return {
-    user,
+    user: presentation.user,
     displayItems,
     profileUrl: `/${locale}/${username}`,
     appearance: getWishlistAppearancePresentation(appearance),

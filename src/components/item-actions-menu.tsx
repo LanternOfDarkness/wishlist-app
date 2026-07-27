@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Archive, MoreVertical, Pencil, Trash2 } from "lucide-react";
-import { Category } from "@prisma/client";
+import type { CategoryData } from "@/lib/repository";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +33,7 @@ import { setItemArchived } from "@/actions/archive-item";
 interface ItemActionsMenuProps {
   item: EditableWishlistItem;
   wishlistId: string;
-  categories?: Category[];
+  categories?: CategoryData[];
 }
 
 export function ItemActionsMenu({

@@ -19,7 +19,7 @@ import { addItem } from "@/actions/add-item";
 import { updateItem } from "@/actions/update-item";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { Category, Item } from "@prisma/client";
+import type { CategoryData, ItemData } from "@/lib/repository";
 import Image from "next/image";
 import {
   applyMetadataToWishlistItemDraft,
@@ -31,14 +31,18 @@ import {
 // Owner-facing item lists omit/optionalize `isReserved` (surprise
 // preservation — see wishlist-presentation.ts), so this modal (and anything
 // that forwards an item into it, like the item actions menu) accepts that
-// narrower shape rather than the full Prisma `Item` type.
-export type EditableWishlistItem = Omit<Item, "isReserved"> & {
+// narrower shape — just the fields the form actually reads — rather than
+// the full seam `ItemData` type.
+export type EditableWishlistItem = Pick<
+  ItemData,
+  "id" | "url" | "name" | "imageUrl" | "price" | "currency" | "priority" | "isPrivate" | "categoryId"
+> & {
   isReserved?: boolean;
 };
 
 interface AddItemModalProps {
   wishlistId: string;
-  categories?: Category[];
+  categories?: CategoryData[];
   favoriteCurrencies?: string[];
   /** When provided, the modal edits this item instead of creating a new one. */
   item?: EditableWishlistItem;

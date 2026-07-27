@@ -3,11 +3,8 @@ import { randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import {
-  buildWishlistItemOrderBy,
-  buildWishlistItemWhere,
-} from "@/lib/wishlist-filter-state";
-import { itemVisibilityFor } from "@/lib/wishlist-visibility";
+import type { WishlistSearchParams } from "@/lib/wishlist-filter-state";
+import { itemVisibilityFor, type ItemVisibility } from "@/lib/wishlist-visibility";
 import type {
   IWishlistRepository,
   LoadSpec,
@@ -19,6 +16,60 @@ import type {
 
 function normalizeAppearance(raw: unknown): Record<string, unknown> {
   return (raw as Record<string, unknown>) ?? {};
+}
+
+// The item where/orderBy translation lives here (not in wishlist-filter-state.ts)
+// so that getRepository() stays the only route to Prisma outside this
+// directory — wishlist-filter-state.ts keeps only the URL codec, which
+// touches no Prisma types.
+function buildWishlistItemWhere(
+  searchParams: WishlistSearchParams,
+  visibility: ItemVisibility,
+): Prisma.ItemWhereInput {
+  const where: Prisma.ItemWhereInput = {};
+
+  if (!visibility.includeArchived) {
+    where.isArchived = false;
+  }
+
+  if (searchParams.currency) {
+    where.currency = searchParams.currency;
+  }
+
+  if (searchParams.category) {
+    const categoryIds = Array.isArray(searchParams.category)
+      ? searchParams.category
+      : [searchParams.category];
+    where.categoryId = { in: categoryIds };
+  }
+
+  const minPrice = Number.parseFloat(searchParams.minPrice || "");
+  const maxPrice = Number.parseFloat(searchParams.maxPrice || "");
+  if (!Number.isNaN(minPrice) || !Number.isNaN(maxPrice)) {
+    where.price = {
+      ...(!Number.isNaN(minPrice) ? { gte: minPrice } : {}),
+      ...(!Number.isNaN(maxPrice) ? { lte: maxPrice } : {}),
+    };
+  }
+
+  if (!visibility.includePrivate) {
+    where.isPrivate = false;
+  }
+
+  return where;
+}
+
+function buildWishlistItemOrderBy(sort?: string): Prisma.ItemOrderByWithRelationInput[] {
+  switch (sort) {
+    case "price_asc":
+      return [{ price: "asc" }];
+    case "price_desc":
+      return [{ price: "desc" }];
+    case "newest":
+      return [{ createdAt: "desc" }];
+    default:
+      return [{ priority: "desc" }, { createdAt: "desc" }];
+  }
 }
 
 const MAX_WIDGET_ITEMS = 5;

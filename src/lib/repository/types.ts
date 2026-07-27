@@ -140,6 +140,7 @@ export interface WishlistPresentationItem {
   isPrivate: boolean;
   isArchived: boolean;
   showInWidget: boolean;
+  categoryId: string | null;
   category: { id: string; name: string } | null;
   /** Partial-pledge amounts only; guest names/messages are never loaded here. */
   pledges: Array<{ amount: number | null }>;

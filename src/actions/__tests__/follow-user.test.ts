@@ -1,80 +1,57 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
-vi.mock("@/lib/wishlist-command", () => ({
-  requireAuthenticatedUserId: vi.fn(),
-}));
-
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    follows: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      delete: vi.fn(),
-    },
-  },
-}));
-
-vi.mock("next/cache", () => ({
-  revalidatePath: vi.fn(),
-}));
+vi.mock("@/auth", () => ({ auth: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { followUser } from "../follow-user";
-import { requireAuthenticatedUserId } from "@/lib/wishlist-command";
-import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { setTestRepository } from "@/lib/repository";
+import { InMemoryWishlistRepository } from "@/lib/repository/in-memory-adapter";
 
-const mockRequireAuth = requireAuthenticatedUserId as unknown as Mock;
-const mockFindUnique = prisma.follows.findUnique as unknown as Mock;
-const mockCreate = prisma.follows.create as unknown as Mock;
-const mockDelete = prisma.follows.delete as unknown as Mock;
+const mockAuth = auth as unknown as Mock;
+
+let repo: InMemoryWishlistRepository;
 
 beforeEach(() => {
+  repo = new InMemoryWishlistRepository();
+  setTestRepository(repo);
   vi.clearAllMocks();
 });
 
 describe("followUser", () => {
   it("rejects unauthenticated callers and performs no write", async () => {
-    mockRequireAuth.mockRejectedValue(new Error("Unauthorized"));
+    mockAuth.mockResolvedValue(null);
 
     await expect(followUser("target-1", "/path")).rejects.toThrow();
-    expect(mockCreate).not.toHaveBeenCalled();
-    expect(mockDelete).not.toHaveBeenCalled();
+    expect(repo.follows.size).toBe(0);
   });
 
   it("rejects following yourself", async () => {
-    mockRequireAuth.mockResolvedValue("user-1");
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
 
     await expect(followUser("user-1", "/path")).rejects.toThrow(
       "You cannot follow yourself",
     );
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect(repo.follows.size).toBe(0);
   });
 
   it("creates a follow when none exists", async () => {
-    mockRequireAuth.mockResolvedValue("user-1");
-    mockFindUnique.mockResolvedValue(null);
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
 
     const result = await followUser("target-1", "/path");
 
-    expect(mockCreate).toHaveBeenCalledWith({
-      data: { followerId: "user-1", followingId: "target-1" },
-    });
+    expect([...repo.follows.values()]).toEqual([
+      { followerId: "user-1", followingId: "target-1" },
+    ]);
     expect(result).toEqual({ success: true });
   });
 
   it("removes an existing follow (toggle off)", async () => {
-    mockRequireAuth.mockResolvedValue("user-1");
-    mockFindUnique.mockResolvedValue({
-      followerId: "user-1",
-      followingId: "target-1",
-    });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+    repo.follows.set("user-1:target-1", { followerId: "user-1", followingId: "target-1" });
 
     await followUser("target-1", "/path");
 
-    expect(mockDelete).toHaveBeenCalledWith({
-      where: {
-        followerId_followingId: { followerId: "user-1", followingId: "target-1" },
-      },
-    });
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect(repo.follows.size).toBe(0);
   });
 });
