@@ -11,21 +11,37 @@ const runIfDbAvailable = process.env.RUN_DB_TESTS ? describe : describe.skip;
 
 let userCounter = 0;
 
+const TEST_USERNAME_PREFIX = "conformance-user-";
+
+// Pattern-based, not ID-tracking: `runRepositoryConformanceSuite` calls
+// `createHarness()` fresh for every single `it()`, so an ID list held in a
+// harness closure would be discarded before the next test's `reset()` could
+// see it, silently leaking rows into the real database on every run.
+// Deleting by the username prefix instead cleans up this run's rows *and*
+// any left over from a prior run that didn't get this far.
+async function deleteAllTestUsers() {
+  const stale = await prisma.user.findMany({
+    where: { username: { startsWith: TEST_USERNAME_PREFIX } },
+    select: { id: true },
+  });
+  if (stale.length > 0) {
+    const staleIds = stale.map((u) => u.id);
+    // Pledge.userId has no cascade delete, unlike everything else these
+    // users own (wishlist/item/category/follows all cascade).
+    await prisma.pledge.deleteMany({ where: { userId: { in: staleIds } } });
+    await prisma.user.deleteMany({ where: { id: { in: staleIds } } });
+  }
+}
+
 function makeHarness(): ConformanceHarness {
   const repo = new PrismaWishlistRepository();
-  const createdUserIds: string[] = [];
 
   return {
     repo,
-    async reset() {
-      if (createdUserIds.length > 0) {
-        await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
-        createdUserIds.length = 0;
-      }
-    },
+    reset: deleteAllTestUsers,
     async createUser(overrides = {}) {
       userCounter += 1;
-      const username = overrides.username ?? `conformance-user-${userCounter}`;
+      const username = overrides.username ?? `${TEST_USERNAME_PREFIX}${Date.now()}-${userCounter}`;
       const user = await prisma.user.create({
         data: {
           username,
@@ -33,7 +49,6 @@ function makeHarness(): ConformanceHarness {
           name: "Conformance Test User",
         },
       });
-      createdUserIds.push(user.id);
       return { id: user.id, username };
     },
     async createWishlist(userId, overrides = {}) {
@@ -74,6 +89,7 @@ runIfDbAvailable("Prisma live-database conformance", () => {
   runRepositoryConformanceSuite("PrismaWishlistRepository", makeHarness);
 
   afterAll(async () => {
+    await deleteAllTestUsers();
     await prisma.$disconnect();
   });
 });
