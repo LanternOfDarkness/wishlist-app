@@ -14,3 +14,12 @@
 - **Wishlist settings state**: the normalized settings draft used by Appearance and Widget settings. It hides raw Wishlist appearance JSON defaults, theme mode rules, font choices, border choices, and widget layout settings.
 - **Dashboard settings intake**: the authenticated server-side loading of the data needed by the settings page.
 - **Wishlist filter state**: the normalized URL-backed state used to filter and sort Wishlist items. It owns category, currency, price range, sort order, and the query rules derived from those values.
+
+## Brand identity vs. per-user appearance
+
+The site's visual identity (see [`docs/design-landing-sketch-concept.md`](./docs/design-landing-sketch-concept.md) and [`docs/plan-sketch-redesign.md`](./docs/plan-sketch-redesign.md)) is split into two independent axes, and it's easy to break this by accident:
+
+- **Structure & type** (double-stroke boxes, hatch fills, wobble icons, handwritten headings, ruled paper) is brand-fixed and applies to every surface, including a user's own themed wishlist page and embed.
+- **Color** is per-user on the wishlist page and embed — it always comes from the resolved `wishlist-appearance.ts` tokens (`resolveWishlistAppearance`), never a hardcoded brand hex. Marketing/app chrome (header, footer, landing, settings, login, 404) uses the fixed brand `--sk-*` tokens instead.
+
+The brand palette is also offered *as two of the user's own presets* (`paper`, `chalk` in `COLOR_PRESET_OPTIONS`), seeded as the default for newly created wishlists only — existing users' explicit choices are never rewritten. If you're touching a wishlist-page or embed component, sketch structure is fine to add unconditionally, but any color must trace back to the resolved per-user tokens, not a `--sk-*` variable.

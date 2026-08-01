@@ -6,8 +6,6 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
   --font-display: var(--font-display-primary), var(--font-display-cyr), cursive;
   --font-hand: var(--font-hand-primary), var(--font-hand-cyr), cursive;
   --color-sidebar-ring: var(--sidebar-ring);
