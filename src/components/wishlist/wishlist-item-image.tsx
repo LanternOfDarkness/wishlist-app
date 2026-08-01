@@ -34,6 +34,16 @@ interface WishlistItemImageProps {
  * with the `Gift` glyph centered on top of it — the hatch is decorative, not
  * a replacement for the icon, so it's a separate `aria-hidden` layer and the
  * `<Image>` `alt` contract is unchanged.
+ *
+ * Wrapped in an inset `p-2` frame rather than sitting flush against the
+ * card edge: the outer `.sketch` card uses its own asymmetric, wobbly
+ * border-radius that doesn't line up with this box's (uniform, user-chosen)
+ * `itemBorderClass` radius, so a flush image visibly overshot the card's
+ * rounded corners. The inset also reads as a photo pasted onto the page
+ * rather than a bleed-to-edge stock photo, which fits the hand-drawn frame
+ * better. The `border` utility has no explicit color, so it inherits
+ * `var(--border)` from the `* { border-color }` base rule — already the
+ * viewer's own resolved token on this page, never a brand `--sk-*` hex.
  */
 export function WishlistItemImage({
   imageUrl,
@@ -45,36 +55,38 @@ export function WishlistItemImage({
   hatchColor,
 }: WishlistItemImageProps) {
   return (
-    <div
-      className={`relative aspect-square overflow-hidden bg-muted${
-        className ? ` ${className}` : ""
-      }`}
-    >
-      {imageUrl && isSafeUrl(imageUrl) ? (
-        <Image
-          src={imageUrl}
-          alt={alt}
-          fill
-          sizes={sizes}
-          unoptimized
-          className={`h-full w-full object-cover${
-            imageClassName ? ` ${imageClassName}` : ""
-          }`}
-        />
-      ) : (
-        <div className="relative flex h-full items-center justify-center text-muted-foreground">
-          <div
-            aria-hidden="true"
-            className="sketch-hatch absolute inset-0"
-            style={
-              hatchColor
-                ? ({ "--sk-hatch-override": hatchColor } as CSSProperties)
-                : undefined
-            }
+    <div className="w-full p-2">
+      <div
+        className={`relative aspect-square overflow-hidden border bg-muted${
+          className ? ` ${className}` : ""
+        }`}
+      >
+        {imageUrl && isSafeUrl(imageUrl) ? (
+          <Image
+            src={imageUrl}
+            alt={alt}
+            fill
+            sizes={sizes}
+            unoptimized
+            className={`h-full w-full object-cover${
+              imageClassName ? ` ${imageClassName}` : ""
+            }`}
           />
-          <Gift className={`relative ${fallbackIconClassName}`} />
-        </div>
-      )}
+        ) : (
+          <div className="relative flex h-full items-center justify-center text-muted-foreground">
+            <div
+              aria-hidden="true"
+              className="sketch-hatch absolute inset-0"
+              style={
+                hatchColor
+                  ? ({ "--sk-hatch-override": hatchColor } as CSSProperties)
+                  : undefined
+              }
+            />
+            <Gift className={`relative ${fallbackIconClassName}`} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

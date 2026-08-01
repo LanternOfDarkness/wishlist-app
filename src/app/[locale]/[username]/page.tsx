@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { User as UserIcon, ExternalLink, Lock, Star } from "lucide-react";
+import { User as UserIcon, ExternalLink, Lock, Star, Sparkles } from "lucide-react";
 import type { CSSProperties } from "react";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { AddItemModal } from "@/components/add-item-modal";
@@ -36,6 +36,7 @@ export default async function WishlistPage({
   const { username } = await params;
   const resolvedSearchParams = await searchParams;
   const t = await getTranslations("Wishlist");
+  const tAddItem = await getTranslations("AddItem");
 
   const presentation = await getWishlistPresentation({
     username,
@@ -128,6 +129,28 @@ export default async function WishlistPage({
                 wishlistId={wishlist.id}
                 categories={user.categories}
                 favoriteCurrencies={appearance.favoriteCurrencies}
+                trigger={
+                  // Structure (the double-stroke border) is brand-fixed;
+                  // color still comes from this viewer's own resolved
+                  // appearance (bg-primary/text-primary-foreground already
+                  // resolve through the --primary CSS vars set on the page
+                  // root), never a hardcoded --sk-* brand hex.
+                  <Button
+                    size="lg"
+                    className="sketch"
+                    style={
+                      {
+                        "--sk-line-override": sketchFrameColor({
+                          border: resolvedAppearance.tokens.border,
+                          foreground: resolvedAppearance.tokens.primaryForeground,
+                        }),
+                      } as CSSProperties
+                    }
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {tAddItem("title")}
+                  </Button>
+                }
               />
             </div>
           )}
