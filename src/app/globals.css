@@ -8,6 +8,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display-primary), var(--font-display-cyr), cursive;
+  --font-hand: var(--font-hand-primary), var(--font-hand-cyr), cursive;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -79,6 +81,23 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+
+  /*
+   * Sketch brand tokens (Phase 0 — defined only, not yet applied to any
+   * existing page). Namespaced with `sk-` so they never collide with or
+   * override the shadcn tokens above. `--sk-line` and `--sk-hatch` route
+   * through an overridable var so a later phase can feed per-user stroke
+   * colors in without redefining the token itself.
+   */
+  --sk-bg: #FAF7EF;
+  --sk-surface: #FFFDF8;
+  --sk-line: var(--sk-line-override, #2E2B26);
+  --sk-text: #2E2B26;
+  --sk-text-muted: #6E6A5F;
+  --sk-accent: #3E5C82;
+  --sk-accent-contrast: #FFFDF8;
+  --sk-highlight: #C1432E;
+  --sk-hatch: var(--sk-hatch-override, #7A756A);
 }
 
 .dark {
@@ -113,6 +132,17 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+
+  /* Sketch brand tokens — dark ("chalk on a blackboard", not an inverted palette) */
+  --sk-bg: #24272B;
+  --sk-surface: #2C3035;
+  --sk-line: var(--sk-line-override, #EDEAE0);
+  --sk-text: #EDEAE0;
+  --sk-text-muted: #A8ACA6;
+  --sk-accent: #8FB4D9;
+  --sk-accent-contrast: #1E2124;
+  --sk-highlight: #E08672;
+  --sk-hatch: var(--sk-hatch-override, #6E7278);
 }
 
 @layer base {
@@ -127,6 +157,88 @@
 @layer base {
   a, button, [role="button"] {
     cursor: pointer;
+  }
+}
+
+@layer components {
+  /*
+   * Sketch primitives (Phase 0 — defined only, not yet referenced by any
+   * existing component/page). Every stroke/fill color below resolves
+   * through the `--sk-line` / `--sk-hatch` tokens, which are themselves
+   * overridable via `--sk-line-override` / `--sk-hatch-override` so a later
+   * phase can feed per-user appearance colors in without touching this file.
+   */
+
+  /* Double-stroke "sketch" box: a base border plus an offset, rotated,
+     translucent second border so it reads as hand-drawn rather than CAD. */
+  .sketch {
+    position: relative;
+    border-radius: 16px 9px 14px 10px / 9px 15px 10px 16px;
+    border: 1.6px solid var(--sk-line);
+  }
+
+  .sketch::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    border: 1.6px solid var(--sk-line);
+    border-radius: 14px 10px 16px 9px / 10px 16px 9px 15px;
+    opacity: 0.45;
+    rotate: -0.7deg;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* Tighter second-stroke offset for small/dense elements. Combine with
+     `.sketch` on the same element, e.g. class="sketch sketch-tight". */
+  .sketch-tight::after {
+    inset: -3px;
+  }
+
+  /* Diagonal hatch fill — stands in for a photo not yet taken. */
+  .sketch-hatch {
+    background-image: repeating-linear-gradient(
+      45deg,
+      var(--sk-hatch) 0,
+      var(--sk-hatch) 1.2px,
+      transparent 1.2px,
+      transparent 7px
+    );
+  }
+
+  /* Applies the #wobble SVG filter (see SketchFilters) to decorative icons
+     and illustrations only — never to anything containing text. */
+  .wobble-icon {
+    filter: url(#wobble);
+  }
+
+  /* Ruled-paper background layer. Opt-in wrapper class (never attached to
+     `body`) so surfaces that must stay plain — the embed iframe, short
+     pages — can skip it. Wrap content in an element with this class; direct
+     children are lifted above the ruled layer automatically. */
+  .paper-rules {
+    position: relative;
+  }
+
+  .paper-rules::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.12;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      var(--sk-line) 0,
+      var(--sk-line) 1px,
+      transparent 1px,
+      transparent 28px
+    );
+  }
+
+  .paper-rules > * {
+    position: relative;
+    z-index: 1;
   }
 }
 

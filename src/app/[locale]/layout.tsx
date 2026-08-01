@@ -5,6 +5,8 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
+import { brandFontVariables } from "@/lib/brand-fonts";
+import { SketchFilters } from "@/components/brand/sketch-filters";
 
 export const metadata: Metadata = {
   title: "Wishlist App",
@@ -23,8 +25,9 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} className={brandFontVariables} suppressHydrationWarning>
       <body className="font-sans" suppressHydrationWarning>
+        <SketchFilters />
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <SiteHeader />
