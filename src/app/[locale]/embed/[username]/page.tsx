@@ -6,7 +6,7 @@ import { WishlistBanner } from "@/components/wishlist/wishlist-banner";
 import { WishlistAvatar } from "@/components/wishlist/wishlist-avatar";
 import { WishlistItemImage } from "@/components/wishlist/wishlist-item-image";
 import { WishlistItemPrice } from "@/components/wishlist/wishlist-item-price";
-import { borderColorWithAlpha } from "@/components/wishlist/style-utils";
+import { sketchFrameColor } from "@/components/wishlist/style-utils";
 import type { CSSProperties } from "react";
 
 interface EmbedPageProps {
@@ -44,10 +44,15 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
       ? "flex flex-col gap-3"
       : "grid justify-center gap-3";
 
+  // `.sketch-tight` (inset -3px) instead of the default `.sketch` (-5px):
+  // tiles run as small as 70px, and the wider default offset would clip
+  // against neighboring tiles at that size. Combine with `.sketch` — that's
+  // the class that actually generates the `::after` echo-stroke;
+  // `.sketch-tight` alone only adjusts its inset.
   const itemClassName =
     widget.widgetLayout === "list"
-      ? `grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3 border bg-card/90 shadow-sm ${appearance.itemBorderClass}`
-      : `flex w-[var(--widget-item-size)] max-w-[var(--widget-item-size)] flex-col gap-2 p-2 border bg-card/90 shadow-sm ${appearance.itemBorderClass}`;
+      ? `sketch sketch-tight grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3 bg-card/90 shadow-sm ${appearance.itemBorderClass}`
+      : `sketch sketch-tight flex w-[var(--widget-item-size)] max-w-[var(--widget-item-size)] flex-col gap-2 p-2 bg-card/90 shadow-sm ${appearance.itemBorderClass}`;
 
   return (
     <div
@@ -120,7 +125,16 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
               target="_blank"
               rel="noopener noreferrer"
               className={itemClassName}
-              style={{ borderColor: borderColorWithAlpha(primaryColor, "30") }}
+              style={
+                {
+                  // Structure is brand-fixed; color always follows this
+                  // viewer's own resolved appearance, never a hardcoded
+                  // `--sk-*` brand hex.
+                  "--sk-line-override": sketchFrameColor(
+                    resolvedAppearance.tokens,
+                  ),
+                } as CSSProperties
+              }
             >
               <WishlistItemImage
                 imageUrl={item.imageUrl}
@@ -132,6 +146,7 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
                 }
                 className={`w-full shrink-0 ${appearance.itemBorderClass}`}
                 fallbackIconClassName="w-6 h-6"
+                hatchColor={resolvedAppearance.tokens.mutedForeground}
               />
               <div className="flex flex-col justify-center min-w-0">
                 <h3 className="text-sm font-semibold line-clamp-2 leading-tight mb-1">

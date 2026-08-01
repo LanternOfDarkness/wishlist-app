@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { User as UserIcon, ExternalLink, Lock, Star } from "lucide-react";
+import type { CSSProperties } from "react";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { AddItemModal } from "@/components/add-item-modal";
 import { ItemActionsMenu } from "@/components/item-actions-menu";
@@ -13,7 +14,7 @@ import { WishlistBanner } from "@/components/wishlist/wishlist-banner";
 import { WishlistAvatar } from "@/components/wishlist/wishlist-avatar";
 import { WishlistItemImage } from "@/components/wishlist/wishlist-item-image";
 import { WishlistItemPrice } from "@/components/wishlist/wishlist-item-price";
-import { borderColorWithAlpha } from "@/components/wishlist/style-utils";
+import { sketchFrameColor } from "@/components/wishlist/style-utils";
 import { getTranslations } from "next-intl/server";
 import { isSafeUrl } from "@/lib/utils";
 import { getWishlistPresentation } from "@/lib/wishlist-presentation";
@@ -91,7 +92,7 @@ export default async function WishlistPage({
           />
 
           <div className="flex flex-col items-center gap-2">
-            <h1 className="text-4xl font-bold">
+            <h1 className="font-display text-4xl font-bold">
               {t("wishlist_title", {
                 name: user.name || user.username || "User",
               })}
@@ -156,10 +157,17 @@ export default async function WishlistPage({
                 {wishlist.items.map((item) => (
                   <div
                     key={item.id}
-                    className={`group relative overflow-hidden border bg-card transition-shadow hover:shadow-lg flex flex-col ${appearance.itemBorderClass}`}
-                    style={{
-                      borderColor: borderColorWithAlpha(primaryColor, "30"),
-                    }}
+                    className={`sketch group relative bg-card transition-shadow hover:shadow-lg flex flex-col ${appearance.itemBorderClass}`}
+                    style={
+                      {
+                        // Structure (the double-stroke box) is brand-fixed;
+                        // color always follows this viewer's own resolved
+                        // appearance, never a hardcoded `--sk-*` brand hex.
+                        "--sk-line-override": sketchFrameColor(
+                          resolvedAppearance.tokens,
+                        ),
+                      } as CSSProperties
+                    }
                   >
                     {relationship.isOwner && (
                       <div className="absolute right-2 top-2 z-10">
@@ -175,7 +183,9 @@ export default async function WishlistPage({
                       imageUrl={item.imageUrl}
                       alt={item.name}
                       sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      className={appearance.itemBorderClass}
                       imageClassName="transition-transform group-hover:scale-105"
+                      hatchColor={resolvedAppearance.tokens.mutedForeground}
                     />
 
                     <div className="p-4 flex flex-col flex-grow">
@@ -192,9 +202,10 @@ export default async function WishlistPage({
                           )}
                         </h3>
                         <div
-                          className="px-2 py-1 rounded text-xs font-bold shrink-0"
+                          className="-rotate-1 shrink-0 rounded-full border-[1.6px] px-2 py-1 font-display text-xs font-bold"
                           style={{
                             backgroundColor: primaryColor,
+                            borderColor: resolvedAppearance.tokens.primaryForeground,
                             color: resolvedAppearance.tokens.primaryForeground,
                           }}
                         >
@@ -224,7 +235,7 @@ export default async function WishlistPage({
                           entirely, so these blocks naturally can't render for
                           them regardless of this explicit check. */}
                       {!relationship.isOwner && item.isReserved && (
-                        <div className="mt-2 inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                        <div className="mt-2 inline-block rounded-full border-[1.6px] border-dashed border-yellow-800 bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800 dark:border-yellow-200 dark:bg-yellow-900 dark:text-yellow-200">
                           {t("reserved")}
                         </div>
                       )}
