@@ -175,7 +175,7 @@ export function AddItemModal({
   const defaultTrigger = !isEditMode && !isControlled ? (
     <DialogTrigger asChild>
       <Button size="lg">
-        <Sparkles className="mr-2 h-4 w-4" />
+        <Sparkles className="mr-2 size-5" />
         {t("title") || "Add Item"}
       </Button>
     </DialogTrigger>

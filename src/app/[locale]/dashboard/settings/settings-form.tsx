@@ -139,7 +139,7 @@ export function SettingsForm({
   return (
     <form action={handleSubmit} className="space-y-6 max-w-xl w-full pb-10">
       <div
-        className="sketch space-y-4 bg-(--sk-surface) p-4 sm:p-6"
+        className="sketch sketch-interactive space-y-4 bg-(--sk-surface) p-4 sm:p-6"
         style={{ display: tab === "general" ? "block" : "none" }}
       >
         <h3 className="text-lg font-display border-b pb-2">
@@ -238,7 +238,7 @@ export function SettingsForm({
       </div>
 
       <div
-        className="sketch space-y-4 bg-(--sk-surface) p-4 sm:p-6"
+        className="sketch sketch-interactive space-y-4 bg-(--sk-surface) p-4 sm:p-6"
         style={{ display: tab === "appearance" ? "block" : "none" }}
       >
         <h3 className="text-lg font-display border-b pb-2">
@@ -481,7 +481,7 @@ export function SettingsForm({
       </div>
 
       <div
-        className="sketch space-y-4 bg-(--sk-surface) p-4 sm:p-6"
+        className="sketch sketch-interactive space-y-4 bg-(--sk-surface) p-4 sm:p-6"
         style={{ display: tab === "general" ? "block" : "none" }}
       >
         <h3 className="text-lg font-display border-b pb-2">

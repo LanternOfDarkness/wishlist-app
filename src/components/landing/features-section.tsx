@@ -21,7 +21,7 @@ export async function FeaturesSection() {
           {FEATURES.map(({ icon: Icon, titleKey, descKey }) => (
             <div
               key={titleKey}
-              className="sketch flex flex-col items-center gap-3 bg-(--sk-surface) p-6 text-center"
+              className="sketch sketch-interactive flex flex-col items-center gap-3 bg-(--sk-surface) p-6 text-center"
             >
               <Icon className="wobble-icon h-8 w-8 text-(--sk-accent)" />
               <h3 className="font-display text-lg text-(--sk-text)">

@@ -1,7 +1,8 @@
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { User as UserIcon, ExternalLink, Lock, Star, Sparkles } from "@/components/brand/icons";
+import { User as UserIcon, ExternalLink, Sparkles } from "@/components/brand/icons";
+import { Lock, Star } from "lucide-react";
 import type { CSSProperties } from "react";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { AddItemModal } from "@/components/add-item-modal";
@@ -137,7 +138,7 @@ export default async function WishlistPage({
                   // root), never a hardcoded --sk-* brand hex.
                   <Button
                     size="lg"
-                    className="sketch"
+                    className="sketch sketch-interactive"
                     style={
                       {
                         "--sk-line-override": sketchFrameColor({
@@ -147,7 +148,7 @@ export default async function WishlistPage({
                       } as CSSProperties
                     }
                   >
-                    <Sparkles className="mr-2 h-4 w-4" />
+                    <Sparkles className="mr-2 size-5" />
                     {tAddItem("title")}
                   </Button>
                 }
@@ -184,7 +185,7 @@ export default async function WishlistPage({
                     // `itemBorderClass`'s `rounded-*` is intentionally
                     // stripped here so it can't fight — it applies to the
                     // inner image frame instead.
-                    className={`sketch paper-lift group relative bg-card flex flex-col ${appearance.itemBorderClass.replace(/rounded-\S+/g, "").trim()}`}
+                    className={`sketch sketch-interactive paper-lift group relative bg-card flex flex-col ${appearance.itemBorderClass.replace(/rounded-\S+/g, "").trim()}`}
                     style={
                       {
                         // Structure (the double-stroke box) is brand-fixed;
@@ -297,7 +298,7 @@ export default async function WishlistPage({
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              <ExternalLink className="mr-2 h-4 w-4" />
+                              <ExternalLink className="mr-2 size-5" />
                               {t("view_link")}
                             </a>
                           </Button>

@@ -31,7 +31,7 @@ export function LanguageSwitcher() {
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
-                    <Globe className="h-4 w-4" />
+                    <Globe className="size-5" />
                     {currentLanguage?.label}
                 </Button>
             </DropdownMenuTrigger>

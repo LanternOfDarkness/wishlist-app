@@ -31,7 +31,7 @@ export async function PresetsShowcase() {
             return (
               <div
                 key={preset}
-                className="sketch sketch-tight flex flex-col items-center gap-3 bg-(--sk-surface) p-4"
+                className="sketch sketch-tight sketch-interactive flex flex-col items-center gap-3 bg-(--sk-surface) p-4"
               >
                 <div className="flex items-center gap-1" aria-hidden="true">
                   <span

@@ -90,7 +90,7 @@ export function ReserveItemModal({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="w-full">
-          <Gift className="mr-2 h-4 w-4" />
+          <Gift className="mr-2 size-5" />
           {t("reserveButton")}
         </Button>
       </DialogTrigger>

@@ -15,7 +15,7 @@ export default async function LoginPage({
 
     return (
         <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-muted/20">
-            <div className="sketch w-full max-w-md space-y-8 bg-(--sk-surface) p-8">
+            <div className="sketch sketch-interactive w-full max-w-md space-y-8 bg-(--sk-surface) p-8">
                 <div>
                     <h2 className="mt-6 text-center font-display text-3xl text-foreground">
                         {t('login')}

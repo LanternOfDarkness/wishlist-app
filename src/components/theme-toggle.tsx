@@ -37,9 +37,9 @@ export function ThemeToggle() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="icon" aria-label={t("toggle")}>
           {mounted && theme === "dark" ? (
-            <Moon className="h-4 w-4" />
+            <Moon className="size-5" />
           ) : (
-            <Sun className="h-4 w-4" />
+            <Sun className="size-5" />
           )}
         </Button>
       </DropdownMenuTrigger>

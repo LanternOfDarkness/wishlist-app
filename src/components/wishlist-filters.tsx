@@ -61,10 +61,10 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
     };
 
     return (
-        <div className="sketch w-full md:w-64 shrink-0 mb-8 md:mb-0 bg-card p-4 h-fit sticky top-20">
+        <div className="sketch sketch-interactive w-full md:w-64 shrink-0 mb-8 md:mb-0 bg-card p-4 h-fit sticky top-20">
             <div className="flex justify-between items-center mb-4 md:mb-6">
                 <div className="flex gap-2 items-center">
-                    <Filter className="w-4 h-4" />
+                    <Filter className="size-5" />
                     <h3 className="font-medium text-lg">{t("title")}</h3>
                 </div>
                 <Button

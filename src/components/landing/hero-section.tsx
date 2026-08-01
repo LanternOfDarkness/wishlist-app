@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Star } from "@/components/brand/icons";
+import { Star } from "lucide-react";
 
 import { SignInButton } from "@/components/sign-in-button";
 
@@ -111,7 +111,7 @@ function HeroItemCard({
   className = "",
 }: HeroItemData & { name: string; reservedLabel: string; className?: string }) {
   return (
-    <div className={`sketch w-56 shrink-0 bg-(--sk-surface) p-3 ${className}`}>
+    <div className={`sketch sketch-interactive w-56 shrink-0 bg-(--sk-surface) p-3 ${className}`}>
       <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md border-[1.6px] border-(--sk-line)">
         <div aria-hidden="true" className="sketch-hatch absolute inset-0" />
       </div>

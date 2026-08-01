@@ -195,15 +195,18 @@
   /* Interaction as "redraw" (plan §1 "Interaction", Stage 4): hovering or
      pressing the surface nudges the echo stroke's rotation — the pencil
      redraws the frame a fraction of a degree instead of the card "lifting".
-     Applies to every `.sketch` element (cards, dialogs, panels, filters,
-     settings cards); the echo is absolutely positioned and
-     `pointer-events: none`, so this can't cause layout shift. Motion gated
-     behind `prefers-reduced-motion`. */
-  .sketch:hover::after {
+     Opt-in via `.sketch-interactive` (combine with `.sketch`, e.g.
+     class="sketch sketch-interactive") so the nudge only fires on the
+     small, interactive surfaces it was designed for — cards, dialogs,
+     dropdowns, buttons. Bare `.sketch` (page-height containers, panels,
+     empty states) stays static: the echo is absolutely positioned and
+     `pointer-events: none`, so the nudge can't cause layout shift. Motion
+     gated behind `prefers-reduced-motion`. */
+  .sketch-interactive:hover::after {
     rotate: -0.3deg;
   }
 
-  .sketch:active::after {
+  .sketch-interactive:active::after {
     rotate: -0.1deg;
   }
 
@@ -212,11 +215,11 @@
       transition: none;
     }
 
-    .sketch:hover::after {
+    .sketch-interactive:hover::after {
       rotate: -0.7deg;
     }
 
-    .sketch:active::after {
+    .sketch-interactive:active::after {
       rotate: -0.7deg;
     }
   }

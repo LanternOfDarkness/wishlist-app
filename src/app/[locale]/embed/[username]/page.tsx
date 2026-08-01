@@ -61,8 +61,8 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
   // `WishlistItemImage` className below).
   const itemClassName =
     widget.widgetLayout === "list"
-      ? `sketch sketch-tight grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3 bg-card ${appearance.itemBorderClass.replace(/rounded-\S+/g, "").trim()}`
-      : `sketch sketch-tight flex w-[var(--widget-item-size)] max-w-[var(--widget-item-size)] flex-col gap-2 p-2 bg-card ${appearance.itemBorderClass.replace(/rounded-\S+/g, "").trim()}`;
+      ? `sketch sketch-tight sketch-interactive grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3 bg-card ${appearance.itemBorderClass.replace(/rounded-\S+/g, "").trim()}`
+      : `sketch sketch-tight sketch-interactive flex w-[var(--widget-item-size)] max-w-[var(--widget-item-size)] flex-col gap-2 p-2 bg-card ${appearance.itemBorderClass.replace(/rounded-\S+/g, "").trim()}`;
 
   return (
     <div
