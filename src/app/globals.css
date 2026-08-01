@@ -258,4 +258,27 @@
   .font-verdana {
     font-family: Verdana, Geneva, sans-serif;
   }
+
+  /* Handwritten wishlist font option (FONT_OPTIONS: "font-sketch"), backed
+     by the brand hand-lettering stack from Phase 0 (`--font-hand`, self-
+     hosted "Patrick Hand" + Cyrillic companion — see brand-fonts.ts). */
+  .font-sketch {
+    font-family: var(--font-hand);
+  }
+
+  /* Opt-in item border option (ITEM_BORDER_OPTIONS: "rounded-lg
+     border-sketch"). The item card's `.sketch`/`.sketch::after` double
+     stroke (Phase 3, @layer components above) is unconditional on every
+     card regardless of this setting — that gate was removed in Phase 3, so
+     this utility doesn't (and can't) turn the frame on or off. Instead it
+     layers on top: being in @layer utilities, it beats `.sketch`'s
+     components-layer border-width the same way `.border-dashed` /
+     `.border-dotted` / etc. already beat its border-style. The heavier
+     stroke reads as a firmer pencil pass alongside the always-on double
+     stroke. Deliberately leaves border-radius alone — that's owned by
+     whichever `rounded-*` utility is paired with it in the option string. */
+  .border-sketch {
+    border-style: solid;
+    border-width: 2.4px;
+  }
 }
