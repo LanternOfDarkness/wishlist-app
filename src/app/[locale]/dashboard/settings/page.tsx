@@ -25,7 +25,7 @@ export default async function SettingsPage() {
                 </Link>
             </div>
 
-            <h1 className="text-3xl font-bold mb-8">{t("pageTitle")}</h1>
+            <h1 className="font-display text-3xl mb-8">{t("pageTitle")}</h1>
             <SettingsTabs user={user} />
         </div>
     );

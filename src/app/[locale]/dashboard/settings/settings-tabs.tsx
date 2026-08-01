@@ -20,20 +20,20 @@ export function SettingsTabs({ user }: SettingsTabsProps) {
         <div className="w-full">
             <div className="flex border-b mb-6 overflow-x-auto">
                 <button
-                    className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${activeTab === 'general' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`px-4 py-2 font-display text-sm whitespace-nowrap border-b-[3px] transition-colors ${activeTab === 'general' ? 'border-(--sk-highlight) text-(--sk-text)' : 'border-transparent text-(--sk-text-muted) hover:text-(--sk-text)'}`}
                     onClick={() => setActiveTab("general")}
                 >
                     {t("generalTab")}
                 </button>
                 <button
-                    className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${activeTab === 'appearance' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`px-4 py-2 font-display text-sm whitespace-nowrap border-b-[3px] transition-colors ${activeTab === 'appearance' ? 'border-(--sk-highlight) text-(--sk-text)' : 'border-transparent text-(--sk-text-muted) hover:text-(--sk-text)'}`}
                     onClick={() => setActiveTab("appearance")}
                 >
                     {t("appearanceTab")}
                 </button>
                 {user.username && (
                     <button
-                        className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${activeTab === 'widget' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                        className={`px-4 py-2 font-display text-sm whitespace-nowrap border-b-[3px] transition-colors ${activeTab === 'widget' ? 'border-(--sk-highlight) text-(--sk-text)' : 'border-transparent text-(--sk-text-muted) hover:text-(--sk-text)'}`}
                         onClick={() => setActiveTab("widget")}
                     >
                         {t("widgetTab")}
