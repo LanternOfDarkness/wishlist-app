@@ -11,16 +11,17 @@ export default async function LoginPage({
 }) {
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'Navigation' });
+    const tLogin = await getTranslations({ locale, namespace: 'Login' });
 
     return (
         <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-muted/20">
-            <div className="w-full max-w-md space-y-8 bg-card p-8 rounded-xl shadow-sm border">
+            <div className="sketch w-full max-w-md space-y-8 bg-(--sk-surface) p-8">
                 <div>
-                    <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
-                        {t('login') || "Sign in / Register"}
+                    <h2 className="mt-6 text-center font-display text-3xl text-foreground">
+                        {t('login')}
                     </h2>
                     <p className="mt-2 text-center text-sm text-muted-foreground">
-                        Use your email or Google account to continue
+                        {tLogin('subtitle')}
                     </p>
                 </div>
 
@@ -35,7 +36,7 @@ export default async function LoginPage({
                     >
                         <div>
                             <Label htmlFor="email" className="sr-only">
-                                Email address
+                                {tLogin('emailAddress')}
                             </Label>
                             <Input
                                 id="email"
@@ -54,8 +55,8 @@ export default async function LoginPage({
                         */}
                         <input type="hidden" name="redirectTo" value="/dashboard" />
 
-                        <Button type="submit" className="w-full">
-                            Sign in with Email
+                        <Button type="submit" variant="sketch" className="w-full">
+                            {tLogin('signInWithEmail')}
                         </Button>
                     </form>
 
@@ -64,8 +65,8 @@ export default async function LoginPage({
                             <span className="w-full border-t" />
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="bg-card px-2 text-muted-foreground">
-                                Or continue with
+                            <span className="bg-(--sk-surface) px-2 text-muted-foreground">
+                                {tLogin('orContinueWith')}
                             </span>
                         </div>
                     </div>
@@ -81,7 +82,7 @@ export default async function LoginPage({
                             <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
                                 <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
                             </svg>
-                            Sign in with Google
+                            {tLogin('signInWithGoogle')}
                         </Button>
                     </form>
                 </div>

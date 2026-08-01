@@ -137,10 +137,10 @@ export function SettingsForm({
   return (
     <form action={handleSubmit} className="space-y-6 max-w-xl w-full pb-10">
       <div
-        className="space-y-4"
+        className="sketch space-y-4 bg-(--sk-surface) p-4 sm:p-6"
         style={{ display: tab === "general" ? "block" : "none" }}
       >
-        <h3 className="text-lg font-medium border-b pb-2">
+        <h3 className="text-lg font-display border-b pb-2">
           {t("generalSettingsTitle")}
         </h3>
 
@@ -236,10 +236,10 @@ export function SettingsForm({
       </div>
 
       <div
-        className="space-y-4"
+        className="sketch space-y-4 bg-(--sk-surface) p-4 sm:p-6"
         style={{ display: tab === "appearance" ? "block" : "none" }}
       >
-        <h3 className="text-lg font-medium border-b pb-2">
+        <h3 className="text-lg font-display border-b pb-2">
           {t("appearanceTitle")}
         </h3>
 
@@ -483,10 +483,10 @@ export function SettingsForm({
       </div>
 
       <div
-        className="space-y-4"
+        className="sketch space-y-4 bg-(--sk-surface) p-4 sm:p-6"
         style={{ display: tab === "general" ? "block" : "none" }}
       >
-        <h3 className="text-lg font-medium border-b pb-2">
+        <h3 className="text-lg font-display border-b pb-2">
           {t("favoriteCurrenciesTitle")}
         </h3>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -506,7 +506,7 @@ export function SettingsForm({
         </div>
       </div>
 
-      <Button type="submit" disabled={isLoading} className="w-full">
+      <Button type="submit" variant="sketch" disabled={isLoading} className="w-full">
         {isLoading ? t("saving") : t("saveChanges")}
       </Button>
     </form>
