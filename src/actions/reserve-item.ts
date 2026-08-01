@@ -8,8 +8,6 @@ import {
   ValidationError,
 } from "@/lib/wishlist-command";
 
-export type { ReservationInput };
-
 export const reserveItem = wishlistCommand(
   async (input: ReservationInput) => {
     const userId = await getAuthenticatedUserId();

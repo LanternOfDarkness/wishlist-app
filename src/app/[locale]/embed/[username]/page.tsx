@@ -59,7 +59,7 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
       style={themeStyle}
       className={`min-h-screen w-full overflow-auto border shadow-sm ${appearance.fontClass}`}
     >
-      <style>{`header { display: none !important; }`}</style>
+      <style>{`header, footer { display: none !important; }`}</style>
 
       <WishlistBanner
         visible={resolvedAppearance.banner.visible}
