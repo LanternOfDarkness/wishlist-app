@@ -225,5 +225,9 @@
         "title": "Page not found",
         "description": "The page you're looking for doesn't exist or may have been moved.",
         "homeButton": "Go home"
+    },
+    "Footer": {
+        "tagline": "Handwritten wishlists for gifts that stay a surprise.",
+        "copyright": "© {year} Wishlist App. All rights reserved."
     }
 }
