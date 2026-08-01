@@ -44,6 +44,14 @@ interface WishlistItemImageProps {
  * better. The `border` utility has no explicit color, so it inherits
  * `var(--border)` from the `* { border-color }` base rule — already the
  * viewer's own resolved token on this page, never a brand `--sk-*` hex.
+ *
+ * `object-contain`, not `object-cover`: item photos are scraped from
+ * arbitrary product pages via URL/OG-image metadata, so their aspect ratio
+ * is unpredictable — a wide product shot (e.g. an M.2 stick photographed
+ * lengthwise) `object-cover`'d into this square just center-crops to a thin
+ * band of mostly blank label background, cropping off the actual
+ * identifying content. `object-contain` always shows the whole photo,
+ * letterboxed against the wrapper's own `bg-muted` in the gaps.
  */
 export function WishlistItemImage({
   imageUrl,
@@ -68,7 +76,7 @@ export function WishlistItemImage({
             fill
             sizes={sizes}
             unoptimized
-            className={`h-full w-full object-cover${
+            className={`h-full w-full object-contain${
               imageClassName ? ` ${imageClassName}` : ""
             }`}
           />
