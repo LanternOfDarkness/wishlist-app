@@ -4,7 +4,7 @@ import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 
-export function SignInButton() {
+export function SignInButton({ className }: { className?: string }) {
     const t = useTranslations("Navigation");
 
     return (
@@ -12,6 +12,7 @@ export function SignInButton() {
             variant="default"
             size="sm"
             asChild
+            className={className}
         >
             <Link href="/login">{t("login")}</Link>
         </Button>
