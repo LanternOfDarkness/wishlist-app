@@ -1,7 +1,8 @@
 import { getTranslations } from "next-intl/server";
-import { Palette, Handshake, Package, type LucideIcon } from "lucide-react";
+import { Palette, Handshake, Package } from "@/components/brand/icons";
+import type { ComponentType } from "react";
 
-const FEATURES: { icon: LucideIcon; titleKey: string; descKey: string }[] = [
+const FEATURES: { icon: ComponentType<{ className?: string }>; titleKey: string; descKey: string }[] = [
   { icon: Palette, titleKey: "feature1Title", descKey: "feature1Desc" },
   { icon: Handshake, titleKey: "feature2Title", descKey: "feature2Desc" },
   { icon: Package, titleKey: "feature3Title", descKey: "feature3Desc" },
@@ -22,10 +23,7 @@ export async function FeaturesSection() {
               key={titleKey}
               className="sketch flex flex-col items-center gap-3 bg-(--sk-surface) p-6 text-center"
             >
-              <Icon
-                aria-hidden="true"
-                className="wobble-icon h-8 w-8 text-(--sk-accent)"
-              />
+              <Icon className="wobble-icon h-8 w-8 text-(--sk-accent)" />
               <h3 className="font-display text-lg text-(--sk-text)">
                 {t(titleKey)}
               </h3>

@@ -160,11 +160,15 @@
 
 @layer components {
   /*
-   * Sketch primitives (Phase 0 — defined only, not yet referenced by any
-   * existing component/page). Every stroke/fill color below resolves
-   * through the `--sk-line` / `--sk-hatch` tokens, which are themselves
-   * overridable via `--sk-line-override` / `--sk-hatch-override` so a later
-   * phase can feed per-user appearance colors in without touching this file.
+   * Sketch primitives (Phase 0 — frames/texture/hatch defined only, not yet
+   * referenced by any existing component/page; Phase 1 — the interaction
+   * utilities below were added: `.sketch-focus`, `.paper-lift`,
+   * `.sketch-field`, `.sketch-underline` — still defined, not yet applied,
+   * so no existing page changes visually). Every stroke/fill color below
+   * resolves through the `--sk-line` / `--sk-hatch` tokens, which are
+   * themselves overridable via `--sk-line-override` / `--sk-hatch-override`
+   * so a later phase can feed per-user appearance colors in without
+   * touching this file.
    */
 
   /* Double-stroke "sketch" box: a base border plus an offset, rotated,
@@ -185,6 +189,36 @@
     rotate: -0.7deg;
     pointer-events: none;
     z-index: -1;
+    transition: rotate 160ms ease;
+  }
+
+  /* Interaction as "redraw" (plan §1 "Interaction", Stage 4): hovering or
+     pressing the surface nudges the echo stroke's rotation — the pencil
+     redraws the frame a fraction of a degree instead of the card "lifting".
+     Applies to every `.sketch` element (cards, dialogs, panels, filters,
+     settings cards); the echo is absolutely positioned and
+     `pointer-events: none`, so this can't cause layout shift. Motion gated
+     behind `prefers-reduced-motion`. */
+  .sketch:hover::after {
+    rotate: -0.3deg;
+  }
+
+  .sketch:active::after {
+    rotate: -0.1deg;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sketch::after {
+      transition: none;
+    }
+
+    .sketch:hover::after {
+      rotate: -0.7deg;
+    }
+
+    .sketch:active::after {
+      rotate: -0.7deg;
+    }
   }
 
   /* Tighter second-stroke offset for small/dense elements. Combine with
@@ -237,6 +271,160 @@
   .paper-rules > * {
     position: relative;
     z-index: 1;
+  }
+
+  /* Focus as a *third* drawn stroke (plan §1 "Focus"). Where the shadcn
+     focus-visible ring is a blur halo, this is a second pencil pass pulled
+     offset from the element's own border: a 1.6px `outline` in `--sk-line`
+     (per-user overridable) at a wider offset — no glow, no blur, no ring-*
+     utility. The outline follows the element's own `border-radius`, so
+     pairing it with an asymmetric radius (`.sketch` or the sketch button
+     variant's `rounded-[10px_5px_9px_4px]`) reads as a hand-drawn third
+     stroke. It's visible on both `paper` and `chalk` because `--sk-line` is
+     always the high-contrast ink for the current surface. Uses `outline`
+     rather than a pseudo-element so it never collides with `.sketch`'s
+     `::after` echo or `.paper-lift`'s `::before` echo. */
+  .sketch-focus:focus-visible,
+  .sketch-field:focus-visible {
+    outline: 1.6px solid var(--sk-line);
+    outline-offset: 3px;
+  }
+
+  /* Keep the drawn stroke visible under forced colors, where custom border
+     colors collapse to the system palette. */
+  @media (forced-colors: active) {
+    .sketch-focus:focus-visible,
+    .sketch-field:focus-visible {
+      outline: 3px solid CanvasText;
+      outline-offset: 3px;
+    }
+  }
+
+  /* Depth without a drop shadow (plan §1 "Depth" / "Interaction"). Elevation
+     is faked the way a sketcher draws it: a second, slightly rotated edge
+     that pokes out from under the element. Lives on `::before` (NOT
+     `::after`) precisely so it composes with `.sketch`, which owns
+     `::after` — both echoes layer behind the surface at `z-index: -1`
+     without clashing. On hover the echo *redraws*: its rotation shifts by
+     ~0.4deg (from -0.8deg to -0.4deg) instead of the surface "lifting".
+     Works standalone on elements without `.sketch`. Motion is gated behind
+     `prefers-reduced-motion`. */
+  .paper-lift {
+    position: relative;
+  }
+
+  .paper-lift::before {
+    content: "";
+    position: absolute;
+    inset: -3px -4px -4px -3px;
+    border: 1.6px solid var(--sk-line);
+    border-radius: 12px 8px 11px 9px / 8px 12px 9px 11px;
+    rotate: -0.8deg;
+    opacity: 0.45;
+    z-index: -1;
+    pointer-events: none;
+    transition: rotate 160ms ease;
+  }
+
+  .paper-lift:hover::before {
+    rotate: -0.4deg;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .paper-lift::before {
+      transition: none;
+    }
+
+    .paper-lift:hover::before {
+      rotate: -0.8deg;
+    }
+  }
+
+  /* Control chrome that keeps control *geometry* (plan Stage 1 §sketch-field,
+     and the redesign's legibility rule). This deliberately does NOT touch
+     height, padding, font-size, or font-family — it only swaps the border
+     for the 1.6px ink stroke and hands focus to the drawn-stroke outline
+     above. Apply to native `select`/`checkbox`/`input` where shadcn's ring
+     used to live. */
+  .sketch-field {
+    border: 1.6px solid var(--sk-line);
+    border-radius: 10px 5px 9px 4px;
+  }
+
+  /* Sketch loading indicator (plan Stage 4). Applied by
+     `src/components/ui/sketch-spinner.tsx`: a hand-drawn scribble loop that
+     *draws itself* instead of spinning like a precise gear. The
+     stroke-dash sweep traces the loop forward, then `alternate` reverses
+     and retraces it — the pen redrawing the same loop. `pathLength="1"`
+     on the path normalizes the dash lengths so these keyframes don't need
+     the path's real length. Ink is `currentColor` so it inherits the
+     button/control text color. Motion gated behind `prefers-reduced-motion`
+     (full static stroke there). */
+  .sketch-spin {
+    display: inline-block;
+  }
+
+  .sketch-spin path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: sketch-draw 1.2s ease-in-out infinite alternate;
+  }
+
+  @keyframes sketch-draw {
+    from {
+      stroke-dashoffset: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sketch-spin path {
+      stroke-dashoffset: 0;
+      animation: none;
+    }
+  }
+}
+
+/* Hand-drawn underline swash (plan §1 "Emphasis"). A curved pen stroke
+   beneath the text: asymmetric corner radius sags into an arc, a slight
+   rotation plus an end-fade mask give it the pen-lift. Decorative only —
+   `pointer-events: none`; ink is `--sk-line` (per-user overridable) so it
+   stays on-brand on any surface. Callers wanting accent emphasis can swap
+   the stroke color for `var(--sk-highlight)` via an inline style.
+   Registered as a Tailwind `@utility` (not a plain components-layer class)
+   so it composes with variants — the dropdown menu's focus mark uses
+   `focus:sketch-underline`. */
+@utility sketch-underline {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: -2%;
+    right: -2%;
+    bottom: -6px;
+    height: 5px;
+    border-bottom: 1.6px solid var(--sk-line);
+    border-radius: 0 0 65% 35%;
+    rotate: -0.7deg;
+    opacity: 0.85;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 15%,
+      black 85%,
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 15%,
+      black 85%,
+      transparent
+    );
   }
 }
 

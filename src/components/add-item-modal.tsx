@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { SketchSpinner } from "@/components/ui/sketch-spinner";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +20,7 @@ import {
 import { fetchMetadata } from "@/actions/fetch-metadata";
 import { addItem } from "@/actions/add-item";
 import { updateItem } from "@/actions/update-item";
-import { Loader2, Sparkles } from "lucide-react";
+import { Sparkles } from "@/components/brand/icons";
 import { toast } from "sonner";
 import type { CategoryData, ItemData } from "@/lib/repository";
 import Image from "next/image";
@@ -217,7 +220,7 @@ export function AddItemModal({
                 >
                   {isFetching ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <SketchSpinner className="mr-2 h-4 w-4" />
                       {t("fetching") || "Fetching..."}
                     </>
                   ) : (
@@ -309,9 +312,8 @@ export function AddItemModal({
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="priority">Priority (1-5)</Label>
-                <select
+                <Select
                   id="priority"
-                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={draft.priority}
                   onChange={(e) =>
                     setDraft({ ...draft, priority: e.target.value })
@@ -322,14 +324,13 @@ export function AddItemModal({
                   <option value="3">3 - Medium</option>
                   <option value="4">4 - High</option>
                   <option value="5">5 - Highest</option>
-                </select>
+                </Select>
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="categoryId">Category</Label>
-                <select
+                <Select
                   id="categoryId"
-                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={draft.categoryId}
                   onChange={(e) =>
                     setDraft({ ...draft, categoryId: e.target.value })
@@ -342,7 +343,7 @@ export function AddItemModal({
                     </option>
                   ))}
                   <option value="new">+ Create New Category</option>
-                </select>
+                </Select>
               </div>
             </div>
 
@@ -362,14 +363,12 @@ export function AddItemModal({
             )}
 
             <div className="flex items-center space-x-2 mt-4">
-              <input
-                type="checkbox"
+              <Checkbox
                 id="isPrivate"
                 checked={draft.isPrivate}
                 onChange={(e) =>
                   setDraft({ ...draft, isPrivate: e.target.checked })
                 }
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer disabled:cursor-not-allowed"
               />
               <Label htmlFor="isPrivate">
                 Make this item private (only visible to mutual followers)
@@ -387,7 +386,7 @@ export function AddItemModal({
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <SketchSpinner className="mr-2 h-4 w-4" />
                   {isEditMode ? t("saveEdit") || "Save" : t("submit") || "Add"}
                 </>
               ) : isEditMode ? (

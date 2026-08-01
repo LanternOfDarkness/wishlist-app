@@ -31,7 +31,12 @@ export function WishlistAvatar({
 }: WishlistAvatarProps) {
   return (
     <div
-      className={`relative overflow-hidden rounded-full border-4 border-background bg-background shadow-md ${className}`}
+      // No elevation per §1 — the old `shadow-md` is gone. Depth is a drawn
+      // stroke instead: a 1.6px `--sk-line` ring (overridable per-user via
+      // `--sk-line-override`) around the background-gap circle reads as a
+      // sketched outline. Radius stays `rounded-full` on purpose: `.sketch`'s
+      // asymmetric radius would distort a circle, so it's not used here.
+      className={`relative overflow-hidden rounded-full border-4 border-background bg-background ring-[1.6px] ring-(--sk-line) ${className}`}
     >
       {image && isSafeUrl(image) ? (
         <Image

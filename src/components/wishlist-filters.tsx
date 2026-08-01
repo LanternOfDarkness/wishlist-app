@@ -5,8 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { useRouter, usePathname } from "@/i18n/routing";
 import type { CategoryData } from "@/lib/repository";
 import { Button } from "./ui/button";
+import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
-import { Filter } from "lucide-react";
+import { Select } from "./ui/select";
+import { Filter } from "@/components/brand/icons";
 import { AVAILABLE_CURRENCIES } from "@/lib/currencies";
 import {
     WISHLIST_SORT_OPTIONS,
@@ -59,7 +61,7 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
     };
 
     return (
-        <div className="w-full md:w-64 shrink-0 mb-8 md:mb-0 bg-card border rounded-lg p-4 shadow-sm h-fit sticky top-20">
+        <div className="sketch w-full md:w-64 shrink-0 mb-8 md:mb-0 bg-card p-4 h-fit sticky top-20">
             <div className="flex justify-between items-center mb-4 md:mb-6">
                 <div className="flex gap-2 items-center">
                     <Filter className="w-4 h-4" />
@@ -81,9 +83,8 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                 {/* Sort */}
                 <div className="space-y-3">
                     <label htmlFor="sort-select" className="text-sm font-semibold">{t("sortBy")}</label>
-                    <select
+                    <Select
                         id="sort-select"
-                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                         value={filterState.currentSort}
                         onChange={(e) => updateFilter('sort', e.target.value)}
                     >
@@ -92,7 +93,7 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                                 {t(option.labelKey)}
                             </option>
                         ))}
-                    </select>
+                    </Select>
                 </div>
 
                 {/* Categories */}
@@ -102,12 +103,10 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                         <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
                             {categories.map(c => (
                                 <div key={c.id} className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
+                                    <Checkbox
                                         id={`cat-${c.id}`}
                                         checked={filterState.currentCategories.includes(c.id)}
                                         onChange={() => toggleCategory(c.id)}
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer disabled:cursor-not-allowed"
                                     />
                                     <label htmlFor={`cat-${c.id}`} className="text-sm cursor-pointer">{c.name}</label>
                                 </div>
@@ -119,9 +118,8 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                 {/* Currency */}
                 <div className="space-y-3">
                     <label htmlFor="currency-select" className="text-sm font-semibold">{t("currency")}</label>
-                    <select
+                    <Select
                         id="currency-select"
-                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                         value={filterState.currentCurrency}
                         onChange={(e) => updateFilter('currency', e.target.value)}
                     >
@@ -129,7 +127,7 @@ export function WishlistFilters({ categories, maxPriceOverall = 10000 }: Wishlis
                         {AVAILABLE_CURRENCIES.map(c => (
                             <option key={c} value={c}>{c}</option>
                         ))}
-                    </select>
+                    </Select>
                 </div>
 
                 {/* Price Range */}

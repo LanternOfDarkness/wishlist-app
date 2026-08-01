@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Button } from "./ui/button";
+import { SketchSpinner } from "@/components/ui/sketch-spinner";
 import { followUser } from "@/actions/follow-user";
 import { usePathname } from "next/navigation";
-import { Loader2, UserPlus, UserMinus } from "lucide-react";
+import { UserPlus, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 
 interface FollowButtonProps {
@@ -36,7 +37,7 @@ export function FollowButton({ userId, isFollowing }: FollowButtonProps) {
             disabled={isLoading}
         >
             {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <SketchSpinner className="h-4 w-4" />
             ) : isFollowing ? (
                 <>
                     <UserMinus className="h-4 w-4 mr-2" />

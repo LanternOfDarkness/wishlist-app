@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useTranslations } from "next-intl";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "@/components/brand/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,

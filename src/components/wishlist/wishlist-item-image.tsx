@@ -1,4 +1,4 @@
-import { Gift } from "lucide-react";
+import { Gift } from "@/components/brand/icons";
 import Image from "next/image";
 import type { CSSProperties } from "react";
 

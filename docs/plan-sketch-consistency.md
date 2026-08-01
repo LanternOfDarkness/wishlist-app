@@ -185,3 +185,16 @@ Manual matrix — landing, header/footer, wishlist page, embed iframe, settings,
 | Hand-drawn icons illegible at small sizes | Role split (§3) keeps ≤16px affordances geometric |
 | Motion causes vestibular discomfort | All motion gated behind `prefers-reduced-motion` |
 | Sketch chrome on form fields hurts legibility | Only *chrome* changes; geometry, hit area, and 14px sans type are explicitly preserved |
+
+## Status (2026-08-02)
+
+All four stages are implemented: CSS utilities (`.sketch`, `.sketch-tight`,
+`.sketch-focus`, `.sketch-field`, `.paper-lift`, `.sketch-hatch`,
+`.sketch-underline`, `.wobble-icon`, `--sk-*` tokens), 13 hand-drawn icons in
+`src/components/brand/icons/`, overlays & ui primitives (dialog, alert-dialog,
+dropdown-menu, sonner, button, input), shared `Select`/`Checkbox`, shadow /
+glass / empty-state removal, the radius-owner rule (`.sketch` owns outer radii;
+`itemBorderClass` `rounded-*` only on inner image frames), redraw-on-interact
+motion (`.sketch:hover::after`/`.sketch:active::after` nudges), and the
+sketch-native loading spinner (`src/components/ui/sketch-spinner.tsx` +
+`.sketch-spin` in globals.css). Verification is `npm run lint && npm test && npm run build`.

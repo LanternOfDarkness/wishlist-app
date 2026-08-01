@@ -20,6 +20,8 @@ export function WishlistBanner({
     return null;
   }
 
+  // No elevation — the banner sits flush on the paper (§1 depth rule): just
+  // the image/color strip with a bottom ink border, no shadow.
   return (
     <div
       className={`relative w-full border-b ${heightClassName}`}

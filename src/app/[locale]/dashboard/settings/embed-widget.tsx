@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useUpdateWidgetItems } from "@/lib/hooks/use-update-widget-items";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useUpdateWidgetSettings } from "@/lib/hooks/use-update-widget-settings";
 import { Label } from "@/components/ui/label";
 import { Copy, Check, Grid2X2, List } from "lucide-react";
@@ -234,8 +235,7 @@ export function EmbedWidget({
                 key={item.id}
                 className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded-md"
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   id={`widget-${item.id}`}
                   checked={item.showInWidget}
                   onChange={() => handleToggleItem(item.id, item.showInWidget)}
@@ -244,7 +244,6 @@ export function EmbedWidget({
                     (!item.showInWidget &&
                       selectedItemsCount >= 5)
                   }
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 />
                 <Label
                   htmlFor={`widget-${item.id}`}

@@ -1,7 +1,7 @@
 import { isSafeUrl } from "@/lib/utils";
 import { getEmbedWishlistPresentation } from "@/lib/wishlist-presentation";
 import { notFound } from "next/navigation";
-import { Gift } from "lucide-react";
+import { Gift } from "@/components/brand/icons";
 import { WishlistBanner } from "@/components/wishlist/wishlist-banner";
 import { WishlistAvatar } from "@/components/wishlist/wishlist-avatar";
 import { WishlistItemImage } from "@/components/wishlist/wishlist-item-image";
@@ -49,15 +49,29 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
   // against neighboring tiles at that size. Combine with `.sketch` — that's
   // the class that actually generates the `::after` echo-stroke;
   // `.sketch-tight` alone only adjusts its inset.
+  //
+  // No `.paper-lift` here: its `::before` echo also extends beyond the tile
+  // and these tiles are tightly packed (gap-3, down to 70px), so it would
+  // clip against neighbors — the double-stroke ink border already gives
+  // depth via overlap/rotation.
+  //
+  // Radius owner = `.sketch` (asymmetric, brand-fixed); `itemBorderClass`'s
+  // `rounded-*` is intentionally stripped from the outer tile so it can't
+  // fight — it applies to the inner image frame instead (see the
+  // `WishlistItemImage` className below).
   const itemClassName =
     widget.widgetLayout === "list"
-      ? `sketch sketch-tight grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3 bg-card/90 shadow-sm ${appearance.itemBorderClass}`
-      : `sketch sketch-tight flex w-[var(--widget-item-size)] max-w-[var(--widget-item-size)] flex-col gap-2 p-2 bg-card/90 shadow-sm ${appearance.itemBorderClass}`;
+      ? `sketch sketch-tight grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3 bg-card ${appearance.itemBorderClass.replace(/rounded-\S+/g, "").trim()}`
+      : `sketch sketch-tight flex w-[var(--widget-item-size)] max-w-[var(--widget-item-size)] flex-col gap-2 p-2 bg-card ${appearance.itemBorderClass.replace(/rounded-\S+/g, "").trim()}`;
 
   return (
     <div
       style={themeStyle}
-      className={`min-h-screen w-full overflow-auto border shadow-sm ${appearance.fontClass}`}
+      // Single ink `border` (resolves per-user via `--border`) instead of a
+      // `.sketch` double-stroke: the echo's `::after` inset (-3px/-5px)
+      // would clip at the iframe viewport edge, and the embed must stay
+      // unchanged in size/layout — a plain border is the safe ink edge.
+      className={`min-h-screen w-full overflow-auto border ${appearance.fontClass}`}
     >
       <style>{`header, footer { display: none !important; }`}</style>
 

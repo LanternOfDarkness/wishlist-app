@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Gift, Loader2 } from "lucide-react";
+import { Gift } from "@/components/brand/icons";
+import { SketchSpinner } from "@/components/ui/sketch-spinner";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -150,12 +152,10 @@ export function ReserveItemModal({
           </div>
 
           <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
+            <Checkbox
               id="isAnonymous"
               checked={isAnonymous}
               onChange={(e) => setIsAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
             />
             <Label htmlFor="isAnonymous">{t("anonymousLabel")}</Label>
           </div>
@@ -171,7 +171,7 @@ export function ReserveItemModal({
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <SketchSpinner className="mr-2 h-4 w-4" />
                   {t("submitting")}
                 </>
               ) : (

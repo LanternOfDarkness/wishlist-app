@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { User as UserIcon, ExternalLink, Lock, Star, Sparkles } from "lucide-react";
+import { User as UserIcon, ExternalLink, Lock, Star, Sparkles } from "@/components/brand/icons";
 import type { CSSProperties } from "react";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { AddItemModal } from "@/components/add-item-modal";
@@ -77,7 +77,7 @@ export default async function WishlistPage({
       />
 
       <div
-        className={`container mx-auto relative z-10 bg-background/80 backdrop-blur-sm rounded-xl shadow-lg px-4 py-10 ${
+        className={`sketch container mx-auto relative z-10 bg-card px-4 py-10 ${
           resolvedAppearance.layout.overlapBanner
             ? "-mt-20 min-h-[calc(100vh-16rem)]"
             : "mt-0 min-h-screen"
@@ -169,7 +169,7 @@ export default async function WishlistPage({
             : null}
 
           {wishlist.items.length === 0 ? (
-            <div className="text-center py-20 border-2 border-dashed rounded-xl text-muted-foreground bg-card/50">
+            <div className="sketch sketch-tight text-center py-20 text-muted-foreground bg-card">
               <div>
                 <p className="mb-4">{t("no_items") || "No items found."}</p>
               </div>
@@ -180,7 +180,11 @@ export default async function WishlistPage({
                 {wishlist.items.map((item) => (
                   <div
                     key={item.id}
-                    className={`sketch group relative bg-card transition-shadow hover:shadow-lg flex flex-col ${appearance.itemBorderClass}`}
+                    // Radius owner = `.sketch` (asymmetric, brand-fixed);
+                    // `itemBorderClass`'s `rounded-*` is intentionally
+                    // stripped here so it can't fight — it applies to the
+                    // inner image frame instead.
+                    className={`sketch paper-lift group relative bg-card flex flex-col ${appearance.itemBorderClass.replace(/rounded-\S+/g, "").trim()}`}
                     style={
                       {
                         // Structure (the double-stroke box) is brand-fixed;

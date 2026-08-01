@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Star } from "lucide-react";
+import { Star } from "@/components/brand/icons";
 
 import { SignInButton } from "@/components/sign-in-button";
 

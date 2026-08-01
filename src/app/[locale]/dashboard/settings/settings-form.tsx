@@ -6,9 +6,11 @@ import {
   revokeShareToken,
 } from "@/actions/wishlist-visibility";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
@@ -327,14 +329,13 @@ export function SettingsForm({
                 {t("advancedColorsHelp")}
               </p>
             </div>
-            <input
+            <Checkbox
               id="advancedColorsEnabled"
-              type="checkbox"
               checked={advancedColorsEnabled}
               onChange={(event) =>
                 setAdvancedColorsEnabled(event.target.checked)
               }
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer disabled:cursor-not-allowed"
+              className="mt-1"
             />
           </div>
           <input
@@ -431,54 +432,51 @@ export function SettingsForm({
             <Label htmlFor="bannerDisplayMode">
               {t("bannerDisplayModeLabel")}
             </Label>
-            <select
+            <Select
               id="bannerDisplayMode"
               name="bannerDisplayMode"
               value={bannerDisplayMode}
               onChange={(event) =>
                 setBannerDisplayMode(event.target.value as BannerDisplayMode)
               }
-              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {BANNER_DISPLAY_MODE_OPTIONS.map((mode) => (
                 <option key={mode} value={mode}>
                   {t(BANNER_MODE_LABELS[mode])}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="itemBorder">{t("itemBorderLabel")}</Label>
-            <select
+            <Select
               id="itemBorder"
               name="itemBorder"
               defaultValue={settings.itemBorder}
-              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {ITEM_BORDER_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {t(option.labelKey)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="font">{t("fontLabel")}</Label>
-          <select
+          <Select
             id="font"
             name="font"
             defaultValue={settings.font}
-            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {FONT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {t(option.labelKey)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
 
@@ -492,13 +490,11 @@ export function SettingsForm({
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {AVAILABLE_CURRENCIES.map((curr) => (
             <div key={curr} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 id={`curr-${curr}`}
                 name="favoriteCurrencies"
                 value={curr}
                 defaultChecked={settings.favoriteCurrencies.includes(curr)}
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer disabled:cursor-not-allowed"
               />
               <Label htmlFor={`curr-${curr}`}>{curr}</Label>
             </div>
