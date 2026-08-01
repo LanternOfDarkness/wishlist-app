@@ -38,6 +38,11 @@ describe("ensureUserWishlist", () => {
         userId: "user-1",
         title: DEFAULT_WISHLIST_TITLE,
         slug: "my-slug",
+        appearance: {
+          colorPreset: "paper",
+          font: "font-sketch",
+          itemBorder: "rounded-lg border-sketch",
+        },
       },
     });
   });

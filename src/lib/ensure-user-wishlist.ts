@@ -24,6 +24,15 @@ export async function ensureUserWishlist(userId: string, slug: string) {
       userId,
       title: DEFAULT_WISHLIST_TITLE,
       slug,
+      // New wishlists only — the sketch brand palette is seeded as the
+      // default appearance (plan §0/Phase 4). Existing wishlists are never
+      // rewritten: this only runs on the create path above, never on the
+      // `if (existing)` early return.
+      appearance: {
+        colorPreset: "paper",
+        font: "font-sketch",
+        itemBorder: "rounded-lg border-sketch",
+      },
     },
   });
 }

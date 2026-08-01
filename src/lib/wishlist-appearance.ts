@@ -2,7 +2,14 @@ import type { CSSProperties } from "react";
 
 import { isSafeUrl } from "./utils";
 
-export type ColorPreset = "light" | "rose" | "green" | "dark" | "minimal";
+export type ColorPreset =
+  | "light"
+  | "rose"
+  | "green"
+  | "dark"
+  | "minimal"
+  | "paper"
+  | "chalk";
 export type BannerDisplayMode = "banner-and-page" | "banner-only" | "page-only";
 
 export type WishlistFontClass =
@@ -12,10 +19,11 @@ export type WishlistFontClass =
   | "font-comic"
   | "font-georgia"
   | "font-trebuchet"
-  | "font-verdana";
+  | "font-verdana"
+  | "font-sketch";
 
 export const COLOR_PRESET_OPTIONS: ColorPreset[] = [
-  "light", "rose", "green", "dark", "minimal",
+  "light", "rose", "green", "dark", "minimal", "paper", "chalk",
 ];
 
 export const BANNER_DISPLAY_MODE_OPTIONS: BannerDisplayMode[] = [
@@ -36,6 +44,7 @@ export const FONT_OPTIONS = [
   { value: "font-georgia", labelKey: "fontGeorgia" },
   { value: "font-trebuchet", labelKey: "fontTrebuchet" },
   { value: "font-verdana", labelKey: "fontVerdana" },
+  { value: "font-sketch", labelKey: "fontSketch" },
 ] as const;
 
 export const ALLOWED_FONT_CLASSES: WishlistFontClass[] =
@@ -49,6 +58,7 @@ export const ITEM_BORDER_OPTIONS = [
   { value: "rounded-lg border-dashed", labelKey: "borderDashed" },
   { value: "rounded-lg border-dotted", labelKey: "borderDotted" },
   { value: "rounded-lg border-double", labelKey: "borderDouble" },
+  { value: "rounded-lg border-sketch", labelKey: "borderSketch" },
 ] as const;
 
 export const ALLOWED_ITEM_BORDER_CLASSES: readonly string[] =
@@ -193,6 +203,56 @@ export const APPEARANCE_PRESETS: Record<ColorPreset, ThemePreset> = {
       border: "#e5e7eb",
       input: "#e5e7eb",
       ring: "#52525b",
+    },
+  },
+  // Brand palette offered as opt-in user presets (plan §0's two-axis rule —
+  // color stays per-user even though this hue set originates from the
+  // sitewide brand). Sourced from design-landing-sketch-concept.md §2, with
+  // Phase 0's WCAG contrast fix applied to the muted text color (`#6e6a5f`,
+  // not the concept doc's `#7a756a`). `primary` uses the concept's
+  // `--highlight` token (not `--accent`) because the concept doc assigns
+  // "prices, stars, Reserved pill" to `--highlight`, which is exactly what
+  // this app's `primary` token drives (see WishlistItemPrice). Both
+  // `primaryForeground` values reuse this file's already-established
+  // `--sk-accent-contrast` counterparts from globals.css rather than plain
+  // black/white, since those were already picked for readable text on a
+  // saturated sketch-brand fill.
+  paper: {
+    primaryColor: "#c1432e",
+    labelKey: "colorPresetPaper",
+    tokens: {
+      primary: "#c1432e",
+      primaryForeground: "#fffdf8",
+      background: "#faf7ef",
+      foreground: "#2e2b26",
+      card: "#fffdf8",
+      cardForeground: "#2e2b26",
+      muted: "#f0ead9",
+      mutedForeground: "#6e6a5f",
+      popover: "#fffdf8",
+      popoverForeground: "#2e2b26",
+      border: "#e1d9c0",
+      input: "#e1d9c0",
+      ring: "#c1432e",
+    },
+  },
+  chalk: {
+    primaryColor: "#e08672",
+    labelKey: "colorPresetChalk",
+    tokens: {
+      primary: "#e08672",
+      primaryForeground: "#1e2124",
+      background: "#24272b",
+      foreground: "#edeae0",
+      card: "#2c3035",
+      cardForeground: "#edeae0",
+      muted: "#3b3f45",
+      mutedForeground: "#a8aca6",
+      popover: "#2c3035",
+      popoverForeground: "#edeae0",
+      border: "#3b3f45",
+      input: "#3b3f45",
+      ring: "#a8aca6",
     },
   },
 };

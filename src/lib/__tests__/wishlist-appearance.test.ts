@@ -11,6 +11,8 @@ import {
   hasSufficientContrast,
   migrateLegacyAppearanceColors,
   normalizeWidgetItemSize,
+  normalizeWishlistFontClass,
+  normalizeWishlistItemBorderClass,
   parseWishlistAppearance,
   resolveWishlistAppearance,
   type AppearanceTokens,
@@ -54,7 +56,7 @@ describe("resolveWishlistAppearance", () => {
     expect(resolved.layout.overlapBanner).toBe(true);
   });
 
-  it.each(["light", "rose", "green", "dark", "minimal"] as const)(
+  it.each(["light", "rose", "green", "dark", "minimal", "paper", "chalk"] as const)(
     "preset %s returns a complete token set",
     (preset) => {
       const resolved = resolveWishlistAppearance({ colorPreset: preset });
@@ -247,6 +249,50 @@ describe("resolveWishlistAppearance", () => {
   });
 });
 
+describe("brand palette presets (paper/chalk)", () => {
+  it("paper foreground/background clear MIN_CONTRAST_RATIO", () => {
+    expect(
+      hasSufficientContrast(
+        APPEARANCE_PRESETS.paper.tokens.foreground,
+        APPEARANCE_PRESETS.paper.tokens.background,
+      ),
+    ).toBe(true);
+  });
+
+  it("chalk foreground/background clear MIN_CONTRAST_RATIO", () => {
+    expect(
+      hasSufficientContrast(
+        APPEARANCE_PRESETS.chalk.tokens.foreground,
+        APPEARANCE_PRESETS.chalk.tokens.background,
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("normalizeWishlistFontClass", () => {
+  it("round-trips font-sketch unchanged", () => {
+    expect(normalizeWishlistFontClass("font-sketch")).toBe("font-sketch");
+  });
+
+  it("falls back to font-sans for an unknown value", () => {
+    expect(normalizeWishlistFontClass("font-made-up")).toBe("font-sans");
+  });
+});
+
+describe("normalizeWishlistItemBorderClass", () => {
+  it("round-trips rounded-lg border-sketch unchanged", () => {
+    expect(normalizeWishlistItemBorderClass("rounded-lg border-sketch")).toBe(
+      "rounded-lg border-sketch",
+    );
+  });
+
+  it("falls back to rounded-lg border-solid for an unknown value", () => {
+    expect(normalizeWishlistItemBorderClass("not-a-real-border")).toBe(
+      "rounded-lg border-solid",
+    );
+  });
+});
+
 describe("migrateLegacyAppearanceColors", () => {
   it("strips the legacy top-level color keys", () => {
     expect(
@@ -346,6 +392,24 @@ describe("parseWishlistAppearance", () => {
       widgetLayout: "list",
       widgetItemSize: 144,
       font: "font-mono",
+    });
+  });
+
+  it("preserves unknown keys with the new sketch preset fields present", () => {
+    const appearance = parseWishlistAppearance({
+      colorPreset: "paper",
+      font: "font-sketch",
+      itemBorder: "rounded-lg border-sketch",
+      widgetLayout: "list",
+      widgetItemSize: 120,
+    });
+
+    expect(appearance).toMatchObject({
+      colorPreset: "paper",
+      font: "font-sketch",
+      itemBorder: "rounded-lg border-sketch",
+      widgetLayout: "list",
+      widgetItemSize: 120,
     });
   });
 
