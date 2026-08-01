@@ -160,15 +160,16 @@
 
 @layer components {
   /*
-   * Sketch primitives (Phase 0 — frames/texture/hatch defined only, not yet
-   * referenced by any existing component/page; Phase 1 — the interaction
-   * utilities below were added: `.sketch-focus`, `.paper-lift`,
-   * `.sketch-field`, `.sketch-underline` — still defined, not yet applied,
-   * so no existing page changes visually). Every stroke/fill color below
-   * resolves through the `--sk-line` / `--sk-hatch` tokens, which are
+   * Sketch primitives (Phase 7 — all live and applied sitewide). The
+   * double-stroke frame, hatch fills, drawn-stroke focus, paper-lift depth,
+   * sketch-field control chrome, underline swash, wobble filter, and sketch
+   * loading spinner are all in use: any surface that carries a `.sketch`
+   * class renders the brand frame, and the interaction utilities are
+   * opted into where they apply (`.sketch-interactive` for the redraw
+   * nudge, `.sketch-underline` on dropdown focus). Every stroke/fill color
+   * below resolves through the `--sk-line` / `--sk-hatch` tokens, which are
    * themselves overridable via `--sk-line-override` / `--sk-hatch-override`
-   * so a later phase can feed per-user appearance colors in without
-   * touching this file.
+   * so per-user appearance colors feed in without touching this file.
    */
 
   /* Double-stroke "sketch" box: a base border plus an offset, rotated,

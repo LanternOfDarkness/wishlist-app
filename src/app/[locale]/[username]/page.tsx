@@ -182,10 +182,10 @@ export default async function WishlistPage({
                   <div
                     key={item.id}
                     // Radius owner = `.sketch` (asymmetric, brand-fixed);
-                    // `itemBorderClass`'s `rounded-*` is intentionally
-                    // stripped here so it can't fight — it applies to the
-                    // inner image frame instead.
-                    className={`sketch sketch-interactive paper-lift group relative bg-card flex flex-col ${appearance.itemBorderClass.replace(/rounded-\S+/g, "").trim()}`}
+                    // `itemBorderClassNoRadius` (derived once in
+                    // wishlist-appearance.ts) drops the `rounded-*` so it
+                    // can't fight — it applies to the inner image frame.
+                    className={`sketch sketch-interactive paper-lift group relative bg-card flex flex-col ${appearance.itemBorderClassNoRadius}`}
                     style={
                       {
                         // Structure (the double-stroke box) is brand-fixed;

@@ -591,17 +591,19 @@ function getAppearanceNumber(
  *  on an already-normalized appearance record. */
 export function getWishlistAppearancePresentation(appearance: WishlistAppearance) {
   const resolvedAppearance = resolveWishlistAppearance(appearance);
+  const itemBorderClass = getAppearanceString(
+    appearance,
+    "itemBorder",
+    "rounded-lg border-solid",
+  );
 
   return {
     raw: appearance,
     resolved: resolvedAppearance,
     primaryColor: resolvedAppearance.primaryColor,
     fontClass: getAppearanceString(appearance, "font", "font-sans"),
-    itemBorderClass: getAppearanceString(
-      appearance,
-      "itemBorder",
-      "rounded-lg border-solid",
-    ),
+    itemBorderClass,
+    itemBorderClassNoRadius: stripItemBorderRadius(itemBorderClass),
     welcomeMessage: getAppearanceString(appearance, "welcomeMessage"),
     favoriteCurrencies: Array.isArray(appearance.favoriteCurrencies)
       ? appearance.favoriteCurrencies.filter(
@@ -609,6 +611,15 @@ export function getWishlistAppearancePresentation(appearance: WishlistAppearance
         )
       : [],
   };
+}
+
+/** The radius-free subset of an allow-listed item border class. The outer
+ *  card/tile frame's radius is owned by `.sketch` alone (plan §1 "Radius");
+ *  the `rounded-*` token belongs to the inner image frame. Derived once here
+ *  from the allow-list-validated value so call sites never string-surgery a
+ *  className (see the wishlist page and embed tile classNames). */
+export function stripItemBorderRadius(borderClass: string) {
+  return borderClass.replace(/rounded-\S+/g, "").trim();
 }
 
 /** Widget-only presentation values (layout/item size) consumed by the embed

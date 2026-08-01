@@ -59,7 +59,7 @@ One vocabulary that answers every future "how should this look?" question:
    `dropdown-menu.tsx`, and [sonner.tsx](../src/components/ui/sonner.tsx) are stock shadcn — never
    touched by any redesign phase.
 8. **Generic empty/loading states.** The no-items state is `border-2 border-dashed rounded-xl`
-   (reads as a wireframe placeholder); `Loader2` + `animate-spin` appears 16× across 8 files.
+   (reads as a wireframe placeholder); `Loader2` + `animate-spin` appears 5× across 4 files.
 9. **The filters panel never got a sketch pass** — still `bg-card border rounded-lg shadow-sm`.
 
 ## 3. The icon role split
@@ -160,7 +160,7 @@ all seven color presets still legible; embed unchanged in size/layout.
 - **Redraw-on-interact**: hover/active nudge the `::after` echo stroke. All motion behind
   `@media (prefers-reduced-motion: reduce)`.
 - **Loading**: replace the geometric `Loader2` spin with a sketch-native indicator (e.g. a
-  progressively drawn stroke). 16 sites, 8 files.
+  progressively drawn stroke). 5 sites, 4 files.
 - **Docs**: fold §1's physics table into [CONTEXT.md](../CONTEXT.md) beside the two-axis rule — a
   future contributor needs both to avoid reintroducing a drop shadow.
 - **Sweep**: grep for any surviving `shadow-*`, `border-gray-*`, or `ring-[3px]`; confirm

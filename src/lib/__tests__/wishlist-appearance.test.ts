@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ALLOWED_ITEM_BORDER_CLASSES,
   APPEARANCE_PRESETS,
   MIN_CONTRAST_RATIO,
   getAdvancedColorSeedForPreset,
@@ -15,6 +16,7 @@ import {
   normalizeWishlistItemBorderClass,
   parseWishlistAppearance,
   resolveWishlistAppearance,
+  stripItemBorderRadius,
   type AppearanceTokens,
 } from "../wishlist-appearance";
 
@@ -293,6 +295,25 @@ describe("normalizeWishlistItemBorderClass", () => {
   });
 });
 
+describe("stripItemBorderRadius", () => {
+  it("removes the rounded-* radius from every allowed item border class", () => {
+    for (const borderClass of ALLOWED_ITEM_BORDER_CLASSES) {
+      const noRadius = stripItemBorderRadius(borderClass);
+      expect(noRadius).not.toMatch(/rounded-/);
+      expect(noRadius).toBe(
+        borderClass
+          .split(" ")
+          .filter((token) => !token.startsWith("rounded"))
+          .join(" "),
+      );
+    }
+  });
+
+  it("leaves a radius-free class unchanged", () => {
+    expect(stripItemBorderRadius("border-solid")).toBe("border-solid");
+  });
+});
+
 describe("migrateLegacyAppearanceColors", () => {
   it("strips the legacy top-level color keys", () => {
     expect(
@@ -534,6 +555,15 @@ describe("getWishlistAppearancePresentation", () => {
     expect(presentation.itemBorderClass).toBe("rounded-lg border-dashed");
     expect(presentation.welcomeMessage).toBe("Hello");
     expect(presentation.favoriteCurrencies).toEqual(["UAH", "EUR"]);
+  });
+
+  it("derives the radius-free item border class for the outer frame", () => {
+    const presentation = getWishlistAppearancePresentation({
+      itemBorder: "rounded-2xl border-solid",
+    });
+
+    expect(presentation.itemBorderClass).toBe("rounded-2xl border-solid");
+    expect(presentation.itemBorderClassNoRadius).toBe("border-solid");
   });
 });
 

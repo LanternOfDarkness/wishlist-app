@@ -55,14 +55,15 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
   // clip against neighbors — the double-stroke ink border already gives
   // depth via overlap/rotation.
   //
-  // Radius owner = `.sketch` (asymmetric, brand-fixed); `itemBorderClass`'s
-  // `rounded-*` is intentionally stripped from the outer tile so it can't
-  // fight — it applies to the inner image frame instead (see the
-  // `WishlistItemImage` className below).
+  // Radius owner = `.sketch` (asymmetric, brand-fixed);
+  // `itemBorderClassNoRadius` (derived once in wishlist-appearance.ts)
+  // drops the `rounded-*` from the outer tile so it can't fight — it
+  // applies to the inner image frame instead (see the `WishlistItemImage`
+  // className below).
   const itemClassName =
     widget.widgetLayout === "list"
-      ? `sketch sketch-tight sketch-interactive grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3 bg-card ${appearance.itemBorderClass.replace(/rounded-\S+/g, "").trim()}`
-      : `sketch sketch-tight sketch-interactive flex w-[var(--widget-item-size)] max-w-[var(--widget-item-size)] flex-col gap-2 p-2 bg-card ${appearance.itemBorderClass.replace(/rounded-\S+/g, "").trim()}`;
+      ? `sketch sketch-tight sketch-interactive grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3 bg-card ${appearance.itemBorderClassNoRadius}`
+      : `sketch sketch-tight sketch-interactive flex w-[var(--widget-item-size)] max-w-[var(--widget-item-size)] flex-col gap-2 p-2 bg-card ${appearance.itemBorderClassNoRadius}`;
 
   return (
     <div
